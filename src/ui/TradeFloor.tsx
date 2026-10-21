@@ -12,8 +12,25 @@ import { QtyPicker, clampQty } from './QtyPicker'
 
 type Act = (f: (st: E.GameState) => string | null | void) => void
 
-export function TradeFloor({ s, act }: { s: E.GameState; act: Act }) {
-  const [acc, setAcc] = useState(T.account())
+/**
+ * user: signed-in game username (or null for guests). Signed-in players are
+ * authenticated by their game session: the first open links any old key
+ * account this browser holds, or creates a trading account, automatically.
+ * Guests get a one-tap "Create account to trade" (onSignup).
+ */
+export function TradeFloor({ s, act, user, onSignup }: { s: E.GameState; act: Act; user?: string | null; onSignup?: () => void }) {
+  const [acc, setAcc] = useState(user ? null : T.account())
+  const [note, setNote] = useState('')
+  // Session sign-in: one 'me' call (sending any legacy key so the server can link it).
+  useEffect(() => {
+    if (!user) return
+    T.p2p('me', { company: s.company }).then(j => {
+      if (j.linked) setNote(`Your old trader @${j.me.name} is now linked to your game account. No key needed any more.`)
+      else if (j.created) setNote(`Trading account @${j.me.name} created for you.`)
+      T.setAccount(null) // the session replaces the key from now on
+      setMe(j.me); setAcc({ name: j.me.name, key: '' })
+    }).catch(e => setMsg(e.message))
+  }, [user])
   const [me, setMe] = useState<any>(null)
   const [boardData, setBoard] = useState<any>({ orders: [], leaders: [] })
   const [msg, setMsg] = useState('')
@@ -28,14 +45,16 @@ export function TradeFloor({ s, act }: { s: E.GameState; act: Act }) {
   useEffect(() => { refresh() }, [res])
   useEffect(() => { if (acc) run('value', { value: T.companyValue(s), company: s.company }) }, [acc])
 
+  if (!acc && user) return <div className="ex trade"><div className="card"><b>Signing in to the trade floor…</b>{msg && <span className="err">{msg}</span>}</div></div>
   if (!acc) return (
     <div className="ex trade">
+      {onSignup && <div className="card tf-cta">
+        <b>Trade with other players</b>
+        <small>Trading needs a free account, so your wallet and goods are safe on every device. Your company comes with you.</small>
+        <button className="primary big" onClick={onSignup}>Create account to trade</button>
+      </div>}
       <div className="card">
-        <b>Make a trading account</b>
-        <small>Trade with other players. Pick a username; the server gives you a secret key. Keep it, since it is the only way to sign in on another device.</small>
-        <label>Username <input value={f.name} placeholder="3-20 letters, digits or _" onChange={e => set({ name: e.target.value })} /></label>
-        <button className="primary" onClick={async () => { const j = await run('register', { name: f.name, company: s.company }); if (j) { const a = { name: j.name, key: j.key }; T.setAccount(a); setAcc(a) } }}>Create account</button>
-        <b>Or sign in</b>
+        <b>Have an old trader key?</b>
         <label>Account key <input value={f.paste} placeholder="name:key" onChange={e => set({ paste: e.target.value })} /></label>
         <button onClick={async () => { const a = T.parseAccountKey(f.paste); if (!a) return setMsg('Paste the name:key you saved'); T.setAccount(a); const j = await run('me'); if (j) setAcc(a); else T.setAccount(null) }}>Sign in</button>
         {msg && <span className="err">{msg}</span>}
@@ -62,8 +81,10 @@ export function TradeFloor({ s, act }: { s: E.GameState; act: Act }) {
           {(() => { const n = clampQty(f.qty, d.v); return <>
             <button onClick={async () => { if (await run('withdrawGoods', { res: d.res, q: d.q, qty: n })) act(st => { E.setWhy('from trade floor'); E.addStock(st, d.res, d.q, n) }) }}>Take {num(n)} home</button>
             <button onClick={async () => { if (await run('withdrawGoods', { res: d.res, q: d.q, qty: d.v })) act(st => { E.setWhy('from trade floor'); E.addStock(st, d.res, d.q, d.v) }) }}>All</button></> })()}</span>)}
-        <small>Key for other devices: <code>{T.accountKey(acc)}</code></small>
-        <button onClick={() => { T.setAccount(null); setAcc(null); setMe(null) }}>Sign out</button>
+        {note && <span className="ok-note">{note}</span>}
+        {user ? <small>Signed in with your game account <b>@{user}</b>. Works on any device you sign in on.</small>
+          : <><small>Key for other devices: <code>{T.accountKey(acc)}</code></small>
+            <button onClick={() => { T.setAccount(null); setAcc(null); setMe(null) }}>Sign out</button></>}
         <button className="danger" onClick={async () => {
           // Owner-only delete: the key proves it is yours. Wallet and depot are lost.
           if (!confirm('Delete this account for good? Your open orders are removed, and anything still in your wallet or depot is lost.')) return

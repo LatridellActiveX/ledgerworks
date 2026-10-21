@@ -72,7 +72,15 @@ export class MarketDO {
       await this.state.storage.put('ledger', L)
       return Response.json({ name: String(b.name).toLowerCase(), key, me: P.view(L, L.accounts[String(b.name).toLowerCase()]) })
     }
-    const a = P.auth(L, b.name, await sha(String(b.key ?? '')))
+    // Signed-in game players: the Worker put their username in b.sess (from
+    // the session cookie; it strips any client-sent value), so no key needed.
+    let a: P.Account | string, link: { linked?: boolean; created?: boolean } = {}
+    if (typeof b.sess === 'string' && b.sess) {
+      const rnd = [...crypto.getRandomValues(new Uint8Array(18))].map(x => x.toString(16).padStart(2, '0')).join('')
+      const r = P.sessionAccount(L, b.sess, b.name ? { name: b.name, hash: await sha(String(b.key ?? '')) } : null, String(b.company ?? ''), now, await sha(rnd))
+      a = r.a; link = { linked: r.linked, created: r.created }
+      if (r.linked || r.created) await this.state.storage.put('ledger', L)
+    } else a = P.auth(L, b.name, await sha(String(b.key ?? '')))
     if (typeof a === 'string') return err(a, 403)
     let r: any = true
     const n = (x: any) => Number(x)
@@ -92,7 +100,7 @@ export class MarketDO {
     }
     if (typeof r === 'string') return err(r)
     await this.state.storage.put('ledger', L)
-    return Response.json({ ok: true, result: r, me: P.view(L, a) })
+    return Response.json({ ok: true, result: r, me: P.view(L, a), ...link })
   }
 
   async fetch(req: Request): Promise<Response> {

@@ -4,6 +4,12 @@ export interface ChangeEntry { id: string; date: string; title: string; notes: s
 
 export const CHANGELOG: ChangeEntry[] = [
   {
+    id: 'tradefloor-session',
+    date: '2026-10-21',
+    title: "One sign-in for the trade floor",
+    notes: ["If you're signed in, the trade floor signs you in automatically. No second sign-in and no trader key needed.", "An old trader key saved in this browser is linked to your game account the first time you open the trade floor.", "Playing as a guest? One tap on Create account to trade sets you up and keeps your company."],
+  },
+  {
     id: 'executives-screen',
     date: '2026-10-21',
     title: 'Executives',

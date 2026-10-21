@@ -49,6 +49,7 @@ import { cloudKey, cloudLoad, cloudSave, syncWorld, useCloudKey } from './game/c
 import './app.css'
 
 export default function App() {
+  const [loginMode, setLoginMode] = useState<'in' | 'up'>('in') // 'up' when opened from "Create account to trade"
   const [player, setPlayer] = useState<string | null>(null) // open player profile
   const [gfx, setGfx] = useState(GFX.getSetting)
   const [booting, setBooting] = useState(() => !(globalThis as any).__lwNoBoot)
@@ -204,7 +205,7 @@ export default function App() {
           {screen === 'routes' && <Routes s={s} act={act} />}
           {screen === 'chains' && <Chains s={s} res={chainRes} onPick={setChainRes} />}
           {screen === 'exchange' && <Exchange s={s} act={act} />}
-          {screen === 'trade' && <TradeFloor s={s} act={act} />}
+          {screen === 'trade' && <TradeFloor s={s} act={act} user={user} onSignup={() => { setLoginMode('up'); setShowLogin(true) }} />}
           {screen === 'research' && <Research s={s} act={act} />}
           {screen === 'board' && <Board s={s} onExecs={() => open('execs')} />}
           {screen === 'execs' && <Executives s={s} act={act} />}
@@ -274,7 +275,7 @@ export default function App() {
       <UpdatePrompt save={() => saveGame(latest.current)} />
       {/* Boot screen first (skipped by the screenshot tool via __lwNoBoot). Login and the tour wait for it. */}
       {booting && <Boot view={view} onDone={() => setBooting(false)} />}
-      {!booting && showLogin && <Login onDone={afterLogin} onClose={A.isGuest() || user ? () => setShowLogin(false) : undefined} />}
+      {!booting && showLogin && <Login initial={loginMode} onDone={afterLogin} onClose={A.isGuest() || user ? () => setShowLogin(false) : undefined} />}
       {!booting && !showLogin && !tut.done && !tut.off && <Tutorial t={tut} set={setTut} />}
 
       {/* Bottom tab bar: five main screens. */}

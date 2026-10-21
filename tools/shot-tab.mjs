@@ -54,6 +54,9 @@ for (const c of (process.env.CLICKS ?? '').split(',').filter(Boolean)) {
   if (c.startsWith('css:')) await p.locator(c.slice(4)).first().click({ force: true }); else await p.getByRole('button', { name: c, exact: true }).first().click({ force: true })
 }
 if (process.env.CLICKS) await p.waitForTimeout(1200)
+// TYPE="selector=>text": type into a field after the clicks; CLICKS2 = more clicks after typing.
+if (process.env.TYPE) { const [sel, txt] = process.env.TYPE.split('=>'); await p.locator(sel).first().fill(txt); await p.waitForTimeout(1500) }
+for (const c of (process.env.CLICKS2 ?? '').split(',').filter(Boolean)) { await p.locator(c.slice(4)).first().click({ force: true }); await p.waitForTimeout(1500) }
 // VB='x y w h': zoom the 2D campus SVG to that viewBox (close-ups).
 if (process.env.VB) { await p.evaluate(vb => document.querySelector('svg.campus')?.setAttribute('viewBox', vb), process.env.VB); await p.waitForTimeout(300) }
 // TAP=selector: verify a real tap. Records cash, stock and bubble count,

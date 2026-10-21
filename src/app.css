@@ -705,3 +705,4 @@ tr.bidrow td { color: #3c9a5f; font-weight: 600 }
 .pv { color: #2c7a41; white-space: nowrap }
 .pprof { display: flex; flex-direction: column; gap: 12px } .pp-head { display: flex; align-items: center; gap: 12px } .pp-head h3 { margin: 0 }
 .cv-rank li { cursor: pointer }
+.tf-cta { background: linear-gradient(135deg, #eef7ff, #f2fbf2) } .ok-note { color: #2c7a41; font-weight: 600 }

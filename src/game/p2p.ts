@@ -53,6 +53,31 @@ export function register(L: Ledger, name: string, hash: string, company: string,
   return true
 }
 
+/**
+ * Trade floor sign-in with the GAME session (stage 13). `user` is the signed-in
+ * game username, set by the Worker from the session cookie (never by the
+ * client). Order:
+ *  1. an account already linked to this user (owner === user);
+ *  2. a legacy key account the browser still holds (name + key hash match,
+ *     not linked to anyone): it gets linked to the user now (auto-link);
+ *  3. otherwise a new trading account is created for the user, named after
+ *     the username (or username_2, _3... if a legacy trader already has it).
+ * Linked accounts are reached only through the session; the random hash just
+ * fills the old key slot so a key can't be guessed.
+ */
+export function sessionAccount(L: Ledger, user: string, legacy: { name?: unknown; hash?: string } | null, company: string, now: number, randomHash: string): { a: Account; linked?: boolean; created?: boolean } {
+  const own = Object.values(L.accounts).find(a => a.owner === user)
+  if (own) return { a: own }
+  if (legacy && typeof legacy.name === 'string' && legacy.hash) {
+    const old = L.accounts[legacy.name.toLowerCase()]
+    if (old && !old.owner && old.hash === legacy.hash) { old.owner = user; return { a: old, linked: true } }
+  }
+  let name = user, n = 2
+  while (L.accounts[name]) name = `${user.slice(0, 17)}_${n++}`
+  L.accounts[name] = { name, hash: randomHash, company: company.slice(0, 40), wallet: 0, depot: {}, value: 0, traded: 0, trades: 0, joined: now, owner: user }
+  return { a: L.accounts[name], created: true }
+}
+
 /** Check credentials; returns the account or an error. */
 export function auth(L: Ledger, name: string, hash: string): R<Account> {
   const a = L.accounts[String(name).toLowerCase()]

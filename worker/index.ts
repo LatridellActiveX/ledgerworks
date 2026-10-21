@@ -72,7 +72,16 @@ export default {
     if (url.pathname === '/api/report' && req.method === 'POST') return world(env).fetch('https://do/report', { method: 'POST', body: await req.text() })
 
     // Stage 11: player accounts and trading all live in the market object.
-    if (url.pathname.startsWith('/api/p2p/') && req.method === 'POST') return world(env).fetch('https://do/p2p/' + url.pathname.slice(9), { method: 'POST', body: await req.text() })
+    if (url.pathname.startsWith('/api/p2p/') && req.method === 'POST') {
+      // Trade floor: a signed-in game session authenticates the trader (no key).
+      // `sess` is ONLY ever set here from the cookie; a client-sent one is dropped.
+      const b = await req.json<any>().catch(() => ({}))
+      delete b.sess
+      await ensureAuthSchema(env)
+      const me = await sessionUser(req, env)
+      if (me) b.sess = me.name
+      return world(env).fetch('https://do/p2p/' + url.pathname.slice(9), { method: 'POST', body: JSON.stringify(b) })
+    }
     // Player search + public profiles (worker/players.ts). Rate-limited per hashed IP, in memory only.
     if (url.pathname.startsWith('/api/players/')) {
       await ensureAuthSchema(env)

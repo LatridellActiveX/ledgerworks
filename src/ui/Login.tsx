@@ -5,8 +5,8 @@ import { useState } from 'react'
 import * as A from '../game/auth'
 import { Logo } from './art'
 
-export function Login({ onDone, onClose }: { onDone: (name: string | null, created?: boolean) => void; onClose?: () => void }) {
-  const [mode, setMode] = useState<'in' | 'up'>('in')
+export function Login({ onDone, onClose, initial = 'in' }: { onDone: (name: string | null, created?: boolean) => void; onClose?: () => void; initial?: 'in' | 'up' }) {
+  const [mode, setMode] = useState<'in' | 'up'>(initial)
   const [priv, setPriv] = useState(false) // privacy policy overlay
   const [name, setName] = useState(''), [pw, setPw] = useState(''), [err, setErr] = useState(''), [busy, setBusy] = useState(false)
   const go = async () => {
