@@ -53,3 +53,11 @@ describe('exchange', () => {
     expect(E.haveQty(s, 'apples')).toBe(10)
   })
 })
+
+describe('online mode', () => {
+  it('does not random-walk prices locally when the server owns them', () => {
+    const s = fresh(); s.online = true; s.ref = { apples: 2 }
+    M.marketDay(s)
+    expect(s.ref.apples).toBe(2)
+  })
+})

@@ -4,6 +4,12 @@ export interface ChangeEntry { id: string; date: string; title: string; notes: s
 
 export const CHANGELOG: ChangeEntry[] = [
   {
+    id: 'stage6-cloud-world-server',
+    date: '2026-10-21',
+    title: 'Shared world server',
+    notes: ['Exchange prices now come from one shared server market, stepped every 15 minutes, and everyone who sells moves them.', 'Cloud save and load, with a cloud key to carry your company to another device.', 'Online/offline badge; the game still runs fully offline.'],
+  },
+  {
     id: 'stage5-exchange-order-book',
     date: '2026-10-21',
     title: 'The Exchange opens',

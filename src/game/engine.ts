@@ -51,6 +51,9 @@ export interface GameState {
   asks: Order[] // all sell orders: yours and NPC
   bidLeft: Record<string, number> // NPC instant-buy capacity left today
   exSold: Record<string, number> // units you sold on the exchange today
+  // --- Server (stage 6) ---
+  online?: boolean // true when prices come from the shared server market
+  phase?: 'recession' | 'normal' | 'boom' // economy phase (stage 7)
 }
 
 // --------------------------------------------------------------------------

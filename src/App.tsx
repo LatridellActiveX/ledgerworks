@@ -13,6 +13,7 @@ import { clock, dur, money, num } from './ui/fmt'
 import { CHANGELOG } from './changelog'
 import { RetailPanel } from './ui/RetailPanel'
 import { Exchange } from './ui/Exchange'
+import { cloudKey, cloudLoad, cloudSave, syncWorld, useCloudKey } from './game/cloud'
 import './app.css'
 
 export default function App() {
@@ -36,6 +37,15 @@ export default function App() {
   }, [])
   useEffect(() => { const t = setInterval(() => saveGame(s), 5000); return () => clearInterval(t) })
 
+  // Every minute: pull shared prices from the server; every 2 minutes: cloud save.
+  useEffect(() => {
+    const pull = () => setS(p => { const n = structuredClone(p); syncWorld(n).then(() => setS(q => ({ ...q, ref: n.ref, online: n.online, phase: n.phase ?? q.phase }))); return p })
+    pull()
+    const a = setInterval(pull, 60000)
+    const b = setInterval(() => setS(p => { cloudSave(p); return p }), 120000)
+    return () => { clearInterval(a); clearInterval(b) }
+  }, [])
+
   const lvl = E.companyLevel(s.xp)
   const slots = E.plotCount(lvl)
   const xpLo = E.xpForLevel(lvl), xpHi = E.xpForLevel(lvl + 1)
@@ -54,6 +64,9 @@ export default function App() {
         <span className="grow" />
         <button onClick={() => { navigator.clipboard?.writeText(exportCode(s)); setMsg('Save code copied to clipboard') }}>Copy save</button>
         <button onClick={() => { const c = prompt('Paste a save code'); if (c) try { const n = importCode(c.trim()); setS(n); saveGame(n) } catch (e: any) { setMsg(e.message) } }}>Load save</button>
+        <span className="pill" title="Prices come from the shared server market when online">{s.online ? '● online' : '○ offline'}</span>
+        <button onClick={async () => setMsg((await cloudSave(s)) || 'Saved to the cloud')}>Cloud save</button>
+        <button onClick={async () => { const k = prompt('Cloud key (copy it from another device). Leave as-is to load this browser\'s cloud save.', cloudKey()); if (!k) return; try { useCloudKey(k); const n = await cloudLoad(); setS(n); saveGame(n); setMsg('Loaded from the cloud') } catch (e: any) { setMsg(e.message) } }}>Cloud load</button>
         <button onClick={() => { if (confirm('Start over? Your current company is lost.')) { const n = E.newGame(prompt('Company name', 'My Company') || 'My Company'); setS(n); saveGame(n); setSel(null) } }}>New</button>
       </header>
       {msg && <div className="toast" onClick={() => setMsg('')}>{msg}</div>}

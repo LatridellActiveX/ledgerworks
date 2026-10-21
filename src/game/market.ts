@@ -159,6 +159,8 @@ export function npcHour(s: GameState, say: (m: string) => void) {
 
 /** Daily: reference prices drift, flooded goods dip, NPC stock refreshes. */
 export function marketDay(s: GameState) {
+  // Online, the shared server market moves prices; we only restock NPCs.
+  if (s.online) { s.exSold = {}; restockNpc(s); return }
   for (const r of RESOURCES) {
     const base = r.basePrice, ref = refPrice(s, r.id)
     let next = ref + 0.1 * (base - ref) + ref * 0.06 * (rnd(s) - 0.5)
