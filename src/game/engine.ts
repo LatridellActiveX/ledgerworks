@@ -198,9 +198,18 @@ export function scrap(s: GameState, plot: number): string | null {
 // --------------------------------------------------------------------------
 // Production
 // --------------------------------------------------------------------------
-/** Hours a production run takes: qty / (rate * level). */
 /** Hours a production run takes; economy phase speeds up or slows the building. */
+/**
+ * Shortest job, in game hours (6 game minutes). Tiny jobs (even 1 unit) still
+ * take and pay for at least this long, so there's no zero-time or zero-wage
+ * job to repeat for free.
+ */
+export const MIN_JOB_H = 0.1
+/** Amounts must be whole numbers of at least 1. Returns an error message, or null. */
+export const badQty = (qty: number) => (Number.isInteger(qty) && qty >= 1 ? null : 'Pick a whole amount of at least 1')
 export const makeHours = (res: string, qty: number, level: number, type?: string, s?: GameState, abund = 1) =>
+  rawMakeHours(res, qty, level, type, s, abund) < MIN_JOB_H ? MIN_JOB_H : rawMakeHours(res, qty, level, type, s, abund)
+const rawMakeHours = (res: string, qty: number, level: number, type?: string, s?: GameState, abund = 1) =>
   qty / (REC[res].perHour * level * abund * (type && s ? productionMult(type, s.phase) * SEA.seasonProd(type, s.seasonPhase) : 1))
 /** Company admin overhead fraction from all building levels. */
 export const overhead = (s?: GameState) => (s ? adminOverhead(s.plots.filter(Boolean).map(b => b!.level)) * (1 - X.overheadCut(s)) : 0)
@@ -212,7 +221,7 @@ export function startMake(s: GameState, plot: number, res: string, qty: number):
   if (!bd || bd.job) return 'Building is busy'
   const bt = BLD[bd.type], rc = REC[res]
   if (!bt.recipes?.includes(res)) return 'This building cannot make that'
-  if (!(qty > 0)) return 'Pick an amount'
+  const bq = badQty(qty); if (bq) return bq
   const hours = makeHours(res, qty, bd.level, bd.type, s, bd.abund?.[res] ?? 1), wages = makeWages(bd.type, bd.level, hours, s)
   if (s.cash < wages) return 'Not enough cash for wages'
   for (const [inp, per] of Object.entries(rc.inputs)) if (haveQty(s, inp) + 1e-9 < per * qty) return `Need ${Math.ceil(per * qty)} ${RES[inp].name}`
@@ -247,13 +256,14 @@ export function sellRate(s: GameState, res: string, q: number, price: number) {
   return base * Math.pow(fairPrice(res, q) / price, 2.2) * (1 + 0.12 * q) / sat * retailMult(s.phase) * X.retailBoost(s) * SEA.seasonRetail(res, r.store, s.seasonPhase)
 }
 export const sellHours = (s: GameState, res: string, q: number, price: number, qty: number, level: number) =>
-  qty / (sellRate(s, res, q, price) * level)
+  Math.max(MIN_JOB_H, qty / (sellRate(s, res, q, price) * level))
 
 export function startSell(s: GameState, plot: number, res: string, q: number, qty: number, price: number): string | null {
   const bd = s.plots[plot]
   if (!bd || bd.job) return 'Building is busy'
   if (RES[res]?.store !== BLD[bd.type].store) return 'This shop does not sell that'
-  if ((s.stock[key(res, q)] ?? 0) + 1e-9 < qty || !(qty > 0)) return 'Not enough in the warehouse'
+  const bq = badQty(qty); if (bq) return bq
+  if ((s.stock[key(res, q)] ?? 0) + 1e-9 < qty) return 'Not enough in the warehouse'
   if (!(price > 0)) return 'Set a price'
   const hours = sellHours(s, res, q, price, qty, bd.level)
   if (hours > 72) return 'Too slow (over 3 days). Lower the price or the amount.'

@@ -7,6 +7,8 @@ import * as M from '../game/market'
 import { RES, RESOURCES } from '../game/data'
 import { ResIcon } from './art'
 import { dur, money, num } from './fmt'
+import { QtyPicker, clampQty } from './QtyPicker'
+import * as Q from '../game/qty'
 
 type Act = (f: (st: E.GameState) => string | null | void) => void
 
@@ -20,9 +22,13 @@ export function Exchange({ s, act }: { s: E.GameState; act: Act }) {
   const [sq, setSq] = useState(0)
   const [price, setPrice] = useState(0)
   const ref = M.refPrice(s, res)
-  const qty = sq || Math.floor(lot?.v ?? 0)
+  const lim = lot ? Q.maxList(s, res, lot.q) : { max: 0, why: '' }
+  const qty = clampQty(sq || lim.max, lim.max)
+  const qlim = lot ? Q.maxQuick(s, res, lot.q) : { max: 0, why: '' }
+  const blim = Q.maxBuy(s, res, minQ)
+  const bqty = clampQty(bq, blim.max)
   const p = price || Math.round(ref * 1.05 * 100) / 100
-  const quote = M.quoteBuy(s, res, bq, minQ)
+  const quote = M.quoteBuy(s, res, Math.max(1, Math.min(bq, Q.maxBuy(s, res, minQ).max || 1)), minQ)
   const mine = s.asks.filter(o => o.owner === 'me')
 
   return (
@@ -37,18 +43,19 @@ export function Exchange({ s, act }: { s: E.GameState; act: Act }) {
       </div>
       <div className="card">
         <b>Buy</b>
-        <label>Amount <input type="number" min={1} value={bq} onChange={e => setBq(Number(e.target.value))} /></label>
-        <button className="primary" disabled={!isFinite(quote) || quote > s.cash} onClick={() => act(st => M.buy(st, res, bq, minQ))}>{isFinite(quote) ? `Buy for ${money(quote)}` : 'Not enough listed'}</button>
+        <QtyPicker value={bqty} max={blim.max} why={blim.why} onChange={setBq} />
+        {blim.max >= 1 && <small>{num(bqty)} for {money(quote)} · avg {money(quote / bqty)} each</small>}
+        <button className="primary" disabled={blim.max < 1 || !isFinite(quote) || quote > s.cash} onClick={() => act(st => M.buy(st, res, bqty, minQ))}>{blim.max >= 1 ? `Buy ${num(bqty)} for ${money(quote)}` : 'Nothing you can buy'}</button>
       </div>
       <div className="card">
         <b>Sell</b>
         {!lot ? <span className="muted">You have no {RES[res].name}.</span> : <>
           <label>Lot <select value={lot.q} onChange={e => { setSellQ(Number(e.target.value)); setSq(0) }}>{lots.map(l => <option key={l.q} value={l.q}>Q{l.q} ({num(l.v)})</option>)}</select></label>
-          <label>Amount <input type="number" min={1} value={qty} onChange={e => setSq(Number(e.target.value))} /></label>
+          <QtyPicker value={qty} max={lim.max} why={lim.why} onChange={setSq} />
           <label>Price $<input type="number" step="0.01" value={p} onChange={e => setPrice(Number(e.target.value))} /></label>
           <small>Needs {M.cratesFor(res, qty)} crates (have {num(E.haveQty(s, 'crates'))}) · 3% fee → you get {money(qty * p * (1 - M.FEE))}</small>
-          <button className="primary" onClick={() => act(st => M.placeAsk(st, res, lot.q, qty, p))}>List on exchange</button>
-          <button onClick={() => act(st => M.quickSell(st, res, lot.q, qty))}>Quick sell to traders at {money(M.bidPrice(s, res, lot.q))} ({num(s.bidLeft[res] ?? 0)} left today)</button>
+          <button className="primary" disabled={lim.max < 1} onClick={() => act(st => M.placeAsk(st, res, lot.q, qty, p))}>List {num(qty)} on exchange</button>
+          <button disabled={qlim.max < 1} title={qlim.why} onClick={() => act(st => M.quickSell(st, res, lot.q, Math.min(qty, qlim.max)))}>Quick sell {num(Math.min(qty, qlim.max))} to traders at {money(M.bidPrice(s, res, lot.q))} → {money(Math.min(qty, qlim.max) * M.bidPrice(s, res, lot.q) * (1 - M.FEE))} ({num(s.bidLeft[res] ?? 0)} wanted today)</button>
         </>}
       </div>
       <div className="card">

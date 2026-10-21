@@ -60,7 +60,7 @@ export function auth(L: Ledger, name: string, hash: string): R<Account> {
 // ---- wallet and depot transfers (the client debits/credits its local state) ----
 export function deposit(a: Account, cash: number, goods: { res: string; q: number; qty: number }[] = []): R {
   if (!(cash >= 0) || cash > MAX_DEPOSIT) return 'Bad amount'
-  for (const g of goods) if (!(g.qty > 0) || g.qty > 1e7 || !(g.q >= 0 && g.q <= 12)) return 'Bad goods'
+  for (const g of goods) if (!Number.isInteger(g.qty) || g.qty < 1 || g.qty > 1e7 || !(g.q >= 0 && g.q <= 12)) return 'Pick a whole amount of at least 1'
   a.wallet = cents(a.wallet + cash)
   for (const g of goods) a.depot[k(g.res, g.q)] = (a.depot[k(g.res, g.q)] ?? 0) + Math.floor(g.qty)
   return true
@@ -71,7 +71,8 @@ export function withdrawCash(a: Account, cash: number): R {
 }
 export function withdrawGoods(a: Account, res: string, q: number, qty: number): R {
   const have = a.depot[k(res, q)] ?? 0
-  if (!(qty > 0) || qty > have) return 'Not enough in your depot'
+  if (!Number.isInteger(qty) || qty < 1) return 'Pick a whole amount of at least 1'
+  if (qty > have) return 'Not enough in your depot'
   take(a, res, q, qty); return true
 }
 function take(a: Account, res: string, q: number, qty: number) {

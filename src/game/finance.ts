@@ -172,12 +172,14 @@ export function acceptGov(s: GameState): string | null {
   return null
 }
 /** Deliver as much of one item as you have at the needed quality or better. */
-export function deliverGov(s: GameState, res: string): string | null {
+/** Deliver up to `amount` units (default: as many as fit). Amount must be a whole number >= 1. */
+export function deliverGov(s: GameState, res: string, amount?: number): string | null {
+  if (amount !== undefined && (!Number.isInteger(amount) || amount < 1)) return 'Pick a whole amount of at least 1'
   const g = s.gov
   if (!g || g.status !== 'active') return 'No active order'
   const it = g.items.find(i => i.res === res)
   if (!it) return 'Not part of this order'
-  let need = it.qty - it.done
+  let need = Math.min(it.qty - it.done, amount ?? Infinity)
   const lots = Object.keys(s.stock).map(parseKey).filter(l => l.res === res && l.q >= it.q).sort((a, b) => a.q - b.q)
   let sent = 0
   for (const l of lots) { const t = Math.min(need, s.stock[key(l.res, l.q)]); addStock(s, l.res, l.q, -t); need -= t; sent += t; if (need <= 0) break }

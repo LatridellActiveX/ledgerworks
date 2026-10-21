@@ -201,3 +201,18 @@ select.realm { border-radius: 999px; padding: 4px 10px; font: inherit; font-size
 .rot-tools { position: absolute; left: 10px; bottom: 10px; display: flex; gap: 6px; z-index: 3 }
 .rot-tools button { width: 36px; height: 36px; border-radius: 12px; font-size: 18px; padding: 0 }
 
+
+/* Quantity picker */
+.qty { display: flex; flex-direction: column; gap: 6px; padding: 8px 10px; border-radius: 12px; background: rgba(255,255,255,0.55); border: 1px solid rgba(0,0,0,0.06) }
+.qty-row { display: flex; align-items: center; gap: 6px }
+.qty-label { font-weight: 600; min-width: 56px }
+.qty input[type=number] { width: 92px; text-align: center; font: inherit; font-weight: 700 }
+.qty .step { width: 34px; height: 34px; border-radius: 10px; font-size: 18px; padding: 0; touch-action: none; user-select: none }
+.qty-slider { width: 100%; accent-color: #f07a4a }
+.qty-quick { display: flex; flex-wrap: wrap; gap: 4px }
+.qty-quick button { padding: 3px 10px; font-size: 12px; border-radius: 999px }
+.qty-quick button.on { background: #f07a4a; color: #fff }
+.qty-why { color: #a0522d }
+.preview { display: flex !important; flex-direction: column; gap: 2px; font-size: 13px }
+.preview > div { display: flex; justify-content: space-between; gap: 10px }
+.preview b { font-weight: 700 }

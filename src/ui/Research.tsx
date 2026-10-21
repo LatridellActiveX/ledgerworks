@@ -17,7 +17,7 @@ export function Research({ s, act }: { s: E.GameState; act: Act }) {
   return (
     <div>
       <p className="muted">Each note has a {Math.round(R.PATENT_CHANCE * bonus * 100)}% chance to become a patent. You always make the best quality you've researched, but never more than your lowest-quality input + 1.
-        {' '}Notes per click: <input type="number" min={1} value={n} onChange={e => setN(Number(e.target.value))} /></p>
+        {' '}Notes per click: <input type="number" min={1} step={1} value={n} onChange={e => setN(Math.max(1, Math.floor(Number(e.target.value) || 1)))} /></p>
       <div className="fields">
         {R.FIELDS.map(f => (
           <div key={f} className="card">

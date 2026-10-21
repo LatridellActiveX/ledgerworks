@@ -61,7 +61,7 @@ const round2 = (n: number) => Math.max(0.01, Math.round(n * 100) / 100)
 
 /** Buy `qty` from the cheapest asks (skipping your own). Goods keep their quality. */
 export function buy(s: GameState, res: string, qty: number, minQ = 0): string | null {
-  if (!(qty > 0)) return 'Pick an amount'
+  if (!Number.isInteger(qty) || qty < 1) return 'Pick a whole amount of at least 1'
   const asks = book(s, res, minQ).filter(o => o.owner !== 'me')
   let left = qty, cost = 0
   for (const o of asks) { const t = Math.min(left, o.qty); cost += t * o.price; left -= t; if (left <= 0) break }
@@ -87,7 +87,8 @@ export function quoteBuy(s: GameState, res: string, qty: number, minQ = 0) {
 
 /** List goods for sale. Goods and crates leave the warehouse into the order. */
 export function placeAsk(s: GameState, res: string, q: number, qty: number, price: number): string | null {
-  if (!(qty > 0) || !(price > 0)) return 'Set an amount and a price'
+  if (!Number.isInteger(qty) || qty < 1) return 'Pick a whole amount of at least 1'
+  if (!(price > 0)) return 'Set a price'
   if ((s.stock[key(res, q)] ?? 0) + 1e-9 < qty) return 'Not enough in the warehouse'
   if (price > refPrice(s, res) * 3 * (1 + 0.1 * q)) return 'Price is far above the market; nobody will buy'
   const crates = cratesFor(res, qty)
@@ -114,7 +115,7 @@ export const cancelFee = (s: GameState, o: Order) => (s.hour - o.placedH < CANCE
 
 /** Sell instantly to NPC buyers at the bid price, up to today's limit. */
 export function quickSell(s: GameState, res: string, q: number, qty: number): string | null {
-  if (!(qty > 0)) return 'Pick an amount'
+  if (!Number.isInteger(qty) || qty < 1) return 'Pick a whole amount of at least 1'
   if ((s.stock[key(res, q)] ?? 0) + 1e-9 < qty) return 'Not enough in the warehouse'
   if ((s.bidLeft[res] ?? 0) < qty) return `Buyers only want ${Math.floor(s.bidLeft[res] ?? 0)} more today`
   const crates = cratesFor(res, qty)

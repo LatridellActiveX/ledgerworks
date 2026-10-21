@@ -22,8 +22,10 @@ import { Research } from './ui/Research'
 import { Board } from './ui/Board'
 import { Finance } from './ui/Finance'
 import { TradeFloor } from './ui/TradeFloor'
+import { QtyPicker, clampQty } from './ui/QtyPicker'
+import * as Q from './game/qty'
 import { cashLineBonus, checkAchievements } from './game/execs'
-import { PHASE_LABEL, accountingFee, productionMult } from './game/economy'
+import { PHASE_LABEL, accountingFee } from './game/economy'
 import { cloudKey, cloudLoad, cloudSave, syncWorld, useCloudKey } from './game/cloud'
 import './app.css'
 
@@ -187,26 +189,32 @@ function BuildingPanel({ s, plot, act }: { s: E.GameState; plot: number; act: Ac
   )
 }
 
-/** Choose a recipe and amount; shows time, wages and needed inputs. */
+/** Choose a recipe and an exact amount (1..max); live preview of time, wages and inputs. */
 function MakeForm({ s, plot, act }: { s: E.GameState; plot: number; act: Act }) {
   const bd = s.plots[plot]!, bt = BLD[bd.type]
   const [res, setRes] = useState(bt.recipes![0])
-  const [hours, setHours] = useState(2)
+  const [want, setWant] = useState(100)
   const rc = REC[res]
   const ab = bd.abund?.[res] ?? 1
-  const qty = Math.floor(rc.perHour * bd.level * hours * ab * productionMult(bd.type, s.phase))
+  const lim = Q.maxMake(s, plot, res)
+  const qty = clampQty(want, lim.max)
+  const hours = E.makeHours(res, qty, bd.level, bd.type, s, ab)
   const wages = E.makeWages(bd.type, bd.level, hours, s)
-  const missing = useMemo(() => Object.entries(rc.inputs).filter(([k, v]) => E.haveQty(s, k) < v * qty), [s, rc, qty])
+  const missing = useMemo(() => Object.entries(rc.inputs).filter(([k, v]) => E.haveQty(s, k) + 1e-9 < v * qty), [s, rc, qty])
   return (
     <div className="card">
       <label>Make <select value={res} onChange={e => setRes(e.target.value)}>{bt.recipes!.map(r => <option key={r} value={r}>{RES[r].name}</option>)}</select></label>
-      <label>For <select value={hours} onChange={e => setHours(Number(e.target.value))}>{[0.5, 1, 2, 4, 8, 12, 24].map(h => <option key={h} value={h}>{dur(h)}</option>)}</select></label>
-      <div><ResIcon id={res} /> {num(qty)} units · wages {money(wages)}</div>
+      <QtyPicker value={qty} max={lim.max} why={lim.why} onChange={setWant} />
+      <div className="preview">
+        <div><span>Output</span><b><ResIcon id={res} size={16} /> {num(qty)} {RES[res].name}</b></div>
+        <div><span>Time</span><b>{dur(hours)}{hours <= E.MIN_JOB_H + 1e-9 ? ' (shortest job)' : ''}</b></div>
+        <div><span>Wages</span><b>{money(wages)} · {money(wages / qty)} each</b></div>
+      </div>
       {bd.abund && <div className="abund">Abundance: {Object.entries(bd.abund).map(([k, v]) => <span key={k}><ResIcon id={k} size={14} /> {(v * 100).toFixed(1)}% </span>)}</div>}
       <div className="inputs">{Object.entries(rc.inputs).map(([k, v]) => (
-        <span key={k} className={E.haveQty(s, k) < v * qty ? 'short' : ''}><ResIcon id={k} size={16} /> {num(v * qty)} {RES[k].name} (have {num(E.haveQty(s, k))})</span>
+        <span key={k} className={E.haveQty(s, k) + 1e-9 < v * qty ? 'short' : ''}><ResIcon id={k} size={16} /> {num(v * qty)} {RES[k].name} (have {num(E.haveQty(s, k))})</span>
       ))}{Object.keys(rc.inputs).length === 0 && <span className="muted">No inputs needed</span>}</div>
-      <button className="primary" disabled={missing.length > 0 || qty < 1} onClick={() => act(st => E.startMake(st, plot, res, qty))}>Start production</button>
+      <button className="primary" disabled={missing.length > 0 || lim.max < 1} onClick={() => act(st => E.startMake(st, plot, res, qty))}>Start production</button>
     </div>
   )
 }

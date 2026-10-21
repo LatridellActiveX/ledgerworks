@@ -4,6 +4,12 @@ export interface ChangeEntry { id: string; date: string; title: string; notes: s
 
 export const CHANGELOG: ChangeEntry[] = [
   {
+    id: 'qty-picker-fine-grained-amounts',
+    date: '2026-10-21',
+    title: 'Pick exact amounts',
+    notes: ['Every amount (production, shop sales, exchange buy, list and quick sell, the trade floor, government deliveries, bond lots) now uses one picker: type a number, drag the slider, or tap the -/+ buttons (hold to repeat, Shift for x10). Quick buttons: 1, 10, 100, 25%, 50% and Max.', 'Any whole number from 1 up to the most you can do right now, with the reason for the limit (inputs, stock, cash for wages, crates, trader demand).', 'Production now asks for an amount rather than a time, and shows a live preview of time, wages per unit and the inputs needed.', 'The shortest possible job is 6 game minutes, so tiny jobs still take time and pay wages. Fractional and zero amounts are refused everywhere, including on the server.'],
+  },
+  {
     id: 'iso-pass-high-detail-models-account-delete',
     date: '2026-10-21',
     title: 'Isometric campus with detailed buildings',

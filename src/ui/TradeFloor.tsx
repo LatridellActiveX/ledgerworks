@@ -8,6 +8,7 @@ import * as T from '../game/trade'
 import { RES, RESOURCES } from '../game/data'
 import { ResIcon } from './art'
 import { money, num } from './fmt'
+import { QtyPicker, clampQty } from './QtyPicker'
 
 type Act = (f: (st: E.GameState) => string | null | void) => void
 
@@ -57,7 +58,9 @@ export function TradeFloor({ s, act }: { s: E.GameState; act: Act }) {
         <b>Depot</b>
         {depot.length === 0 && <span className="muted">Empty.</span>}
         {depot.map(d => <span key={d.k}><ResIcon id={d.res} size={16} /> {num(d.v)} {RES[d.res]?.name} Q{d.q}{' '}
-          <button onClick={async () => { if (await run('withdrawGoods', { res: d.res, q: d.q, qty: d.v })) act(st => { E.addStock(st, d.res, d.q, d.v) }) }}>Take home</button></span>)}
+          {(() => { const n = clampQty(f.qty, d.v); return <>
+            <button onClick={async () => { if (await run('withdrawGoods', { res: d.res, q: d.q, qty: n })) act(st => { E.addStock(st, d.res, d.q, n) }) }}>Take {num(n)} home</button>
+            <button onClick={async () => { if (await run('withdrawGoods', { res: d.res, q: d.q, qty: d.v })) act(st => { E.addStock(st, d.res, d.q, d.v) }) }}>All</button></> })()}</span>)}
         <small>Key for other devices: <code>{T.accountKey(acc)}</code></small>
         <button onClick={() => { T.setAccount(null); setAcc(null); setMe(null) }}>Sign out</button>
         <button className="danger" onClick={async () => {
@@ -72,16 +75,20 @@ export function TradeFloor({ s, act }: { s: E.GameState; act: Act }) {
         <label>Good <select value={res} onChange={e => setRes(e.target.value)}>{RESOURCES.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}</select></label>
         <table className="demand"><thead><tr><th>Seller</th><th>Q</th><th>Qty</th><th>Price</th><th /></tr></thead>
           <tbody>{boardData.orders.map((o: any) => <tr key={o.id} className={o.seller === acc.name ? 'mine' : ''}><td>@{o.seller}</td><td>Q{o.q}</td><td>{num(o.qty)}</td><td>{money(o.price)}</td>
-            <td>{o.seller === acc.name ? <button onClick={() => run('cancel', { id: o.id })}>Cancel</button> : <button onClick={() => run('buy', { id: o.id, qty: f.qty })}>Buy {num(Math.min(f.qty, o.qty))}</button>}</td></tr>)}
+            <td>{o.seller === acc.name ? <button onClick={() => run('cancel', { id: o.id })}>Cancel</button> : <button disabled={Math.min(f.qty, o.qty, Math.floor((me?.wallet ?? 0) / o.price)) < 1} onClick={() => run('buy', { id: o.id, qty: Math.min(f.qty, o.qty, Math.floor((me?.wallet ?? 0) / o.price)) })}>Buy {num(Math.max(1, Math.min(f.qty, o.qty, Math.floor((me?.wallet ?? 0) / o.price))))}</button>}</td></tr>)}
             {boardData.orders.length === 0 && <tr><td colSpan={5} className="muted">No player listings for this good yet.</td></tr>}</tbody></table>
         <small>Bought goods go to your depot. Sellers pay a 3% fee.</small>
       </div>
       <div className="card">
         <b>Ship &amp; sell</b>
         <label>Quality <select value={f.q} onChange={e => set({ q: Number(e.target.value) })}>{[...new Set([...lots.map(l => l.q), ...depot.filter(d => d.res === res).map(d => d.q), 0])].map(q => <option key={q} value={q}>Q{q}</option>)}</select></label>
-        <label>Amount <input type="number" value={f.qty} onChange={e => set({ qty: Number(e.target.value) })} /></label>
+        {(() => {
+          // One amount for shipping, listing and offering: up to what you have at home or in the depot.
+          const home = Math.floor(s.stock[E.key(res, f.q)] ?? 0), dep = Math.floor(me?.depot?.[E.key(res, f.q)] ?? 0)
+          return <QtyPicker value={clampQty(f.qty, Math.max(home, dep))} max={Math.max(home, dep)} why={`Home ${num(home)} · depot ${num(dep)}`} onChange={v => set({ qty: v })} />
+        })()}
         <label>Price $<input type="number" step="0.01" value={f.price} onChange={e => set({ price: Number(e.target.value) })} /></label>
-        <button disabled={(s.stock[E.key(res, f.q)] ?? 0) < f.qty} onClick={async () => {
+        <button disabled={!(f.qty >= 1) || (s.stock[E.key(res, f.q)] ?? 0) < f.qty} onClick={async () => {
           // Debit locally only after the server has the goods.
           if (await run('deposit', { goods: [{ res, q: f.q, qty: f.qty }] })) act(st => { st.stock[E.key(res, f.q)] -= f.qty; if (st.stock[E.key(res, f.q)] <= 0) delete st.stock[E.key(res, f.q)] })
         }}>Ship {num(f.qty)} {RES[res].name} to depot (have {num(s.stock[E.key(res, f.q)] ?? 0)})</button>
