@@ -23,7 +23,7 @@ export const PRIVACY: PolicySection[] = [
     'Shared market: the game reports the amount of each good sold on the exchange so that prices react. These reports are added to shared totals and don\'t include your name.',
   ] },
   { h: 'What we store in your browser', p: [
-    'The game uses localStorage on your device for: your save (ledgerworks-save-v1), your guest cloud ID and key (ledgerworks-cloud-id), guest mode (ledgerworks-guest), your trade floor name and key (ledgerworks-account), and settings and progress (ledgerworks-view, ledgerworks-sound, ledgerworks-volume, ledgerworks-tutorial, ledgerworks-realm, ledgerworks-seen-log, ledgerworks-season-results). It is not sent anywhere except as described above. You can delete it by clearing site data in your browser.',
+    'The game uses localStorage on your device for: your save (ledgerworks-save-v1), your guest cloud ID and key (ledgerworks-cloud-id), guest mode (ledgerworks-guest), your trade floor name and key (ledgerworks-account), and settings and progress (ledgerworks-view, ledgerworks-gfx, ledgerworks-gfx-auto, ledgerworks-sound, ledgerworks-volume, ledgerworks-tutorial, ledgerworks-realm, ledgerworks-seen-log, ledgerworks-season-results). It is not sent anywhere except as described above. You can delete it by clearing site data in your browser.',
     'The only cookie is the lw_session sign-in cookie. We don\'t use any tracking or advertising cookies.',
   ] },
   { h: 'What we don\'t do', p: [
