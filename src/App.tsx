@@ -6,6 +6,7 @@
 // ============================================================================
 import { Boot } from './ui/Boot'
 import { Warehouse } from './ui/Warehouse'
+import { Chains } from './ui/Chains'
 import { PrivacyBody } from './ui/Privacy'
 import { activityOf, chipLabel, type ActState } from './game/activity'
 import { useEffect, useMemo, useRef, useState } from 'react'
@@ -52,6 +53,10 @@ export default function App() {
   useEffect(() => unlockAudio(), []) // resume audio on the first tap (mobile rule)
   const [screen, setScreen] = useState<Screen>('map')
   const [menu, setMenu] = useState(false)
+  // Production chains screen: which good is shown, and the Warehouse good page we came from (if any).
+  const [chainRes, setChainRes] = useState<string | null>(null)
+  const [chainFrom, setChainFrom] = useState<string | null>(null)
+  const [whOpen, setWhOpen] = useState<string | null>(null)
   // Accounts: who is signed in (cookie session), and whether to show the login screen.
   const [user, setUser] = useState<string | null>(null)
   const [showLogin, setShowLogin] = useState(false)
@@ -123,7 +128,7 @@ export default function App() {
   const idle = s.plots.flatMap((bd, i) => (bd && !bd.job ? [i] : []))
   const nextIdle = s.plots.reduce((m, bd) => (bd?.job && bd.job.endH < m ? bd.job.endH : m), Infinity)
   const unseen = Math.max(0, s.log.length - seenLog)
-  const open = (t: Screen) => { sfx('tap'); setScreen(t); setMenu(false); if (t === 'log') { setSeenLog(s.log.length); localStorage.setItem('ledgerworks-seen-log', String(s.log.length)) } }
+  const open = (t: Screen) => { sfx('tap'); setScreen(t); setMenu(false); setWhOpen(null); setChainFrom(null); if (t === 'log') { setSeenLog(s.log.length); localStorage.setItem('ledgerworks-seen-log', String(s.log.length)) } }
   const xpPct = Math.floor((100 * (s.xp - xpLo)) / (xpHi - xpLo))
   const toggleView = () => { const v = view === '3d' ? '2d' : '3d'; setView(v); localStorage.setItem('ledgerworks-view', v) }
 
@@ -168,13 +173,15 @@ export default function App() {
       {/* Full-screen menu screens, sliding in over the map. */}
       {screen !== 'map' && <section key={screen} className="screen">
         <header className="screen-head">
-          <button className="hud-btn" aria-label="Back to map" onClick={() => { sfx('tap'); setScreen('map'); if (screen === 'building') setSel(null) }}>‹</button>
+          <button className="hud-btn" aria-label="Back to map" onClick={() => { sfx('tap'); if (screen === 'chains' && chainFrom) { setWhOpen(chainFrom); setChainFrom(null); setScreen('warehouse'); return } setScreen('map'); setWhOpen(null); if (screen === 'building') setSel(null) }}>‹</button>
           <h2>{screen === 'building' && sel !== null ? (s.plots[sel] ? `${BLD[s.plots[sel]!.type].name} · level ${s.plots[sel]!.level}` : `Build on plot ${sel + 1}`) : SCREEN_TITLE[screen]}</h2>
           {(screen === 'exchange' || screen === 'trade') && <div className="seg"><button className={screen === 'exchange' ? 'on' : ''} onClick={() => setScreen('exchange')}>Exchange</button><button className={screen === 'trade' ? 'on' : ''} onClick={() => setScreen('trade')}>Trade floor</button></div>}
           {(screen === 'research' || screen === 'board') && <div className="seg"><button className={screen === 'research' ? 'on' : ''} onClick={() => setScreen('research')}>Research</button><button className={screen === 'board' ? 'on' : ''} onClick={() => setScreen('board')}>Board & goals</button></div>}
         </header>
         <div className="screen-body bottom">
-          {screen === 'warehouse' && <Warehouse s={s} act={act} openPlot={i => { setSel(i); setScreen('building') }} />}
+          {screen === 'warehouse' && <Warehouse s={s} act={act} openPlot={i => { setSel(i); setScreen('building') }} initialOpen={whOpen}
+            openChain={r => { sfx('tap'); setChainRes(r); setChainFrom(r); setScreen('chains') }} />}
+          {screen === 'chains' && <Chains s={s} res={chainRes} onPick={setChainRes} />}
           {screen === 'exchange' && <Exchange s={s} act={act} />}
           {screen === 'trade' && <TradeFloor s={s} act={act} />}
           {screen === 'research' && <Research s={s} act={act} />}
@@ -231,7 +238,7 @@ export default function App() {
       {/* Hamburger drawer: the less-used screens and settings. */}
       {menu && <div className="drawer-bg" onClick={() => setMenu(false)}><nav className="drawer" onClick={e => e.stopPropagation()}>
         <div className="drawer-head"><Logo /><b>{s.company}</b></div>
-        {(['value', 'market', 'log', 'changes', 'account', 'settings', 'privacy'] as const).map(t => <button key={t} onClick={() => open(t)}>{SCREEN_ICON[t]} {SCREEN_TITLE[t]}</button>)}
+        {(['value', 'chains', 'market', 'log', 'changes', 'account', 'settings', 'privacy'] as const).map(t => <button key={t} onClick={() => open(t)}>{SCREEN_ICON[t]} {SCREEN_TITLE[t]}</button>)}
         <button onClick={() => { toggleView(); setMenu(false) }}>{view === '3d' ? '▦ Switch to 2D map' : '◈ Switch to 3D map'}</button>
       </nav></div>}
 
@@ -253,9 +260,9 @@ export default function App() {
 }
 
 /** Every screen the HUD can open. 'map' is the plain map. */
-type Screen = 'map' | 'value' | 'building' | 'warehouse' | 'exchange' | 'trade' | 'research' | 'board' | 'finance' | 'market' | 'log' | 'changes' | 'account' | 'settings' | 'privacy'
-const SCREEN_TITLE: Record<Screen, string> = { map: 'Map', value: 'Company value', building: 'Building', warehouse: 'Warehouse', exchange: 'Market', trade: 'Market', research: 'Research', board: 'Research', finance: 'Finance', market: 'Public demand', log: 'Events', changes: 'Change log', account: 'Saves & account', settings: 'Settings', privacy: 'Privacy policy' }
-const SCREEN_ICON: Partial<Record<Screen, string>> = { value: '💹', market: '📈', log: '🔔', changes: '📝', account: '💾', settings: '⚙', privacy: '🔒' }
+type Screen = 'map' | 'value' | 'building' | 'warehouse' | 'exchange' | 'trade' | 'research' | 'board' | 'finance' | 'market' | 'log' | 'changes' | 'account' | 'settings' | 'privacy' | 'chains'
+const SCREEN_TITLE: Record<Screen, string> = { map: 'Map', value: 'Company value', building: 'Building', warehouse: 'Warehouse', exchange: 'Market', trade: 'Market', research: 'Research', board: 'Research', finance: 'Finance', market: 'Public demand', log: 'Events', changes: 'Change log', account: 'Saves & account', settings: 'Settings', privacy: 'Privacy policy', chains: 'Production chains' }
+const SCREEN_ICON: Partial<Record<Screen, string>> = { value: '💹', market: '📈', log: '🔔', changes: '📝', account: '💾', settings: '⚙', privacy: '🔒', chains: '🔗' }
 /** The bottom tab bar (original simple glyphs). */
 const TABS: [Screen, string, string][] = [['map', 'Map', '🗺'], ['warehouse', 'Warehouse', '📦'], ['exchange', 'Market', '⇄'], ['research', 'Research', '🔬'], ['finance', 'Finance', '🏦']]
 

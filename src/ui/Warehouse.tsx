@@ -84,21 +84,25 @@ const sorter = (k: Sort) => (a: GoodRow, b: GoodRow) =>
 export const Stars = ({ q }: { q: number }) => <span className="stars" aria-label={`Quality ${q}`}>{[0, 1, 2, 3, 4].map(i => <i key={i} className={i < q ? 'on' : ''}>★</i>)}</span>
 
 // ============================================================================
-export function Warehouse({ s, act, openPlot }: { s: E.GameState; act: Act; openPlot: (i: number) => void }) {
+/**
+ * openChain: jump to the Production chains screen for a good (from the detail page).
+ * initialOpen: reopen a good's detail page (when coming back from that screen).
+ */
+export function Warehouse({ s, act, openPlot, openChain, initialOpen }: { s: E.GameState; act: Act; openPlot: (i: number) => void; openChain?: (res: string) => void; initialOpen?: string | null }) {
   const [tab, setTab] = useState<'inv' | 'in' | 'con' | 'hist'>('inv')
   const [q, setQ] = useState('')
   const [cat, setCat] = useState<Cat | 'all'>('all')
   const [sort, setSort] = useState<Sort>('value')
   const [closed, setClosed] = useState<Record<string, boolean>>({})
   const [all, setAll] = useState<Record<string, boolean>>({})
-  const [open, setOpen] = useState<string | null>(null)
+  const [open, setOpen] = useState<string | null>(initialOpen ?? null)
   const rows = goodRows(s)
   const total = rows.reduce((t, r) => t + r.value, 0), units = rows.reduce((t, r) => t + r.qty, 0), cap = capacityOf(s)
   const shown = rows.filter(r => r.qty > 1e-9 || r.incoming || r.making)
     .filter(r => (cat === 'all' || catOf(r.res) === cat) && (!q || RES[r.res].name.toLowerCase().includes(q.toLowerCase())))
     .sort(sorter(sort))
 
-  if (open) return <GoodDetail s={s} res={open} act={act} onBack={() => setOpen(null)} />
+  if (open) return <GoodDetail s={s} res={open} act={act} onBack={() => setOpen(null)} openChain={openChain} />
   return (
     <div className="wh">
       {/* Header: value + capacity */}
@@ -198,7 +202,7 @@ function History({ s }: { s: E.GameState }) {
 // ============================================================================
 // Good detail (full screen)
 // ============================================================================
-function GoodDetail({ s, res, act, onBack }: { s: E.GameState; res: string; act: Act; onBack: () => void }) {
+function GoodDetail({ s, res, act, onBack, openChain }: { s: E.GameState; res: string; act: Act; onBack: () => void; openChain?: (res: string) => void }) {
   const r = RES[res]
   const row = goodRows(s).find(x => x.res === res)
   const lots = row?.lots ?? []
@@ -235,6 +239,8 @@ function GoodDetail({ s, res, act, onBack }: { s: E.GameState; res: string; act:
       <div><small>Made in</small>{makers.length ? makers.map(b => <span key={b.id} className="pill">{b.name}</span>) : <span className="muted">Bought only</span>}</div>
       <div><small>Used to make</small>{users.length ? users.map(u => <span key={u} className="pill"><GoodArt id={u} size={18} /> {RES[u].name}</span>) : <span className="muted">Nothing</span>}</div>
       {shop && <div><small>Sold in</small><span className="pill">{shop.name}</span></div>}
+      {/* Full tree of what it takes to make this good (Production chains screen). */}
+      {openChain && <button className="ch-open" onClick={() => openChain(res)}>🔗 See production chain</button>}
     </div>
     {have >= 1 ? <div className="card">
       <QtyPicker value={n} max={have} onChange={setQty} />

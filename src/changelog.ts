@@ -4,6 +4,12 @@ export interface ChangeEntry { id: string; date: string; title: string; notes: s
 
 export const CHANGELOG: ChangeEntry[] = [
   {
+    id: 'production-chains',
+    date: '2026-10-21',
+    title: 'Production chains explorer',
+    notes: ['New Production chains screen (menu → 🔗 Production chains, or "See production chain" on any good’s Warehouse page). Pick any of the 111 goods with the search box or icon grid.', 'It shows a tree of what makes the good: the building, its inputs, and their buildings and inputs all the way down. Tap a step to open or close it.', 'Every step shows units per hour, what the inputs cost at today’s market prices, what the output is worth and the profit per hour for one level-1 building, plus ×n: how many of that building keep the step above it busy.', 'A ✓ marks buildings you already own and 📦 marks inputs already in your warehouse. "Used in" lists everything the good feeds into; tap one to jump to its chain.', 'Inspired by Anno 1800’s production chain overview (and Factorio’s recipe browser).'],
+  },
+  {
     id: 'sound-effects-v2',
     date: '2026-10-21',
     title: 'New sound effects',
