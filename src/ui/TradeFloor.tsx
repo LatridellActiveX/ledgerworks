@@ -59,8 +59,8 @@ export function TradeFloor({ s, act }: { s: E.GameState; act: Act }) {
         {depot.length === 0 && <span className="muted">Empty.</span>}
         {depot.map(d => <span key={d.k}><ResIcon id={d.res} size={16} /> {num(d.v)} {RES[d.res]?.name} Q{d.q}{' '}
           {(() => { const n = clampQty(f.qty, d.v); return <>
-            <button onClick={async () => { if (await run('withdrawGoods', { res: d.res, q: d.q, qty: n })) act(st => { E.addStock(st, d.res, d.q, n) }) }}>Take {num(n)} home</button>
-            <button onClick={async () => { if (await run('withdrawGoods', { res: d.res, q: d.q, qty: d.v })) act(st => { E.addStock(st, d.res, d.q, d.v) }) }}>All</button></> })()}</span>)}
+            <button onClick={async () => { if (await run('withdrawGoods', { res: d.res, q: d.q, qty: n })) act(st => { E.setWhy('from trade floor'); E.addStock(st, d.res, d.q, n) }) }}>Take {num(n)} home</button>
+            <button onClick={async () => { if (await run('withdrawGoods', { res: d.res, q: d.q, qty: d.v })) act(st => { E.setWhy('from trade floor'); E.addStock(st, d.res, d.q, d.v) }) }}>All</button></> })()}</span>)}
         <small>Key for other devices: <code>{T.accountKey(acc)}</code></small>
         <button onClick={() => { T.setAccount(null); setAcc(null); setMe(null) }}>Sign out</button>
         <button className="danger" onClick={async () => {

@@ -7,6 +7,8 @@ const b = await chromium.launch({ args: ['--use-gl=angle', '--use-angle=swiftsha
 if (process.env.ACCOUNT) { const [name, key] = process.env.ACCOUNT.split(':'); await p.addInitScript(([n, k]) => localStorage.setItem('ledgerworks-account', JSON.stringify({ name: n, key: k })), [name, key]) }
 // REALM=seasons plays the seasons realm; TYPES=a,b,c overrides the sample campus; SEASON=n forces the save's season number.
 // VIEW=2d forces the flat campus (DOM plots can then be clicked).
+// Skip the boot screen unless BOOT=1.
+if (!process.env.BOOT) await p.addInitScript(() => { globalThis.__lwNoBoot = true })
 // Skip the login screen and tutorial unless asked (LOGIN=1 / TUT=1).
 await p.addInitScript(([lg, tu]) => { if (!lg) localStorage.setItem('ledgerworks-guest', '1'); localStorage.setItem('ledgerworks-tutorial', JSON.stringify(tu ? { step: Number(tu) - 1, done: false, off: false } : { step: 0, done: true, off: false })) }, [process.env.LOGIN || '', process.env.TUT || ''])
 if (process.env.VIEW) await p.addInitScript(v => localStorage.setItem('ledgerworks-view', v), process.env.VIEW)
@@ -45,7 +47,13 @@ if (process.env.ZOOM) { await p.waitForTimeout(4000); const c = await p.locator(
 if (process.env.CLICK) { const c = await p.locator('.scene3d canvas').boundingBox(); const [fx, fy] = process.env.CLICK.split(',').map(Number); await p.mouse.click(c.x + c.width * fx, c.y + c.height * fy) }
 await p.waitForTimeout(Number(process.env.WAIT || 300))
 // EVAL=js: run code in the page before the shot (e.g. show the update pop-up).
-if (process.env.EVAL) { await p.evaluate(c => eval(c), process.env.EVAL); await p.waitForTimeout(600) }
+if (process.env.EVAL) { await p.evaluate(c => eval(c), process.env.EVAL).catch(() => {}); await p.waitForTimeout(600) }
+// CLICKS="A,B": after EVAL (which may reload the page), click these buttons in order (accessible names, or css: selectors).
+for (const c of (process.env.CLICKS ?? '').split(',').filter(Boolean)) {
+  await p.waitForTimeout(1500)
+  if (c.startsWith('css:')) await p.locator(c.slice(4)).first().click({ force: true }); else await p.getByRole('button', { name: c, exact: true }).first().click({ force: true })
+}
+if (process.env.CLICKS) await p.waitForTimeout(1200)
 // VB='x y w h': zoom the 2D campus SVG to that viewBox (close-ups).
 if (process.env.VB) { await p.evaluate(vb => document.querySelector('svg.campus')?.setAttribute('viewBox', vb), process.env.VB); await p.waitForTimeout(300) }
 // TAP=selector: verify a real tap. Records cash, stock and bubble count,

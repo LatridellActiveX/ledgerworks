@@ -2,6 +2,7 @@
 import { chromium } from 'playwright'
 const N = process.argv[2] || '5'
 const b = await chromium.launch(); const p = await b.newPage({ viewport: { width: 1400, height: 1000 } })
+await p.addInitScript(() => { globalThis.__lwNoBoot = true }) // skip the boot screen
 await p.goto('https://ledgerworks.parkercthomson.workers.dev/'); await p.waitForTimeout(800)
 await p.getByRole('button', { name: 'Exchange' }).click({ force: true })
 await p.locator('.ex select').first().selectOption('crates'); await p.locator('.ex input').first().fill('200')

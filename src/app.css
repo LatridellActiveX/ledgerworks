@@ -448,3 +448,79 @@ button.link { background: none; border: 0; box-shadow: none; color: #6b7280; tex
 .privacy-overlay { position: fixed; inset: 0; z-index: 40; background: #fffaf2; overflow-y: auto; padding: 0 16px 40px; color: #1d2433 }
 .privacy-overlay header { position: sticky; top: 0; background: #fffaf2; display: flex; align-items: center; gap: 10px; padding: 12px 0; font-size: 18px }
 .login-card .legal .link { display: inline; padding: 0; font-size: inherit; text-decoration: underline }
+
+/* Store earnings pill over selling buildings: uncollected / total. */
+.spill { margin-top: 2px; display: inline-block; background: #fff7dc; color: #6a4a00; border: 1px solid #e8c45a; font: 700 11px/1 system-ui; padding: 3px 7px; border-radius: 8px; white-space: nowrap; box-shadow: 0 2px 6px #0002 }
+.spill b { color: #1e7a3c }
+.store-break { margin: 6px 0 }
+
+/* ===================== Warehouse v2 ===================== */
+.wh { display: flex; flex-direction: column; gap: 10px; padding-bottom: 20px }
+.wh-head { display: flex; gap: 14px; align-items: flex-end; justify-content: space-between; background: linear-gradient(135deg, #263044, #1a2130); color: #fff; border-radius: 16px; padding: 14px 16px; box-shadow: 0 6px 18px #0003 }
+.wh-head small { display: block; opacity: .75; font-size: 12px }
+.wh-head .big { display: block; font-size: 26px; letter-spacing: -.5px; color: #9ff0b8 }
+.wh-head .cap { flex: 1; max-width: 220px }
+.wh-head .bar { height: 10px; border-radius: 6px; background: #ffffff22; overflow: hidden; margin-top: 4px }
+.wh-head .bar i { display: block; height: 100%; background: linear-gradient(90deg, #4fd38a, #9ff0b8); transition: width .6s ease }
+.wh-head .bar.warn i { background: linear-gradient(90deg, #f0a03a, #ff6a5a) }
+.wh-tabs { align-self: stretch; display: flex } .wh-tabs button { flex: 1 }
+.wh-tools { display: flex; gap: 8px; flex-wrap: wrap } .wh-tools input { flex: 1 1 160px; min-height: 40px; border-radius: 10px; padding: 0 12px; border: 1px solid #0002 }
+.wh-tools select { min-height: 40px; border-radius: 10px }
+.wh-cat header { display: flex; align-items: center; justify-content: space-between; margin: 6px 0 }
+.wh-cat-t { background: none; border: 0; font: 800 15px system-ui; letter-spacing: .6px; text-transform: uppercase; color: inherit; padding: 4px 0; display: flex; gap: 6px; align-items: center; cursor: pointer }
+.wh-cat-t small { font: 600 12px system-ui; text-transform: none; letter-spacing: 0; opacity: .65 }
+.wh-cat .chev { display: inline-block; transition: transform .25s } .wh-cat.closed .chev { transform: rotate(-90deg) }
+.wh-cat header .link { background: none; border: 0; color: #3a8ad8; font-weight: 700; cursor: pointer }
+.wh-row { display: flex; gap: 10px; overflow-x: auto; scroll-snap-type: x mandatory; padding: 2px 2px 8px; scrollbar-width: thin }
+.wh-row.grid { flex-wrap: wrap; overflow: visible }
+.wh-tile { position: relative; flex: 0 0 150px; height: 118px; scroll-snap-align: start; border: 0; border-radius: 12px; background: linear-gradient(160deg, #3a414d, #2a3039); color: #fff; text-align: left; padding: 8px; cursor: pointer; box-shadow: 0 3px 10px #0003, inset 0 1px #ffffff14; animation: whIn .35s ease both; transition: transform .15s, box-shadow .15s }
+.wh-tile:hover { transform: translateY(-2px); box-shadow: 0 8px 18px #0004 } .wh-tile:active { transform: scale(.97) }
+.wh-tile .art { position: absolute; left: 4px; top: 8px; filter: drop-shadow(0 2px 2px #0006) }
+.wh-tile .pr { position: absolute; right: 8px; top: 8px; font: 600 13px system-ui; opacity: .9 }
+.wh-tile .amt { position: absolute; right: 8px; top: 26px; font: 800 24px/1 system-ui; letter-spacing: -.5px }
+.wh-tile .stars { position: absolute; right: 8px; top: 54px }
+.wh-tile .nm { position: absolute; left: 6px; right: 6px; bottom: 8px; text-align: center; font: 800 12.5px/1.15 system-ui; text-transform: uppercase; letter-spacing: .3px }
+.wh-tile .badges { position: absolute; left: 6px; top: 66px; display: flex; gap: 3px }
+.bdg { font: 700 10px/1 system-ui; padding: 3px 5px; border-radius: 6px } .bdg.in { background: #3a8ad8 } .bdg.mk { background: #6b5ad8 }
+.wh-tile .chg { position: absolute; right: 8px; top: 68px; font: 700 10.5px system-ui }
+.up { color: #3fbf6a } .down { color: #e8574a } .wh-tile .up { color: #8ff0a8 } .wh-tile .down { color: #ff9a8a }
+.stars i { font-style: normal; font-size: 11px; color: #ffffff30 } .stars i.on { color: #ffc845 }
+@keyframes whIn { from { opacity: 0; transform: translateY(8px) scale(.96) } }
+.wh-list { display: flex; flex-direction: column; gap: 8px }
+.wh-li { display: flex; gap: 10px; align-items: center; text-align: left; background: #fff; border: 1px solid #0001; border-radius: 12px; padding: 8px 10px; animation: whIn .3s ease both }
+.wh-li > span { flex: 1 } .wh-li .bar { display: block; height: 6px; background: #0001; border-radius: 4px; overflow: hidden; margin-top: 4px } .wh-li .bar i { display: block; height: 100%; background: #4fb477 }
+.wh-detail { display: flex; flex-direction: column; gap: 12px; animation: whSlide .3s ease both }
+@keyframes whSlide { from { opacity: 0; transform: translateX(24px) } }
+.whd-head { display: flex; align-items: center; gap: 12px } .wh-detail h3 { margin: 0; font-size: 22px }
+.wh-detail .lots { display: flex; gap: 6px; flex-wrap: wrap } .wh-detail .lots button { border-radius: 10px; padding: 6px 10px } .wh-detail .lots .on { outline: 2px solid #3a8ad8 }
+.wh-detail .lots .stars i { color: #0002 } .wh-detail .lots .stars i.on { color: #e0a020 }
+.pchart { margin: 0; background: #fff; border-radius: 12px; padding: 10px; border: 1px solid #0001 } .pchart svg { width: 100%; height: 110px; display: block } .pchart figcaption { font-weight: 700; margin-bottom: 4px }
+.chain { display: flex; flex-direction: column; gap: 6px } .chain > div { display: flex; flex-wrap: wrap; gap: 6px; align-items: center } .chain small { width: 100px; opacity: .7 }
+.chain .pill { display: inline-flex; gap: 4px; align-items: center; background: #eef2f7; border-radius: 999px; padding: 3px 10px; font-size: 13px }
+.acts3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 10px } .acts3 button { min-height: 56px; display: flex; flex-direction: column; justify-content: center; font-weight: 700 } .acts3 small { font-weight: 500; opacity: .8 }
+@media (max-width: 480px) { .acts3 { grid-template-columns: 1fr } .wh-tile { flex-basis: 140px } }
+.wh-tabs { gap: 4px; background: #e9edf3; border-radius: 12px; padding: 4px }
+.wh-tabs button { border: 0; background: transparent; color: #4a5468; font-weight: 700; border-radius: 9px; min-height: 36px; transition: background .2s, color .2s }
+.wh-tabs button.on { background: #fff; color: #1d2433; box-shadow: 0 1px 4px #0002 }
+.wh-cat header { background: none !important; box-shadow: none !important; padding: 0 !important }
+.wh-cat header .link, .wh-cat-t { box-shadow: none !important; background: none !important; min-height: 0 }
+
+/* ===================== Boot screen ===================== */
+.boot { position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; padding: 16px; background: radial-gradient(circle at 50% 30%, #2b3346, #0d1017); color: #e8edf5; transition: opacity .6s ease }
+.boot.out { opacity: 0; pointer-events: none }
+.boot-card { width: min(440px, 100%); display: flex; flex-direction: column; align-items: center; gap: 10px }
+.boot-logo { border-radius: 22px; box-shadow: 0 10px 30px #0008; animation: bootPulse 1.6s ease-in-out infinite }
+@keyframes bootPulse { 50% { transform: scale(1.05) translateY(-2px) } }
+.boot h1 { margin: 0 0 4px; font-size: 28px; letter-spacing: .5px }
+.boot-all { position: relative; width: 100%; height: 14px; border-radius: 8px; background: #ffffff1a; overflow: hidden }
+.boot-all i { position: absolute; inset: 0 auto 0 0; background: linear-gradient(90deg, #4fd38a, #9ff0b8, #4fd38a); background-size: 200% 100%; animation: bootShim 1.2s linear infinite }
+.boot-all span { position: absolute; right: 6px; top: -1px; font: 700 11px/16px system-ui; color: #0d1017 }
+@keyframes bootShim { to { background-position: -200% 0 } }
+.boot-rows { list-style: none; margin: 6px 0 0; padding: 0; width: 100%; display: grid; gap: 5px }
+.boot-rows li { display: grid; grid-template-columns: 120px 1fr 38px; gap: 8px; align-items: center; font: 600 12.5px system-ui; opacity: .45; transition: opacity .3s }
+.boot-rows li.go, .boot-rows li.ok { opacity: 1 }
+.boot-rows .bb { height: 6px; border-radius: 4px; background: #ffffff14; overflow: hidden }
+.boot-rows .bb i { display: block; height: 100%; background: #5aa8ff; border-radius: 4px }
+.boot-rows li.ok .bb i { background: #4fd38a }
+.boot-rows .st { text-align: right; font: 700 11px ui-monospace, monospace; color: #9fb3c8 } .boot-rows li.ok .st { color: #4fd38a }
+.boot-log { width: 100%; height: 112px; margin: 6px 0 0; padding: 8px 10px; background: #05070bcc; border: 1px solid #ffffff14; border-radius: 10px; font: 11px/1.45 ui-monospace, Menlo, monospace; color: #8fe3a8; white-space: pre-wrap; overflow: hidden }

@@ -23,7 +23,7 @@
 // ============================================================================
 import { BLD, RES, RESOURCES } from './data'
 import { rand } from './rng'
-import { addStock, companyLevel, parseKey, key, type GameState, type Building } from './engine'
+import { addStock, setWhy, companyLevel, parseKey, key, type GameState, type Building } from './engine'
 
 function rnd(s: GameState) { const [r, n] = rand(s.seed); s.seed = n; return r }
 
@@ -182,6 +182,7 @@ export function deliverGov(s: GameState, res: string, amount?: number): string |
   let need = Math.min(it.qty - it.done, amount ?? Infinity)
   const lots = Object.keys(s.stock).map(parseKey).filter(l => l.res === res && l.q >= it.q).sort((a, b) => a.q - b.q)
   let sent = 0
+  setWhy('contract delivery')
   for (const l of lots) { const t = Math.min(need, s.stock[key(l.res, l.q)]); addStock(s, l.res, l.q, -t); need -= t; sent += t; if (need <= 0) break }
   if (!sent) return `You have no ${RES[res].name} at Q${it.q} or better`
   it.done += sent

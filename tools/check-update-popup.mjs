@@ -2,6 +2,7 @@
 // buildId (as if a newer deploy were live), wait for the first check, shoot.
 import { chromium } from 'playwright'
 const b = await chromium.launch(); const p = await b.newPage({ viewport: { width: 412, height: 915 }, isMobile: true, hasTouch: true })
+await p.addInitScript(() => { globalThis.__lwNoBoot = true }) // skip the boot screen
 await p.addInitScript(() => { localStorage.setItem('ledgerworks-guest', '1'); localStorage.setItem('ledgerworks-tutorial', '{"done":true}') })
 await p.route('**/version.json*', r => r.fulfill({ contentType: 'application/json', body: JSON.stringify({ buildId: 'next', version: '2026-10-21 07:00' }) }))
 await p.goto(process.env.URL || 'https://ledgerworks.parkercthomson.workers.dev/'); await p.waitForTimeout(12000) // first check fires at 10 s

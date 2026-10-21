@@ -19,7 +19,7 @@
 import { RES, RESOURCES } from './data'
 import { rand } from './rng'
 import { priceTrend } from './economy'
-import { addStock, haveQty, key, takeStock, type GameState } from './engine'
+import { addStock, setWhy, haveQty, key, takeStock, type GameState } from './engine'
 
 export const FEE = 0.03
 export const CANCEL_FREE_AFTER_H = 48
@@ -68,9 +68,10 @@ export function buy(s: GameState, res: string, qty: number, minQ = 0): string | 
   if (left > 0) return 'Not enough for sale at that quality'
   if (s.cash < cost) return 'Not enough cash'
   left = qty
+  setWhy('bought')
   for (const o of asks) {
     const t = Math.min(left, o.qty)
-    o.qty -= t; left -= t; addStock(s, res, o.q, t)
+    o.qty -= t; left -= t; addStock(s, res, o.q, t, o.price)
     if (left <= 0) break
   }
   s.asks = s.asks.filter(o => o.qty > 0)
@@ -94,6 +95,7 @@ export function placeAsk(s: GameState, res: string, q: number, qty: number, pric
   const crates = cratesFor(res, qty)
   if (res !== 'crates' && haveQty(s, 'crates') < crates) return `Need ${crates} shipping crates`
   if (res === 'crates' && (s.stock[key(res, q)] ?? 0) < qty + crates) return 'Not enough crates'
+  setWhy('listed on exchange')
   addStock(s, res, q, -qty)
   if (crates) takeStock(s, 'crates', crates)
   s.asks.push({ id: s.nextUid++, owner: 'me', res, q, qty, price: round2(price), placedH: s.hour, crates })
@@ -105,6 +107,7 @@ export function cancelAsk(s: GameState, id: number): string | null {
   const o = s.asks.find(a => a.id === id && a.owner === 'me')
   if (!o) return 'Order not found'
   const fee = s.hour - o.placedH < CANCEL_FREE_AFTER_H ? FEE * o.qty * o.price : 0
+  setWhy('order cancelled')
   addStock(s, o.res, o.q, o.qty)
   if (o.crates) addStock(s, 'crates', 0, o.crates)
   s.cash -= fee
@@ -120,6 +123,7 @@ export function quickSell(s: GameState, res: string, q: number, qty: number): st
   if ((s.bidLeft[res] ?? 0) < qty) return `Buyers only want ${Math.floor(s.bidLeft[res] ?? 0)} more today`
   const crates = cratesFor(res, qty)
   if (res !== 'crates' && haveQty(s, 'crates') < crates) return `Need ${crates} shipping crates`
+  setWhy('sold on exchange')
   addStock(s, res, q, -qty)
   if (crates) takeStock(s, 'crates', crates)
   s.bidLeft[res] -= qty
@@ -156,7 +160,7 @@ export function npcHour(s: GameState, say: (m: string) => void) {
   }
   // Expire old orders: goods and leftover crates come home.
   for (const o of s.asks.filter(a => a.owner === 'me' && s.hour - a.placedH >= EXPIRE_H)) {
-    addStock(s, o.res, o.q, o.qty); if (o.crates) addStock(s, 'crates', 0, o.crates)
+    setWhy('order expired'); addStock(s, o.res, o.q, o.qty); if (o.crates) addStock(s, 'crates', 0, o.crates)
     o.qty = 0; say(`Exchange: your ${RES[o.res].name} order expired and came back.`)
   }
   s.asks = s.asks.filter(o => o.qty > 1e-9)

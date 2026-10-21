@@ -34,7 +34,7 @@ export const START_CASH = 60000
 // --------------------------------------------------------------------------
 export type Job =
   | { kind: 'build'; endH: number } // construction or upgrade in progress
-  | { kind: 'make'; res: string; qty: number; q: number; startH: number; endH: number; got?: number; lastH?: number }
+  | { kind: 'make'; res: string; qty: number; q: number; startH: number; endH: number; got?: number; lastH?: number; uc?: number /* cost per unit (inputs + wages), for average cost */ }
   | { kind: 'sell'; res: string; qty: number; q: number; price: number; startH: number; endH: number; got?: number; gotC?: number; lastH?: number }
 // Partial collection (see collect()): `got` = whole units already handed
 // over (made goods, or sold units already paid), `gotC` = cents already paid
@@ -83,6 +83,11 @@ export interface GameState {
   holdings?: F.Holding[] // bonds you bought
   bondOffers?: F.Holding[] // NPC bonds for sale this week
   gov?: F.GovOrder // current government order
+  // --- Warehouse v2 ---
+  /** Recent warehouse movements (newest last, capped): feeds History, 24h change and "recently changed". */
+  whLog?: StockMove[]
+  /** Average cost per unit for each good (weighted by units bought or made). */
+  avgCost?: Record<string, number>
   // --- Seasons realm (stage 12) ---
   realm?: SEA.Realm
   season?: number // season number this company plays in (seasons realm only)
@@ -110,7 +115,33 @@ export const parseKey = (k: string) => { const [res, q] = k.split('|'); return {
 export const haveQty = (s: GameState, res: string) =>
   Object.entries(s.stock).reduce((t, [k, v]) => (parseKey(k).res === res ? t + v : t), 0)
 
-export function addStock(s: GameState, res: string, q: number, n: number) {
+/** One warehouse movement: +n in, -n out, with why it happened. */
+export interface StockMove { h: number; res: string; q: number; n: number; why: string }
+export const WHLOG_MAX = 400
+/**
+ * Why the next addStock calls happen ("bought", "made", "sold"...). Callers
+ * set it with setWhy() right before moving stock; it's only a label for the
+ * History tab, so a stale value can never break the game.
+ */
+let why = 'other'
+export const setWhy = (w: string) => { why = w }
+
+/**
+ * Add (n > 0) or remove (n < 0) units of one quality lot.
+ * `unitCost` (when known: buying or making) updates the good's average cost,
+ * weighted by units. Every movement is also logged for the warehouse screens.
+ */
+export function addStock(s: GameState, res: string, q: number, n: number, unitCost?: number) {
+  if (n > 0 && unitCost !== undefined && isFinite(unitCost)) {
+    const have = haveQty(s, res), avg = (s.avgCost ??= {})
+    avg[res] = ((avg[res] ?? unitCost) * have + unitCost * n) / (have + n)
+  }
+  if (Math.abs(n) > 1e-9) {
+    const log = (s.whLog ??= []), last = log[log.length - 1]
+    // Merge back-to-back moves of the same kind (e.g. many small collections).
+    if (last && last.res === res && last.q === q && last.why === why && s.hour - last.h < 0.25 && Math.sign(last.n) === Math.sign(n)) { last.n += n; last.h = s.hour }
+    else { log.push({ h: s.hour, res, q, n, why }); if (log.length > WHLOG_MAX) log.splice(0, log.length - WHLOG_MAX) }
+  }
   const k = key(res, q)
   s.stock[k] = (s.stock[k] ?? 0) + n
   if (s.stock[k] <= 1e-9) delete s.stock[k]
@@ -235,12 +266,15 @@ export function startMake(s: GameState, plot: number, res: string, qty: number):
   // Output quality: the product's researched quality, but at most the
   // lowest input quality + 1 (inputs are taken best-first).
   let q = Math.min(MAX_QUALITY, researchedQ(s, res))
+  // Unit cost for "average cost": inputs at their average cost (or market price) plus wages.
+  const inCost = Object.entries(rc.inputs).reduce((t, [inp, per]) => t + per * qty * (s.avgCost?.[inp] ?? s.ref[inp] ?? RES[inp].basePrice), 0)
+  setWhy('used in production')
   for (const [inp, per] of Object.entries(rc.inputs)) {
     const low = takeStock(s, inp, per * qty)
     q = Math.min(q, low + 1)
   }
   s.cash -= wages
-  bd.job = { kind: 'make', res, qty, q, startH: s.hour, endH: s.hour + hours }
+  bd.job = { kind: 'make', res, qty, q, startH: s.hour, endH: s.hour + hours, uc: (inCost + wages) / qty }
   return null
 }
 
@@ -276,6 +310,7 @@ export function startSell(s: GameState, plot: number, res: string, q: number, qt
   if (hours > 72) return 'Too slow (over 3 days). Lower the price or the amount.'
   const wages = makeWages(bd.type, bd.level, hours, s)
   if (s.cash < wages) return 'Not enough cash for wages'
+  setWhy('sent to store')
   addStock(s, res, q, -qty)
   s.cash -= wages
   bd.job = { kind: 'sell', res, qty, q, price, startH: s.hour, endH: s.hour + hours }
@@ -356,7 +391,7 @@ export function collect(s: GameState, plot: number): string | null {
   if (!bd || !j || j.kind === 'build') return 'Nothing to collect'
   const p = pending(s, bd)!
   if (p.units < 1) return 'Nothing ready yet'
-  if (j.kind === 'make') { addStock(s, j.res, j.q, p.units); j.got = (j.got ?? 0) + p.units }
+  if (j.kind === 'make') { setWhy('made'); addStock(s, j.res, j.q, p.units, j.uc); j.got = (j.got ?? 0) + p.units }
   else { s.cash += p.cents / 100; j.got = (j.got ?? 0) + p.units; j.gotC = (j.gotC ?? 0) + p.cents }
   j.lastH = s.hour
   return null
@@ -371,9 +406,10 @@ export function cancelJob(s: GameState, plot: number): string | null {
   if (!bd || !j || j.kind === 'build') return 'Nothing to stop'
   const p = pending(s, bd)!
   const done = unitsDone(j, s.hour)
-  if (j.kind === 'make') { addStock(s, j.res, j.q, p.units); say(s, `${BLD[bd.type].name} stopped after ${done} of ${j.qty} ${RES[j.res].name}.`) }
+  if (j.kind === 'make') { setWhy('made'); addStock(s, j.res, j.q, p.units, j.uc); say(s, `${BLD[bd.type].name} stopped after ${done} of ${j.qty} ${RES[j.res].name}.`) }
   else {
     s.cash += p.cents / 100
+    setWhy('back from store')
     addStock(s, j.res, j.q, j.qty - done)
     s.soldToday[j.res] = (s.soldToday[j.res] ?? 0) + done
     s.stats.retailRev += ((j.gotC ?? 0) + p.cents) / 100
@@ -387,7 +423,8 @@ function finishJob(s: GameState, bd: Building) {
   const j = bd.job!
   const name = BLD[bd.type].name
   if (j.kind === 'make') {
-    addStock(s, j.res, j.q, j.qty - (j.got ?? 0)) // the rest not yet collected
+    setWhy('made')
+    addStock(s, j.res, j.q, j.qty - (j.got ?? 0), j.uc) // the rest not yet collected
     s.xp += (makeWages(bd.type, bd.level, j.endH - j.startH)) / 50
     say(s, `${name} made ${Math.round(j.qty)} ${RES[j.res].name} (Q${j.q}).`)
   } else if (j.kind === 'sell') {

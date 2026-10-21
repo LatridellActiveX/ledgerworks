@@ -100,11 +100,22 @@ function ActivityBadges({ s, posOf }: { s: GameState; posOf: (i: number) => { x:
           <span className="ic">{a.state === 'sell' ? <span className="coin sm">$</span> : <ResIcon id={a.res} size={18} />}</span>
           {a.state === 'sell' && <span className="kaching">ka-ching!</span>}
           <span className="tpill" title={chipLabel[a.state]}><i className={`dot ${a.state}`} />{a.state === 'done' ? 'Done' : dur(left)}</span>
+          {/* Shops: uncollected earnings / the whole sale's revenue, e.g. "$120 / $900".
+              Same overlay in 2.5D and 2D (this component serves both modes). */}
+          {bd?.job?.kind === 'sell' && <StoreValue s={s} bd={bd} />}
         </> : <span className="zz" title="Idle: tap the building to start a job">z<small>Z</small></span>}
       </div>
     })}
     {bursts.map(b => <div key={`${b.i}-${b.k}`} className="burst" ref={reg(1000 + b.i)} />)}
   </div>
+}
+
+/** "$uncollected / $total" pill over a selling building. */
+function StoreValue({ s, bd }: { s: GameState; bd: NonNullable<GameState['plots'][number]> }) {
+  const j = bd.job as any, p = E.pending(s, bd)
+  const total = E.saleCents(j) / 100, waiting = (p?.cents ?? 0) / 100
+  const m = (v: number) => '$' + (v >= 1e4 ? Math.round(v / 1000) + 'k' : v >= 1000 ? (v / 1000).toFixed(1) + 'k' : Math.floor(v).toLocaleString())
+  return <span className="spill" title="Uncollected earnings / total for this sale"><b>{m(waiting)}</b> / {m(total)}</span>
 }
 
 /** Ready bubbles for every busy building. */
@@ -114,7 +125,7 @@ type Handle = { update(s: unknown): void; dispose(): void; rotate?(dir: 1 | -1):
 declare const __BUILD_ID__: string
 
 /** Load the 3D module: a separate file in production, a normal import in dev. */
-async function loadScene(): Promise<any> {
+export async function loadScene(): Promise<any> {
   if (import.meta.env.DEV) return import('../scene3d/index')
   return import(/* @vite-ignore */ `/scene3d.js?v=${__BUILD_ID__}`)
 }

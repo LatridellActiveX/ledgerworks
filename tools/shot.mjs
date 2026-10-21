@@ -1,5 +1,6 @@
 import { chromium } from 'playwright'
 const b = await chromium.launch(); const p = await b.newPage({ viewport: { width: 1400, height: 950 } })
+await p.addInitScript(() => { globalThis.__lwNoBoot = true }) // skip the boot screen
 const URL = 'https://ledgerworks.parkercthomson.workers.dev/'
 await p.goto(URL); await p.waitForTimeout(800)
 await p.screenshot({ path: '/workspace/ledgerworks-1-new.png' })

@@ -4,6 +4,24 @@ export interface ChangeEntry { id: string; date: string; title: string; notes: s
 
 export const CHANGELOG: ChangeEntry[] = [
   {
+    id: 'boot-screen-libraries',
+    date: '2026-10-21',
+    title: 'New loading screen',
+    notes: ['Starting the game shows a loading screen with the Ledgerworks logo, an overall bar and a bar for each part that loads: React, ReactDOM, Three.js, the economy engine, market, 3D and 2D maps, audio, saves, accounts and the interface. A console log shows each one with its real version number.', 'It lasts about 5 seconds. On a slow connection it waits until the 3D map, fonts and sign-in are really ready, then fades into the map.'],
+  },
+  {
+    id: 'warehouse-v2',
+    date: '2026-10-21',
+    title: 'Warehouse v2',
+    notes: ['All 111 goods have new, detailed hand-made icons.', 'Goods are grouped into categories (Utilities, Agriculture, Food, Textiles, Energy, Construction, Electronics, Research). Each category shows its total value, collapses with a tap and scrolls sideways; Show all lays it out as a grid.', 'At the top: total warehouse value and a capacity bar. Capacity is a guide only and never blocks anything.', 'Search, filter by category, and sort by value, quantity, name or most recently changed.', 'Tiles show price, amount, quality stars, the change over the last 24 hours, and badges for goods ready to collect (+) or still being made (⚙).', 'Tap a good for its full page: stock by quality, average cost, a price chart, which buildings make it and what it is used for, plus Sell on market, Sell in store and Use in contract with the amount picker.', 'New tabs: Incoming (what your buildings are making), Contracts (the government order and what you can deliver) and History (every movement in and out, with the reason).'],
+  },
+  {
+    id: 'store-earnings-label',
+    date: '2026-10-21',
+    title: 'Store earnings on the map',
+    notes: ['Shops that are selling show a label like "$990 / $3.6k" on both the 3D and 2D map: money waiting to be collected / what the whole sale will earn.', 'The shop\'s menu breaks it down: uncollected earnings, already collected, still to earn, and the total for the sale.'],
+  },
+  {
     id: 'privacy-policy-delete-account',
     date: '2026-10-21',
     title: 'Privacy policy and account deletion',

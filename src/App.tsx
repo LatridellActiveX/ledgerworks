@@ -4,6 +4,8 @@
 //   top bar (cash, level, clock) | plot grid | side panel (selected plot)
 //   warehouse + exchange | event log | change log
 // ============================================================================
+import { Boot } from './ui/Boot'
+import { Warehouse } from './ui/Warehouse'
 import { PrivacyBody } from './ui/Privacy'
 import { activityOf, chipLabel, type ActState } from './game/activity'
 import { useEffect, useMemo, useRef, useState } from 'react'
@@ -39,6 +41,7 @@ import { cloudKey, cloudLoad, cloudSave, syncWorld, useCloudKey } from './game/c
 import './app.css'
 
 export default function App() {
+  const [booting, setBooting] = useState(() => !(globalThis as any).__lwNoBoot)
   const [s, setS] = useState<E.GameState>(() => E.advanceReal(loadGame()))
   const [sel, setSel] = useState<number | null>(null)
   const [msg, setMsg] = useState('')
@@ -159,7 +162,7 @@ export default function App() {
           {(screen === 'research' || screen === 'board') && <div className="seg"><button className={screen === 'research' ? 'on' : ''} onClick={() => setScreen('research')}>Research</button><button className={screen === 'board' ? 'on' : ''} onClick={() => setScreen('board')}>Board & goals</button></div>}
         </header>
         <div className="screen-body bottom">
-          {screen === 'warehouse' && <Warehouse s={s} />}
+          {screen === 'warehouse' && <Warehouse s={s} act={act} openPlot={i => { setSel(i); setScreen('building') }} />}
           {screen === 'exchange' && <Exchange s={s} act={act} />}
           {screen === 'trade' && <TradeFloor s={s} act={act} />}
           {screen === 'research' && <Research s={s} act={act} />}
@@ -214,8 +217,10 @@ export default function App() {
       </nav></div>}
 
       <UpdatePrompt save={() => saveGame(latest.current)} />
-      {showLogin && <Login onDone={afterLogin} onClose={A.isGuest() || user ? () => setShowLogin(false) : undefined} />}
-      {!showLogin && !tut.done && !tut.off && <Tutorial t={tut} set={setTut} />}
+      {/* Boot screen first (skipped by the screenshot tool via __lwNoBoot). Login and the tour wait for it. */}
+      {booting && <Boot view={view} onDone={() => setBooting(false)} />}
+      {!booting && showLogin && <Login onDone={afterLogin} onClose={A.isGuest() || user ? () => setShowLogin(false) : undefined} />}
+      {!booting && !showLogin && !tut.done && !tut.off && <Tutorial t={tut} set={setTut} />}
 
       {/* Bottom tab bar: five main screens. */}
       <nav className="tabs tabbar">
@@ -323,6 +328,16 @@ function JobProgress({ s, plot, act }: { s: E.GameState; plot: number; act: Act 
       <span className="ticker">{num(Math.floor(doneT))} / {num(j.qty)} {j.kind === 'make' ? 'made' : 'sold'}{j.kind === 'sell' ? ` · ${money(Math.floor(centsT) / 100)} earned` : ''}</span></div>
     <div className="bar wide"><i style={{ width: `${100 * a.prog}%` }} /></div>
     <small>{num(j.got ?? 0)} collected so far</small>
+    {/* Store earnings breakdown (matches the "$x / $y" pill on the map). */}
+    {j.kind === 'sell' && (() => {
+      const total = E.saleCents(j) / 100, got = (j.gotC ?? 0) / 100, wait = p.cents / 100
+      return <div className="preview store-break">
+        <div><span>Uncollected earnings</span><b>{money(wait)}</b></div>
+        <div><span>Already collected</span><b>{money(got)}</b></div>
+        <div><span>Still to earn ({num(j.qty - E.unitsDone(j, s.hour))} left to sell)</span><b>{money(total - got - wait)}</b></div>
+        <div><span>Total for this sale ({num(j.qty)} × {money(j.price)})</span><b>{money(total)}</b></div>
+      </div>
+    })()}
     <div className="row">
       <button className="primary" disabled={p.units < 1} onClick={e => {
         const r = e.currentTarget.getBoundingClientRect()
@@ -360,17 +375,6 @@ function MakeForm({ s, plot, act }: { s: E.GameState; plot: number; act: Act }) 
         <span key={k} className={E.haveQty(s, k) + 1e-9 < v * qty ? 'short' : ''}><ResIcon id={k} size={16} /> {num(v * qty)} {RES[k].name} (have {num(E.haveQty(s, k))})</span>
       ))}{Object.keys(rc.inputs).length === 0 && <span className="muted">No inputs needed</span>}</div>
       <button className="primary" disabled={missing.length > 0 || lim.max < 1} onClick={() => act(st => E.startMake(st, plot, res, qty))}>Start production</button>
-    </div>
-  )
-}
-
-/** Warehouse contents. Buying and selling with traders is on the Exchange tab. */
-function Warehouse({ s }: { s: E.GameState }) {
-  const lots = Object.entries(s.stock).map(([k, v]) => ({ ...E.parseKey(k), v })).sort((a, b) => a.res.localeCompare(b.res) || a.q - b.q)
-  return (
-    <div className="stock">
-      {lots.length === 0 && <span className="muted">Your warehouse is empty. Buy starter goods on the Exchange tab.</span>}
-      {lots.map(l => <span key={l.res + l.q} className="lot"><ResIcon id={l.res} /> {RES[l.res].name} <small>Q{l.q}</small> <b>{num(l.v)}</b></span>)}
     </div>
   )
 }
