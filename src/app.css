@@ -524,3 +524,17 @@ button.link { background: none; border: 0; box-shadow: none; color: #6b7280; tex
 .boot-rows li.ok .bb i { background: #4fd38a }
 .boot-rows .st { text-align: right; font: 700 11px ui-monospace, monospace; color: #9fb3c8 } .boot-rows li.ok .st { color: #4fd38a }
 .boot-log { width: 100%; height: 112px; margin: 6px 0 0; padding: 8px 10px; background: #05070bcc; border: 1px solid #ffffff14; border-radius: 10px; font: 11px/1.45 ui-monospace, Menlo, monospace; color: #8fe3a8; white-space: pre-wrap; overflow: hidden }
+
+/* ===== Narrow-phone fit (360–412 px, incl. Android text scaling) =====
+   Every full screen must fit the viewport: nothing wider than its container,
+   tab rows share the width equally, wide tables scroll inside their card. */
+*, *::before, *::after { box-sizing: border-box }
+.screen, .screen-body { max-width: 100vw; overflow-x: hidden }
+.wh, .wh > *, .wh-detail, .wh-detail > *, .ex > *, .card { min-width: 0; max-width: 100% }
+.wh-tabs { display: flex; width: 100%; gap: 3px }
+.wh-tabs button { flex: 1 1 0; min-width: 0; padding: 0 4px; font-size: clamp(11.5px, 3.5vw, 15px); white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+.wh-head { flex-wrap: wrap; min-width: 0 } .wh-head > div { min-width: 0 } .wh-head .big { font-size: clamp(20px, 6.5vw, 26px); overflow-wrap: anywhere }
+.wh-tools select { flex: 1 1 140px; min-width: 0; max-width: 100% }
+.ex .card { overflow-x: auto } .ex .chart { max-width: 100% }
+.acts3 > button, .lots > button { min-width: 0 }
+@media (max-width: 400px) { .wh-tile { flex-basis: 132px } .chain small { width: 84px } }

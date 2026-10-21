@@ -4,6 +4,12 @@ export interface ChangeEntry { id: string; date: string; title: string; notes: s
 
 export const CHANGELOG: ChangeEntry[] = [
   {
+    id: 'narrow-phone-fit',
+    date: '2026-10-21',
+    title: 'Fits narrow phones',
+    notes: ['The Warehouse tabs (Inventory, Incoming, Contracts, History) now share the width evenly and always fit on screen, even with larger phone text.', 'The Warehouse header, tiles and good pages, and the Market tables, stay within the screen on phones 360–412 px wide.'],
+  },
+  {
     id: 'boot-screen-libraries',
     date: '2026-10-21',
     title: 'New loading screen',
