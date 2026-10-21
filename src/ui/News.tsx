@@ -1,5 +1,5 @@
 // ============================================================================
-// Market news screen ("The Ledger Gazette") and the headline strip on the map.
+// Market news screen ("The Ledger Gazette"). New stories reach you as bell notifications.
 //
 // Shows the stories running today (see src/game/news.ts), a "Rumor" for the
 // story that starts tomorrow so you can stock up a day early, and the stories
@@ -68,22 +68,5 @@ export function News({ s }: { s: E.GameState }) {
       {past.length > 0 && <h4 className="nw-sec">Earlier this week</h4>}
       {past.map(st => <Story key={st.t.id + st.startDay} s={s} st={st} kind="past" day={day} />)}
     </div>
-  )
-}
-
-/**
- * The headline strip on the map: the newest running story's icon, headline
- * and effect, scrolling gently when it doesn't fit. Tap to open the paper.
- */
-export function NewsStrip({ s, onOpen }: { s: E.GameState; onOpen: () => void }) {
-  const live = N.activeStories(N.dayOf(s.hour))
-  if (!live.length) return null
-  const st = live[0]
-  const goods = st.t.goods.slice(0, 3).map(g => RES[g].name).join(', ')
-  return (
-    <button className={`news-strip ${st.t.mult >= 1 ? 'nw-up' : 'nw-down'}`} aria-label="Market news" onClick={onOpen}>
-      <b>📰 NEWS</b>
-      <span className="ns-text"><span>{st.t.icon} {st.t.headline}: {goods} {pct(st.t.mult)}{live.length > 1 ? ` · +${live.length - 1} more` : ''}</span></span>
-    </button>
   )
 }

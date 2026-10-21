@@ -102,3 +102,15 @@ describe('shift clerks', () => {
     expect(s.plots[1]!.clerk).toBeUndefined()
   })
 })
+
+describe('daily digest', () => {
+  it('sales do not each write a line; the day ends with one digest line', () => {
+    const s = shop()
+    expect(E.startSell(s, 1, 'apples', 0, 5, price())).toBeNull()
+    E.advanceTo(s, s.plots[1]!.job!.endH + 0.01)
+    expect(s.log.some(l => l.includes('sold'))).toBe(false)
+    E.advanceTo(s, Math.ceil(s.hour / 24) * 24 + 0.01) // into the next day
+    expect(s.log.find(l => l.includes('Yesterday:'))).toContain('sold 5')
+    expect(s.madeToday).toEqual({})
+  })
+})

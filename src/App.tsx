@@ -12,9 +12,8 @@ import { isFarm } from './game/farm'
 import * as GFX from './game/gfx'
 import { Warehouse, compact as compactNum } from './ui/Warehouse'
 import { Chains } from './ui/Chains'
-import { News, NewsStrip } from './ui/News'
+import { News } from './ui/News'
 import { Routes, RouteLane } from './ui/Routes'
-import { activeStories, dayOf } from './game/news'
 import { PrivacyBody } from './ui/Privacy'
 import { activityOf, chipLabel, type ActState } from './game/activity'
 import { useEffect, useMemo, useRef, useState } from 'react'
@@ -198,10 +197,8 @@ export default function App() {
         }}>Start Season {SEA.seasonAt().no}</button></div>}
       {msg && <div key={msg} className="toast" onClick={() => setMsg('')}>{msg}</div>}
 
-      {/* Market news headline strip under the top HUD (src/ui/News.tsx). */}
-      {screen === 'map' && sel === null && <NewsStrip s={s} onOpen={() => open('news')} />}
-      {/* Trade-route carts on the road, in a lane under the HUD (or under the news strip). */}
-      {screen === 'map' && sel === null && <RouteLane s={s} onOpen={() => open('routes')} below={activeStories(dayOf(s.hour)).length > 0} />}
+      {/* Trade-route carts on the road, in a lane under the HUD. */}
+      {screen === 'map' && sel === null && <RouteLane s={s} onOpen={() => open('routes')} />}
 
       {/* Bottom-left idle info; tap to jump to an idle building. */}
       {screen === 'map' && sel === null && <button className="idle-box" onClick={() => { if (idle.length) { setSel(idle[0]); setScreen('building') } }}>

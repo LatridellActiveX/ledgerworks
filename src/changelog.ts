@@ -4,6 +4,12 @@ export interface ChangeEntry { id: string; date: string; title: string; notes: s
 
 export const CHANGELOG: ChangeEntry[] = [
   {
+    id: 'notifications-digest',
+    date: '2026-10-21',
+    title: 'Quieter notifications',
+    notes: ["The news strip under the map is gone. New market stories arrive as a notification: the bell shows how many are new, and they are listed under Events in the menu, where you can go back to them.", "Sales and production no longer write a line each time they finish. Each day ends with one digest line: what was sold and what was made yesterday.", "Harvests no longer log a line either; the plot shows its own state."],
+  },
+  {
     id: 'shop-fittings-tills-clerks',
     date: '2026-10-21',
     title: 'Shop fittings, tills and clerks',

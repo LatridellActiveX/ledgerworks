@@ -65,6 +65,7 @@ export interface GameState {
   saturation: Record<string, number>
   /** Units sold to the public today, per resource (feeds saturation). */
   soldToday: Record<string, number>
+  madeToday?: Record<string, number> // units made today, for the daily digest
   log: string[]
   // --- Exchange (stage 5) ---
   seed: number // seeded RNG state for NPC traders
@@ -384,6 +385,9 @@ export function startSell(s: GameState, plot: number, res: string, q: number, qt
 /** Regulars at a loyalty-counter shop count a little extra toward market recovery. */
 const soldWeight = (bd: Building) => (bd.mods?.includes('loyalty') ? LOYAL_SOLD_WEIGHT : 1)
 
+/** Count units made or harvested today (see the daily digest in rollDay). */
+const madeNote = (s: GameState, res: string, n: number) => { s.madeToday = s.madeToday ?? {}; s.madeToday[res] = (s.madeToday[res] ?? 0) + n }
+
 /** Quick check that a plot is a shop that can take fittings, tills or staff. */
 function shopPlot(s: GameState, plot: number): Building | string {
   const bd = s.plots[plot]
@@ -434,6 +438,11 @@ export function setClerk(s: GameState, plot: number, on: boolean): string | null
 // Daily cycle: saturation drifts toward how much was sold vs normal demand.
 // --------------------------------------------------------------------------
 export function rollDay(s: GameState) {
+  // One digest line for the day that just ended, instead of a line per sale or harvest.
+  const list = (t: Record<string, number>) => Object.entries(t).filter(([, n]) => n >= 0.5).map(([id, n]) => `${Math.round(n)} ${RES[id]?.name ?? id}`).join(', ')
+  const sold = list(s.soldToday), made = list(s.madeToday ?? {})
+  if (sold || made) say(s, `Yesterday: sold ${sold || 'nothing'}. Made ${made || 'nothing'}.`)
+  s.madeToday = {}
   for (const r of Object.values(RES)) {
     if (!r.dailyDemand) continue
     const sold = s.soldToday[r.id] ?? 0
@@ -509,7 +518,7 @@ export function collect(s: GameState, plot: number): string | null {
   if (!bd || !j || j.kind === 'build') return 'Nothing to collect'
   const p = pending(s, bd)!
   if (p.units < 1) return 'Nothing ready yet'
-  if (j.kind === 'make') { setWhy('made'); addStock(s, j.res, p.q, p.units, j.uc); j.got = (j.got ?? 0) + p.units }
+  if (j.kind === 'make') { setWhy('made'); addStock(s, j.res, p.q, p.units, j.uc); j.got = (j.got ?? 0) + p.units; madeNote(s, j.res, p.units) }
   else { s.cash += p.cents / 100; j.got = (j.got ?? 0) + p.units; j.gotC = (j.gotC ?? 0) + p.cents }
   j.lastH = s.hour
   return null
@@ -533,10 +542,9 @@ export function harvest(s: GameState, plot: number): string | null {
   if (!bd || !j || j.kind !== 'make' || j.ripeH === undefined) return 'Not ripe yet'
   const p = pending(s, bd)!
   const units = Math.max(0, p.units)
-  if (units > 0) { setWhy('harvested'); addStock(s, j.res, p.q, units, j.uc) }
+  if (units > 0) { setWhy('harvested'); addStock(s, j.res, p.q, units, j.uc); madeNote(s, j.res, units) }
   s.xp += makeWages(bd.type, bd.level, j.endH - j.startH) / 50
   bd.soil = FM.soilAfterHarvest(bd.soil ?? 1)
-  say(s, `Harvested ${Math.round(units)} ${RES[j.res].name} (Q${p.q}).`)
   bd.job = undefined
   return null
 }
@@ -611,15 +619,14 @@ function finishJob(s: GameState, bd: Building) {
   if (j.kind === 'make') {
     setWhy('made')
     addStock(s, j.res, j.q, j.qty - (j.got ?? 0), j.uc) // the rest not yet collected
+    madeNote(s, j.res, j.qty - (j.got ?? 0))
     s.xp += (makeWages(bd.type, bd.level, j.endH - j.startH)) / 50
-    say(s, `${name} made ${Math.round(j.qty)} ${RES[j.res].name} (Q${j.q}).`)
   } else if (j.kind === 'sell') {
     const rev = saleCents(j) / 100
     s.cash += (saleCents(j) - (j.gotC ?? 0)) / 100 // the rest not yet collected
     s.stats.retailRev += rev
     s.soldToday[j.res] = (s.soldToday[j.res] ?? 0) + j.qty * soldWeight(bd)
     s.xp += rev / 50
-    say(s, `${name} sold ${Math.round(j.qty)} ${RES[j.res].name} for $${Math.round(rev).toLocaleString()}.`)
   } else {
     say(s, `${name} is ready (level ${bd.level}).`)
   }

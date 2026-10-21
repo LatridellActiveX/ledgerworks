@@ -178,12 +178,12 @@ const catName = (f: string) => CAT_NAME[f] ?? f
  * map with each cart drawn at its progress, heading for its town. Tap to open
  * the Trade routes screen.
  */
-export function RouteLane({ s, onOpen, below }: { s: E.GameState; onOpen: () => void; below: boolean }) {
+export function RouteLane({ s, onOpen }: { s: E.GameState; onOpen: () => void }) {
   const carts = R.onTheRoad(s)
   if (!carts.length) return null
   const soonest = carts.reduce((a, b) => (b.left < a.left ? b : a))
   return (
-    <div className={`route-lane${below ? ' below' : ''}`} role="button" tabIndex={0} aria-label="Trade routes on the road" onClick={onOpen} onKeyDown={e => { if (e.key === 'Enter') onOpen() }}>
+    <div className="route-lane" role="button" tabIndex={0} aria-label="Trade routes on the road" onClick={onOpen} onKeyDown={e => { if (e.key === 'Enter') onOpen() }}>
       <span className="rl-road">
         {/* Destination flag: the town of the cart that arrives first. */}
         <span className="rl-dest" aria-hidden>{soonest.town?.icon}</span>
