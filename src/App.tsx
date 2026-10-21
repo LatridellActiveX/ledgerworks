@@ -8,7 +8,8 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import * as E from './game/engine'
 import { BLD, BUILDINGS, REC, RES, RESOURCES } from './game/data'
 import { loadGame, saveGame, exportCode, importCode } from './game/save'
-import { BuildingArt, EmptyPlot, Logo, ResIcon } from './ui/art'
+import { BuildingArt, Logo, ResIcon } from './ui/art'
+import { Campus } from './ui/campus'
 import { clock, dur, money, num } from './ui/fmt'
 import { CHANGELOG } from './changelog'
 import { RetailPanel } from './ui/RetailPanel'
@@ -76,23 +77,12 @@ export default function App() {
         <button onClick={async () => { const k = prompt('Cloud key (copy it from another device). Leave as-is to load this browser\'s cloud save.', cloudKey()); if (!k) return; try { useCloudKey(k); const n = await cloudLoad(); setS(n); saveGame(n); setMsg('Loaded from the cloud') } catch (e: any) { setMsg(e.message) } }}>Cloud load</button>
         <button onClick={() => { if (confirm('Start over? Your current company is lost.')) { const n = E.newGame(prompt('Company name', 'My Company') || 'My Company'); setS(n); saveGame(n); setSel(null) } }}>New</button>
       </header>
-      {msg && <div className="toast" onClick={() => setMsg('')}>{msg}</div>}
+      {msg && <div key={msg} className="toast" onClick={() => setMsg('')}>{msg}</div>}
 
       <main>
-        <section className="plots">
-          {/* Show unlocked plots plus one row of locked ones as a teaser. */}
-          {Array.from({ length: Math.min(24, slots + 6) }, (_, i) => {
-            const bd = s.plots[i], locked = i >= slots
-            const j = bd?.job
-            const pct = j && 'startH' in j ? (100 * (s.hour - j.startH)) / (j.endH - j.startH) : 0
-            return (
-              <div key={i} className={`plot ${sel === i ? 'sel' : ''} ${locked ? 'locked' : ''}`} onClick={() => !locked && setSel(i)}>
-                {bd ? <BuildingArt type={bd.type} level={bd.level} busy={!!j} /> : <EmptyPlot locked={locked} />}
-                {bd && <div className="plabel">{BLD[bd.type].name} <small>L{bd.level}</small></div>}
-                {j && <div className="prog"><i style={{ width: `${j.kind === 'build' ? 50 : pct}%` }} /></div>}
-              </div>
-            )
-          })}
+        <section className="campus-wrap">
+          <Campus s={s} slots={slots} sel={sel} onPick={setSel} />
+          {sel !== null && s.plots[sel] && <div className="campus-label">{BLD[s.plots[sel]!.type].name} · level {s.plots[sel]!.level}</div>}
         </section>
 
         <aside className="panel">

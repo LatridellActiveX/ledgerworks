@@ -31,6 +31,7 @@ export function Exchange({ s, act }: { s: E.GameState; act: Act }) {
         <label>Good <select value={res} onChange={e => { setRes(e.target.value); setSq(0); setPrice(0) }}>
           {RESOURCES.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}</select></label>{' '}
         <ResIcon id={res} /> going price <b>{money(ref)}</b> · min quality <select value={minQ} onChange={e => setMinQ(Number(e.target.value))}>{[0, 1, 2, 3, 4].map(q => <option key={q} value={q}>Q{q}+</option>)}</select>
+        <PriceChart data={[...(s.priceHist?.[res] ?? []), ref]} />
         <table className="demand"><thead><tr><th>Seller</th><th>Q</th><th>Qty</th><th>Price</th></tr></thead>
           <tbody>{M.book(s, res, minQ).slice(0, 8).map(o => <tr key={o.id} className={o.owner === 'me' ? 'mine' : ''}><td>{o.owner === 'me' ? 'You' : 'Trader'}</td><td>Q{o.q}</td><td>{num(o.qty)}</td><td>{money(o.price)}</td></tr>)}</tbody></table>
       </div>
@@ -57,5 +58,26 @@ export function Exchange({ s, act }: { s: E.GameState; act: Act }) {
           <button onClick={() => act(st => M.cancelAsk(st, o.id))}>Cancel{M.cancelFee(s, o) ? ` (fee ${money(M.cancelFee(s, o))})` : ''}</button></span>)}
       </div>
     </div>
+  )
+}
+
+/** Area chart of the going price over the last days (plus today). */
+function PriceChart({ data }: { data: number[] }) {
+  const W = 300, H = 70
+  if (data.length < 2) return <div className="chart muted">Price history builds up day by day.</div>
+  const lo = Math.min(...data) * 0.97, hi = Math.max(...data) * 1.03
+  const pts = data.map((v, i) => [(i / (data.length - 1)) * W, H - ((v - lo) / (hi - lo || 1)) * H])
+  const line = pts.map(p => p.join(',')).join(' ')
+  const up = data[data.length - 1] >= data[0]
+  const c = up ? '#3c9a5f' : '#d0584a'
+  return (
+    <svg className="chart" viewBox={`0 0 ${W} ${H + 14}`}>
+      <defs><linearGradient id="pc" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor={c} stopOpacity=".35" /><stop offset="1" stopColor={c} stopOpacity="0" /></linearGradient></defs>
+      <polygon points={`0,${H} ${line} ${W},${H}`} fill="url(#pc)" />
+      <polyline points={line} fill="none" stroke={c} strokeWidth="2" strokeLinejoin="round" />
+      <circle cx={pts[pts.length - 1][0]} cy={pts[pts.length - 1][1]} r="3.5" fill={c} />
+      <text x="0" y={H + 12} fontSize="10" fill="#8a8296">{data.length - 1} days ago</text>
+      <text x={W} y={H + 12} fontSize="10" fill="#8a8296" textAnchor="end">today {money(data[data.length - 1])}</text>
+    </svg>
   )
 }

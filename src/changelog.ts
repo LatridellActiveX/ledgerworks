@@ -4,6 +4,12 @@ export interface ChangeEntry { id: string; date: string; title: string; notes: s
 
 export const CHANGELOG: ChangeEntry[] = [
   {
+    id: 'gfx-overhaul-iso-campus',
+    date: '2026-10-21',
+    title: 'A whole new look',
+    notes: ['Isometric campus: every building type has its own model (windmill, water tower, orchard, barn, pumpjack, quarry, refinery tanks, research dome, factories, shops) and grows with its level.', 'Live details: smoke, spinning blades, nodding pumpjacks, conveyor belts, trucks on the ring road, and a sky that follows day, dusk and night with lit windows.', 'Hand-drawn icons for every good, price charts on the Exchange, progress rings and level badges, smoother buttons, cards and toasts.'],
+  },
+  {
     id: 'fix-autosave-interval',
     date: '2026-10-21',
     title: 'Autosave fixed',

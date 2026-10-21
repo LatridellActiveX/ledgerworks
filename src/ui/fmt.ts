@@ -6,9 +6,11 @@ export const money = (n: number) =>
 export const num = (n: number) => (Math.round(n * 10) / 10).toLocaleString('en-US')
 /** Game hours -> "2d 3h" / "3h 20m" / "45m". */
 export function dur(h: number) {
-  if (h >= 24) return `${Math.floor(h / 24)}d ${Math.floor(h % 24)}h`
-  if (h >= 1) return `${Math.floor(h)}h ${Math.round((h % 1) * 60)}m`
-  return `${Math.max(1, Math.round(h * 60))}m`
+  // Work in whole minutes first so we never show "4h 60m".
+  const m = Math.max(1, Math.round(h * 60))
+  if (m >= 1440) return `${Math.floor(m / 1440)}d ${Math.floor((m % 1440) / 60)}h`
+  if (m >= 60) return `${Math.floor(m / 60)}h ${m % 60}m`
+  return `${m}m`
 }
 /** Game clock -> "Day 3, 14:05". */
 export function clock(hour: number) {

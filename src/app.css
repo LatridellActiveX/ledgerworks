@@ -60,3 +60,62 @@ tr.mine td { color: var(--accent); font-weight: 600 }
 .rrow { display: flex; gap: 6px; align-items: center; font-size: 13px }
 .rrow button { padding: 2px 8px; margin-left: auto }
 @media (max-width: 800px) { .fields { grid-template-columns: 1fr } }
+
+/* ===================== Graphics overhaul ===================== */
+:root { --shadow: 0 1px 2px #5a4a2a14, 0 6px 18px #5a4a2a14; --radius: 16px }
+body { font-family: "Segoe UI Variable", "SF Pro Rounded", ui-rounded, "Nunito", system-ui, sans-serif; letter-spacing: .1px;
+  background: radial-gradient(1200px 600px at 20% -10%, #fff8e8, transparent), linear-gradient(#f6f1e7, #efe7d8) fixed }
+header { position: sticky; top: 0; z-index: 5; backdrop-filter: blur(8px); background: #fffaf0e6; box-shadow: var(--shadow); border: 0 }
+.brand { font-weight: 800; letter-spacing: -.3px; background: linear-gradient(90deg, #e07a5f, #5d6bd4); -webkit-background-clip: text; background-clip: text; color: transparent }
+.logo { filter: drop-shadow(0 2px 2px #0002) }
+.pill { background: #fff; box-shadow: inset 0 0 0 1px var(--line); border: 0; font-weight: 600 }
+.pill.cash { background: #e9f7ea; color: #2f7a43 }
+button { transition: transform .12s, box-shadow .12s, background .2s; box-shadow: 0 1px 0 #0000000d }
+button:not(:disabled):hover { transform: translateY(-1px); box-shadow: 0 4px 10px #5a4a2a1f }
+button:not(:disabled):active { transform: translateY(0) }
+button.primary { background: linear-gradient(#ea8a70, #db6d52); font-weight: 600 }
+.toast { position: fixed; right: 18px; bottom: 18px; z-index: 20; max-width: 360px; background: #2d2a32; color: #fff; box-shadow: var(--shadow); animation: toast-in .25s ease-out }
+@keyframes toast-in { from { transform: translateY(12px); opacity: 0 } }
+.panel, .bottom { box-shadow: var(--shadow); border: 0; border-radius: var(--radius) }
+.panel { animation: fade .2s }
+@keyframes fade { from { opacity: .4; transform: translateY(4px) } }
+.card { background: linear-gradient(#fbf6ec, #f6efe1); box-shadow: inset 0 0 0 1px #eadfca }
+.tabs button { border-radius: 99px; border: 0; box-shadow: inset 0 0 0 1px var(--line) }
+.tabs .on { background: linear-gradient(#ea8a70, #db6d52); box-shadow: 0 4px 10px #e07a5f44 }
+.demand th { font-size: 12px; text-transform: uppercase; letter-spacing: .5px; color: var(--muted) }
+.demand tr:hover td { background: #fff6e8 }
+.lot { background: #fff; box-shadow: inset 0 0 0 1px var(--line) }
+.ricon { vertical-align: middle; filter: drop-shadow(0 1px 0 #0001) }
+.hero { height: 150px; background: radial-gradient(closest-side, #e8f3dc, transparent); border-radius: 12px }
+.mini { width: 52px; height: 52px }
+.chart { width: 100%; height: 90px; display: block; margin: 6px 0 }
+
+/* Campus */
+.campus-wrap { position: relative; background: linear-gradient(#cfe5f2, #e8f1e0 55%); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden }
+.campus { width: 100%; height: auto; display: block }
+.campus-label { position: absolute; left: 14px; top: 12px; background: #fffaf0e6; padding: 4px 10px; border-radius: 99px; font-weight: 600; box-shadow: var(--shadow) }
+.tile { cursor: pointer }
+.tile .pad { fill: #c6e2ad; stroke: #e9f4dc; stroke-width: 2; transition: fill .2s }
+.tile:hover .pad { fill: #d6edc0 }
+.tile.sel .pad { fill: #ffe2c8; stroke: #e07a5f; stroke-width: 3 }
+.tile.locked { cursor: default }
+.tile.locked .pad { fill: #d9d2c2; stroke: #e6dfd1 }
+.tile .plus { fill: #7fae63; font-size: 22px; font-weight: 700 }
+.tile .lock { font-size: 13px; opacity: .6 }
+.tile > g { transition: transform .2s }
+.tile:not(.locked):hover > g:nth-child(2) { transform: translateY(-2px) }
+.smoke circle { fill: #fff; opacity: 0; animation: smoke 2.7s infinite ease-out }
+@keyframes smoke { 0% { opacity: .85; transform: translate(0, 0) scale(.6) } 100% { opacity: 0; transform: translate(8px, -26px) scale(1.6) } }
+.spin { animation: spin 3s linear infinite }
+@keyframes spin { to { transform: rotate(360deg) } }
+.nod { animation: nod 2.4s ease-in-out infinite }
+@keyframes nod { 50% { transform: rotate(12deg) } }
+.belt { animation: belt .6s linear infinite }
+@keyframes belt { to { stroke-dashoffset: -7 } }
+.bob { animation: bob 1.6s ease-in-out infinite }
+@keyframes bob { 50% { transform: translateY(6px) } }
+.blink { animation: blink 1.2s steps(2) infinite }
+@keyframes blink { 50% { fill: #e07a5f } }
+.scaffold rect { animation: belt 1s linear infinite }
+.smoke circle, .spin, .nod { transform-box: view-box }
+@media (prefers-reduced-motion: reduce) { .smoke circle, .spin, .nod, .belt, .bob, .blink { animation: none } }

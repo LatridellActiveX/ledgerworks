@@ -59,6 +59,8 @@ export interface GameState {
   phase?: 'recession' | 'normal' | 'boom' // economy phase (stage 7)
   // --- Research (stage 8) ---
   patents: Record<string, number> // patents per product
+  /** Daily going price per good, last 30 days (for charts). */
+  priceHist?: Record<string, number[]>
 }
 
 // --------------------------------------------------------------------------
@@ -262,6 +264,9 @@ export function rollDay(s: GameState) {
     if (s.phase !== was) say(s, `The economy is now: ${PHASE_LABEL[s.phase]}.`)
   }
   marketDay(s)
+  // Record today's going prices for the Exchange chart.
+  s.priceHist = s.priceHist ?? {}
+  for (const [k, v] of Object.entries(s.ref)) { const h = (s.priceHist[k] = s.priceHist[k] ?? []); h.push(v); if (h.length > 30) h.shift() }
 }
 
 function finishJob(s: GameState, bd: Building) {
