@@ -73,7 +73,10 @@ function PriceChart({ data }: { data: number[] }) {
   return (
     <svg className="chart" viewBox={`0 0 ${W} ${H + 14}`}>
       <defs><linearGradient id="pc" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor={c} stopOpacity=".35" /><stop offset="1" stopColor={c} stopOpacity="0" /></linearGradient></defs>
+      {[0.25, 0.5, 0.75].map(f => <line key={f} x1="0" x2={W} y1={H * f} y2={H * f} stroke="#e6dac4" strokeDasharray="3 4" />)}
       <polygon points={`0,${H} ${line} ${W},${H}`} fill="url(#pc)" />
+      <text x={W - 2} y="10" fontSize="10" fill="#8a8296" textAnchor="end">high {money(Math.max(...data))}</text>
+      <text x={W - 2} y={H - 3} fontSize="10" fill="#8a8296" textAnchor="end">low {money(Math.min(...data))}</text>
       <polyline points={line} fill="none" stroke={c} strokeWidth="2" strokeLinejoin="round" />
       <circle cx={pts[pts.length - 1][0]} cy={pts[pts.length - 1][1]} r="3.5" fill={c} />
       <text x="0" y={H + 12} fontSize="10" fill="#8a8296">{data.length - 1} days ago</text>

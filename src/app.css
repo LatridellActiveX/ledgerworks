@@ -143,3 +143,42 @@ button.primary { background: linear-gradient(#ea8a70, #db6d52); font-weight: 600
 /* Full-height page background, even below very long tabs. */
 html { background: #efe7d8; min-height: 100% }
 body { min-height: 100vh; background-attachment: scroll; background-repeat: no-repeat; background-color: #efe7d8 }
+
+/* ===================== Premium pass (gfx2) ===================== */
+:root { --glass: #fffaf2b8; --glass-line: #ffffff99; --ink: #26232c; --accent: #ef7a55; --accent2: #6a6fe0 }
+body, button, select, input { font-family: 'Fredoka', ui-rounded, system-ui, sans-serif }
+body { font-weight: 500; background: radial-gradient(1200px 700px at 10% -10%, #fff3dc, transparent 60%), radial-gradient(900px 600px at 110% 10%, #e3e9ff, transparent 60%), #efe7d8 }
+h3, h4, .brand { font-weight: 700 }
+.brand { font-size: 23px; background: linear-gradient(90deg, #ef7a55, #c9558f 45%, #6a6fe0); -webkit-background-clip: text; background-clip: text }
+header { background: linear-gradient(#fffaf2e6, #fffaf2c4); backdrop-filter: blur(14px) saturate(1.4); border-bottom: 1px solid var(--glass-line) }
+.pill { font-weight: 600; border-radius: 12px; padding: 5px 11px; background: #ffffffc0; box-shadow: inset 0 0 0 1px #ffffff, 0 2px 8px #6b4a2a12 }
+.pill.cash { font-size: 15px; background: linear-gradient(#effbea, #dff4d7); color: #2c7a41; min-width: 120px; justify-content: center }
+.ticker { font-variant-numeric: tabular-nums; transition: color .3s, text-shadow .3s }
+.ticker.up { color: #1f9a4a; text-shadow: 0 0 12px #6ee59a } .ticker.down { color: #c44a3a }
+.panel, .bottom { background: var(--glass); backdrop-filter: blur(16px) saturate(1.3); box-shadow: inset 0 1px 0 #fff, 0 10px 30px #5a3d1a1f, 0 1px 3px #5a3d1a14; border: 1px solid var(--glass-line) }
+.card { background: linear-gradient(#ffffffb0, #fff7ea99); box-shadow: inset 0 0 0 1px #ffffffcc, 0 3px 10px #6b4a2a10; border-radius: 14px }
+button { border-radius: 11px; border: 0; background: linear-gradient(#ffffff, #f6efe2); box-shadow: inset 0 -2px 0 #0000000f, 0 1px 3px #6b4a2a1c; font-weight: 600 }
+button.primary { background: linear-gradient(#ff9a72, #ea6a45); box-shadow: inset 0 -3px 0 #0000001f, 0 6px 14px #ef7a5555; text-shadow: 0 1px 0 #0002 }
+button:not(:disabled):active { transform: translateY(1px) scale(.98) }
+select, input { border-radius: 10px; border: 1px solid #e6dac4; background: #fffdf8 }
+.tabs { gap: 8px; padding-top: 4px } .tabs button { padding: 7px 14px }
+.tabs .on { background: linear-gradient(#ff9a72, #ea6a45); color: #fff }
+.campus-wrap { height: min(64vh, 640px); background: linear-gradient(#bfe0f5, #e8f1e0); border: 1px solid var(--glass-line) }
+.campus-wrap > svg.campus { height: 100% }
+.scene3d { position: absolute; inset: 0 } .scene3d canvas { width: 100% !important; height: 100% !important; display: block; animation: fadein .8s }
+@keyframes fadein { from { opacity: 0 } }
+.scene-loading { position: absolute; inset: 0; display: grid; place-items: center; color: #4a5a6a; font-weight: 600 }
+.spinner { display: inline-block; width: 22px; height: 22px; border: 3px solid #fff; border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; vertical-align: middle; margin-right: 8px }
+.view-tools { position: absolute; right: 12px; top: 12px; display: flex; gap: 6px; z-index: 2 }
+.view-tools button { background: #fffaf2d9; backdrop-filter: blur(8px) }
+.hint { position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%); background: #1f1d2699; color: #fff; padding: 4px 12px; border-radius: 99px; font-size: 12px; pointer-events: none; animation: fadeout 6s forwards }
+@keyframes fadeout { 0%, 70% { opacity: 1 } 100% { opacity: 0 } }
+.campus-label { z-index: 2; background: #fffaf2e0; backdrop-filter: blur(8px) }
+.toast { border-radius: 14px; background: linear-gradient(#34303d, #25222c); padding: 12px 16px; font-weight: 600; box-shadow: 0 12px 30px #0004 }
+.lot { border-radius: 12px; padding: 5px 10px; transition: transform .15s } .lot:hover { transform: translateY(-2px) }
+.demand td { padding: 6px 8px }
+.ach.got .medal { text-shadow: 0 0 8px #ffd36a }
+.chart polyline { filter: drop-shadow(0 2px 3px #0002) }
+.panel { animation: slidein .3s cubic-bezier(.2,.9,.3,1.2) }
+@keyframes slidein { from { opacity: 0; transform: translateX(10px) } }
+@media (max-width: 800px) { .campus-wrap { height: 52vh } header { gap: 6px } .pill { font-size: 12px } }

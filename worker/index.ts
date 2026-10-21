@@ -19,6 +19,7 @@ import { MarketDO } from './market-do'
 export { MarketDO }
 
 declare const __HTML__: string
+declare const __SCENE__: string
 declare const __BUILD__: string
 
 export interface Env { DB: D1Database; MARKET: DurableObjectNamespace }
@@ -36,6 +37,8 @@ export default {
   async fetch(req: Request, env: Env): Promise<Response> {
     const url = new URL(req.url)
     if (url.pathname === '/version.json') return json({ build: __BUILD__ })
+    // Lazy 3D campus bundle; the URL carries a build stamp so it can cache for a year.
+    if (url.pathname === '/scene3d.js') return new Response(__SCENE__, { headers: { 'content-type': 'text/javascript; charset=utf-8', 'cache-control': 'public, max-age=31536000, immutable' } })
 
     if (url.pathname === '/api/world') return world(env).fetch('https://do/world')
     if (url.pathname === '/api/report' && req.method === 'POST') return world(env).fetch('https://do/report', { method: 'POST', body: await req.text() })

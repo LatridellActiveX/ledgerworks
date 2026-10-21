@@ -9,7 +9,9 @@ import * as E from './game/engine'
 import { BLD, BUILDINGS, REC, RES, RESOURCES } from './game/data'
 import { loadGame, saveGame, exportCode, importCode } from './game/save'
 import { BuildingArt, Logo, ResIcon } from './ui/art'
-import { Campus } from './ui/campus'
+import { Campus3D } from './ui/Campus3D'
+import { Ticker } from './ui/Ticker'
+import { setSound, sfx, soundOn } from './ui/sound'
 import { clock, dur, money, num } from './ui/fmt'
 import { CHANGELOG } from './changelog'
 import { RetailPanel } from './ui/RetailPanel'
@@ -26,6 +28,8 @@ export default function App() {
   const [s, setS] = useState<E.GameState>(() => E.advanceReal(loadGame()))
   const [sel, setSel] = useState<number | null>(null)
   const [msg, setMsg] = useState('')
+  const [view, setView] = useState<'3d' | '2d'>(() => (localStorage.getItem('ledgerworks-view') as '3d' | '2d') || '3d')
+  const [sound, setSnd] = useState(soundOn())
   const [tab, setTab] = useState<'warehouse' | 'exchange' | 'research' | 'board' | 'finance' | 'market' | 'log' | 'changes'>('warehouse')
 
   /** Run a mutating engine action on a copy, show its error if any. */
@@ -33,6 +37,7 @@ export default function App() {
     const next = structuredClone(s)
     const err = f(next)
     if (!err) for (const m of checkAchievements(next)) next.log.unshift(m)
+    sfx(err ? 'buzz' : next.cash > s.cash ? 'coin' : 'pop')
     setMsg(err || '')
     if (!err) { setS(next); saveGame(next) }
   }
@@ -66,7 +71,7 @@ export default function App() {
       <header>
         <Logo /><b className="brand">Ledgerworks</b>
         <span className="pill">{s.company}</span>
-        <span className="pill cash">{money(s.cash)}</span>
+        <span className="pill cash"><Ticker value={s.cash} /></span>
         <span className="pill" title="Company level">Lv {lvl}
           <span className="bar"><i style={{ width: `${(100 * (s.xp - xpLo)) / (xpHi - xpLo)}%` }} /></span>
         </span>
@@ -85,7 +90,12 @@ export default function App() {
 
       <main>
         <section className="campus-wrap">
-          <Campus s={s} slots={slots} sel={sel} onPick={setSel} />
+          <Campus3D s={s} slots={slots} sel={sel} onPick={setSel} mode={view} />
+          <div className="view-tools">
+            <button title="Switch between the 3D and 2D campus" onClick={() => { const v = view === '3d' ? '2d' : '3d'; setView(v); localStorage.setItem('ledgerworks-view', v) }}>{view === '3d' ? '2D view' : '3D view'}</button>
+            <button title="Sound effects" onClick={() => { setSound(!sound); setSnd(!sound); if (!sound) setTimeout(() => sfx('pop'), 50) }}>{sound ? '🔊' : '🔇'}</button>
+          </div>
+          {view === '3d' && <div className="hint">Drag to orbit · scroll to zoom · right-drag to pan · click a plot</div>}
           {sel !== null && s.plots[sel] && <div className="campus-label">{BLD[s.plots[sel]!.type].name} · level {s.plots[sel]!.level}</div>}
         </section>
 

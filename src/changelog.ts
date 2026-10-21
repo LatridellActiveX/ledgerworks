@@ -4,6 +4,12 @@ export interface ChangeEntry { id: string; date: string; title: string; notes: s
 
 export const CHANGELOG: ChangeEntry[] = [
   {
+    id: 'gfx2-3d-campus-premium-ui',
+    date: '2026-10-21',
+    title: 'A real 3D campus',
+    notes: ['The campus is now a live 3D scene: soft shadows, a sky that follows the sun and moon, glowing windows and street lamps at night, hills, trees and a pond.', 'Every building has its own model that grows with its level, with smoke from the chimneys and trucks and workers on the roads.', 'Drag to orbit, scroll or pinch to zoom, right-drag to pan, and click a plot to select it.', 'A 2D view button switches back to the flat map, and older devices use it automatically.', 'New font, glass panels, an animated cash counter and optional sounds (muted by default).'],
+  },
+  {
     id: 'polish-rough-edges-after-stage10',
     date: '2026-10-21',
     title: 'Polish',
