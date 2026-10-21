@@ -4,7 +4,7 @@
 // game shows instantly and the 3D view fades in when ready.
 import { useEffect, useRef, useState } from 'react'
 import type { GameState } from '../game/engine'
-import { Campus } from './campus'
+import { Campus, tilePos } from './campus'
 import * as E from '../game/engine'
 import { ResIcon } from './art'
 import { money, num } from './fmt'
@@ -28,7 +28,8 @@ function useFollow<T extends HTMLElement>(posOf: (i: number) => { x: number; y: 
         const p = pos.current(i % 1000)
         if (!p) { el.style.display = 'none'; continue }
         el.style.display = ''
-        el.style.transform = `translate(${Math.round(p.x)}px, ${Math.round(p.y + dy)}px) translate(-50%, -100%)`
+        const t = `translate(${Math.round(p.x)}px, ${Math.round(p.y + dy)}px) translate(-50%, -100%)`
+        el.style.transform = t; el.style.setProperty('--t', t)
       }
       raf = requestAnimationFrame(loop)
     }
@@ -49,7 +50,7 @@ function Bubbles({ list, posOf, onCollect }: { list: Bubble[]; posOf: (i: number
   const reg = useFollow<HTMLButtonElement>(posOf, -58)
   return <div className="bubbles">{list.map(b => (
     <button key={b.i} data-plot={b.i} className={`bubble ${b.kind}`} ref={reg(b.i)}
-      onPointerDown={e => e.stopPropagation()}
+      onPointerDown={e => { e.stopPropagation(); e.preventDefault() /* no focus scroll */ }}
       onClick={e => { e.stopPropagation(); onCollect(b.i, e.currentTarget.getBoundingClientRect()) }}
       title={b.kind === 'goods' ? 'Collect goods' : 'Collect money'}>
       <span className="face">
@@ -145,11 +146,15 @@ export function Campus3D({ s, slots, sel, onPick, mode, onCollect }: { s: GameSt
 
   if (mode === '2d' || state === 'failed') {
     // 2D: bubbles sit above each tile's diamond pad.
+    // Positions come from the fixed tile coordinates mapped through the SVG's
+    // screen matrix, not from a pad's live rect (pads lift on hover, which
+    // used to move the bubble away mid-tap so the click never landed).
     const pos2d = (i: number) => {
-      const root = flat.current, pad = root?.querySelectorAll('.tile .pad')[i] as SVGGraphicsElement | undefined
-      if (!root || !pad) return null
-      const r = pad.getBoundingClientRect(), o = root.getBoundingClientRect()
-      return { x: r.left + r.width / 2 - o.left, y: r.top - o.top + r.height * 0.1 - 24 }
+      const root = flat.current, svg = root?.querySelector('svg.campus') as SVGSVGElement | null
+      const m = svg?.getScreenCTM()
+      if (!root || !svg || !m) return null
+      const { x, y } = tilePos(i), o = root.getBoundingClientRect()
+      return { x: m.a * x + m.c * (y - 26) + m.e - o.left, y: m.b * x + m.d * (y - 26) + m.f - o.top }
     }
     return <div className="flat-wrap" ref={flat}><Campus s={s} slots={slots} sel={sel} onPick={onPick} /><ActivityBadges s={s} posOf={pos2d} /><Bubbles list={bubbles} posOf={pos2d} onCollect={onCollect} /></div>
   }

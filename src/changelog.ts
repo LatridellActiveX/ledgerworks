@@ -4,6 +4,12 @@ export interface ChangeEntry { id: string; date: string; title: string; notes: s
 
 export const CHANGELOG: ChangeEntry[] = [
   {
+    id: 'fix-2d-bubble-tap',
+    date: '2026-10-21',
+    title: 'Collect bubbles tap reliably in 2D',
+    notes: ['Tapping a collect bubble near the edge of the 2D map could slide it out from under your finger, so nothing was collected. Bubbles now stay put when you tap them, in both views.'],
+  },
+  {
     id: 'detailed-2d-campus',
     date: '2026-10-21',
     title: 'A more detailed 2D view',

@@ -313,3 +313,7 @@ select.realm { border-radius: 999px; padding: 4px 10px; font: inherit; font-size
 .flare { animation: flare .6s ease-in-out infinite alternate; transform-box: fill-box; transform-origin: bottom }
 @keyframes flare { to { transform: scaleY(1.35) } }
 @media (prefers-reduced-motion: reduce) { .smoke2 circle, .sway, .shopper, .spark2 circle, .bob2, .swing2, .blink2, .flare { animation: none !important } .smoke2 circle { opacity: .4 } }
+/* Tap fix: 'clip' (not 'hidden') so focusing a bubble near the edge can't
+   scroll the overlay and slide the bubble out from under the finger. */
+.bubbles, .acts { overflow: clip }
+.bubble:active, .bubble:not(:disabled):active { scale: none; transform: var(--t) }
