@@ -13,6 +13,7 @@
 //  - Shop revenue is paid when the sale job finishes.
 // ============================================================================
 import { BLD, REC, RES } from './data'
+import { marketDay, npcHour, restockNpc, type Order } from './market'
 
 export const GAME_SPEED = 4 // game hours per real hour
 export const MAX_QUALITY = 12
@@ -44,6 +45,12 @@ export interface GameState {
   /** Units sold to the public today, per resource (feeds saturation). */
   soldToday: Record<string, number>
   log: string[]
+  // --- Exchange (stage 5) ---
+  seed: number // seeded RNG state for NPC traders
+  ref: Record<string, number> // reference price per good
+  asks: Order[] // all sell orders: yours and NPC
+  bidLeft: Record<string, number> // NPC instant-buy capacity left today
+  exSold: Record<string, number> // units you sold on the exchange today
 }
 
 // --------------------------------------------------------------------------
@@ -69,7 +76,7 @@ export const parseKey = (k: string) => { const [res, q] = k.split('|'); return {
 export const haveQty = (s: GameState, res: string) =>
   Object.entries(s.stock).reduce((t, [k, v]) => (parseKey(k).res === res ? t + v : t), 0)
 
-function addStock(s: GameState, res: string, q: number, n: number) {
+export function addStock(s: GameState, res: string, q: number, n: number) {
   const k = key(res, q)
   s.stock[k] = (s.stock[k] ?? 0) + n
   if (s.stock[k] <= 1e-9) delete s.stock[k]
@@ -79,7 +86,7 @@ function addStock(s: GameState, res: string, q: number, n: number) {
  * Take `n` units of a resource, highest quality first. Returns the lowest
  * quality taken (this decides output quality), or -1 if there is not enough.
  */
-function takeStock(s: GameState, res: string, n: number): number {
+export function takeStock(s: GameState, res: string, n: number): number {
   if (haveQty(s, res) + 1e-9 < n) return -1
   const lots = Object.keys(s.stock).map(parseKey).filter(l => l.res === res).sort((a, b) => b.q - a.q)
   let need = n, low = MAX_QUALITY
@@ -95,10 +102,13 @@ function takeStock(s: GameState, res: string, n: number): number {
 const say = (s: GameState, msg: string) => { s.log.unshift(`Day ${Math.floor(s.hour / 24) + 1}: ${msg}`); s.log.length = Math.min(s.log.length, 40) }
 
 export function newGame(company = 'My Company', now = Date.now()): GameState {
-  return {
+  const s: GameState = {
     version: 1, company, cash: START_CASH, xp: 0, hour: 8, lastReal: now, nextUid: 1,
     plots: Array(24).fill(null), stock: {}, saturation: {}, soldToday: {}, log: ['Welcome to Ledgerworks!'],
+    seed: 12345, ref: {}, asks: [], bidLeft: {}, exSold: {},
   }
+  restockNpc(s)
+  return s
 }
 
 // --------------------------------------------------------------------------
@@ -216,19 +226,6 @@ export function startSell(s: GameState, plot: number, res: string, q: number, qt
   return null
 }
 
-// --------------------------------------------------------------------------
-// NPC wholesaler: lets a new company buy any good at a 30% markup, so chains
-// can be bootstrapped before the full exchange arrives (stage 5).
-// --------------------------------------------------------------------------
-export const wholesalePrice = (res: string) => RES[res].basePrice * 1.3
-export function buyWholesale(s: GameState, res: string, qty: number): string | null {
-  const cost = wholesalePrice(res) * qty
-  if (!(qty > 0)) return 'Pick an amount'
-  if (s.cash < cost) return 'Not enough cash'
-  s.cash -= cost
-  addStock(s, res, 0, qty)
-  return null
-}
 
 // --------------------------------------------------------------------------
 // Daily cycle: saturation drifts toward how much was sold vs normal demand.
@@ -242,6 +239,7 @@ export function rollDay(s: GameState) {
     s.saturation[r.id] = Math.max(0.6, Math.min(3, sat))
   }
   s.soldToday = {}
+  marketDay(s)
 }
 
 function finishJob(s: GameState, bd: Building) {
@@ -269,14 +267,17 @@ function finishJob(s: GameState, bd: Building) {
  */
 export function advanceTo(s: GameState, toHour: number): GameState {
   while (true) {
-    // Next event: earliest job end, or the next midnight.
-    const nextMidnight = (Math.floor(s.hour / 24) + 1) * 24
-    let next = nextMidnight, who: Building | null = null
+    // Next event: earliest job end, the next whole hour (NPC buyers), or midnight.
+    const nextHour = Math.floor(s.hour + 1e-9) + 1
+    let next = nextHour, who: Building | null = null
     for (const bd of s.plots) if (bd?.job && bd.job.endH < next) { next = bd.job.endH; who = bd }
     if (next > toHour) break
     s.hour = next
     if (who) finishJob(s, who)
-    else rollDay(s)
+    else {
+      npcHour(s, m => say(s, m))
+      if (nextHour % 24 === 0) rollDay(s)
+    }
   }
   s.hour = Math.max(s.hour, toHour)
   return s

@@ -2,7 +2,7 @@
 // Root UI. Holds the GameState in React state, ticks the simulation once a
 // second, autosaves every few seconds, and renders:
 //   top bar (cash, level, clock) | plot grid | side panel (selected plot)
-//   warehouse + wholesaler | event log | change log
+//   warehouse + exchange | event log | change log
 // ============================================================================
 import { useEffect, useMemo, useState } from 'react'
 import * as E from './game/engine'
@@ -12,13 +12,14 @@ import { BuildingArt, EmptyPlot, Logo, ResIcon } from './ui/art'
 import { clock, dur, money, num } from './ui/fmt'
 import { CHANGELOG } from './changelog'
 import { RetailPanel } from './ui/RetailPanel'
+import { Exchange } from './ui/Exchange'
 import './app.css'
 
 export default function App() {
   const [s, setS] = useState<E.GameState>(() => E.advanceReal(loadGame()))
   const [sel, setSel] = useState<number | null>(null)
   const [msg, setMsg] = useState('')
-  const [tab, setTab] = useState<'warehouse' | 'market' | 'log' | 'changes'>('warehouse')
+  const [tab, setTab] = useState<'warehouse' | 'exchange' | 'market' | 'log' | 'changes'>('warehouse')
 
   /** Run a mutating engine action on a copy, show its error if any. */
   const act = (f: (st: E.GameState) => string | null | void) => {
@@ -81,10 +82,11 @@ export default function App() {
       </main>
 
       <nav className="tabs">
-        {(['warehouse', 'market', 'log', 'changes'] as const).map(t => <button key={t} className={tab === t ? 'on' : ''} onClick={() => setTab(t)}>{t === 'warehouse' ? 'Warehouse' : t === 'market' ? 'Public demand' : t === 'log' ? 'Events' : 'Change log'}</button>)}
+        {(['warehouse', 'exchange', 'market', 'log', 'changes'] as const).map(t => <button key={t} className={tab === t ? 'on' : ''} onClick={() => setTab(t)}>{t === 'warehouse' ? 'Warehouse' : t === 'exchange' ? 'Exchange' : t === 'market' ? 'Public demand' : t === 'log' ? 'Events' : 'Change log'}</button>)}
       </nav>
       <section className="bottom">
-        {tab === 'warehouse' && <Warehouse s={s} act={act} />}
+        {tab === 'warehouse' && <Warehouse s={s} />}
+        {tab === 'exchange' && <Exchange s={s} act={act} />}
         {tab === 'market' && <Demand s={s} />}
         {tab === 'log' && <ul className="log">{s.log.map((l, i) => <li key={i}>{l}</li>)}</ul>}
         {tab === 'changes' && <ul className="log">{CHANGELOG.map(c => <li key={c.id}><b>{c.date} · {c.title}</b> — {c.notes.join(' ')}</li>)}</ul>}
@@ -163,23 +165,13 @@ function MakeForm({ s, plot, act }: { s: E.GameState; plot: number; act: Act }) 
   )
 }
 
-/** Warehouse contents plus the NPC wholesaler for bootstrapping. */
-function Warehouse({ s, act }: { s: E.GameState; act: Act }) {
-  const [buy, setBuy] = useState('seeds')
-  const [n, setN] = useState(100)
+/** Warehouse contents. Buying and selling with traders is on the Exchange tab. */
+function Warehouse({ s }: { s: E.GameState }) {
   const lots = Object.entries(s.stock).map(([k, v]) => ({ ...E.parseKey(k), v })).sort((a, b) => a.res.localeCompare(b.res) || a.q - b.q)
   return (
-    <div className="wh">
-      <div className="stock">
-        {lots.length === 0 && <span className="muted">Your warehouse is empty.</span>}
-        {lots.map(l => <span key={l.res + l.q} className="lot"><ResIcon id={l.res} /> {RES[l.res].name} <small>Q{l.q}</small> <b>{num(l.v)}</b></span>)}
-      </div>
-      <div className="card">
-        <b>Wholesaler</b> <small className="muted">(buys at a 30% markup, Q0 only)</small><br />
-        <select value={buy} onChange={e => setBuy(e.target.value)}>{RESOURCES.map(r => <option key={r.id} value={r.id}>{r.name} · {money(E.wholesalePrice(r.id) * 100) } /100</option>)}</select>
-        <input type="number" min={1} value={n} onChange={e => setN(Number(e.target.value))} />
-        <button onClick={() => act(st => E.buyWholesale(st, buy, n))}>Buy for {money(E.wholesalePrice(buy) * n)}</button>
-      </div>
+    <div className="stock">
+      {lots.length === 0 && <span className="muted">Your warehouse is empty. Buy starter goods on the Exchange tab.</span>}
+      {lots.map(l => <span key={l.res + l.q} className="lot"><ResIcon id={l.res} /> {RES[l.res].name} <small>Q{l.q}</small> <b>{num(l.v)}</b></span>)}
     </div>
   )
 }

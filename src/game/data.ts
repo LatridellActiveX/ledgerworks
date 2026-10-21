@@ -20,6 +20,8 @@ export interface Resource {
   store?: StoreId
   /** Public demand per game day at "normal" saturation (whole server == us). */
   dailyDemand?: number
+  /** Shipping crates needed per unit when sold on the exchange (default 1). */
+  ship?: number
 }
 
 export type StoreId = 'market' | 'outfitter' | 'fuelstop' | 'gadget' | 'buildmart'
@@ -48,12 +50,14 @@ export interface BuildingType {
 }
 
 // ---------------------------------------------------------------------------
-// Resources (40). Grouped by chain for readability.
+// Resources (41). Grouped by chain for readability.
 // ---------------------------------------------------------------------------
 export const RESOURCES: Resource[] = [
   // Utilities
-  { id: 'power', name: 'Power', color: '#f7d774', basePrice: 0.3 },
-  { id: 'water', name: 'Water', color: '#8ec9e8', basePrice: 0.25 },
+  { id: 'power', name: 'Power', color: '#f7d774', basePrice: 0.3, ship: 0.1 },
+  { id: 'water', name: 'Water', color: '#8ec9e8', basePrice: 0.25, ship: 0.2 },
+  // Logistics: crates are spent whenever goods ship through the exchange.
+  { id: 'crates', name: 'Shipping crate', color: '#c8a46e', basePrice: 0.4, ship: 0 },
   // Farm & food
   { id: 'seeds', name: 'Seeds', color: '#c9b37e', basePrice: 0.2 },
   { id: 'wheat', name: 'Wheat', color: '#e8c872', basePrice: 1.1 },
@@ -94,7 +98,7 @@ export const RESOURCES: Resource[] = [
   { id: 'silica', name: 'Silica', color: '#e9e4f5', basePrice: 2 },
   { id: 'chip', name: 'Microchip', color: '#6dbf9e', basePrice: 30 },
   { id: 'cell', name: 'Battery cell', color: '#8fd16a', basePrice: 18 },
-  { id: 'phone', name: 'Pocket phone', color: '#5d6bd4', basePrice: 220, store: 'gadget', dailyDemand: 20 },
+  { id: 'phone', name: 'Pocket phone', color: '#5d6bd4', basePrice: 220, ship: 0.5, store: 'gadget', dailyDemand: 20 },
   { id: 'lamp', name: 'Desk lamp', color: '#f2c94c', basePrice: 35, store: 'gadget', dailyDemand: 60 },
   { id: 'speaker', name: 'Speaker', color: '#e07a5f', basePrice: 70, store: 'gadget', dailyDemand: 35 },
 ]
@@ -104,6 +108,7 @@ export const RESOURCES: Resource[] = [
 // ---------------------------------------------------------------------------
 export const RECIPES: Recipe[] = [
   { output: 'power', perHour: 600, inputs: {} },
+  { output: 'crates', perHour: 150, inputs: { boards: 0.05, power: 0.2 } },
   { output: 'water', perHour: 500, inputs: { power: 0.2 } },
   { output: 'seeds', perHour: 400, inputs: { water: 0.1 } },
   { output: 'wheat', perHour: 120, inputs: { seeds: 1, water: 1 } },
@@ -163,6 +168,7 @@ export const BUILDINGS: BuildingType[] = [
   { id: 'foundry', name: 'Foundry', color: '#b9c0c9', kind: 'production', cost: 45000, wage: 150, recipes: ['metal', 'silica'], unlockLevel: 6 },
   { id: 'fab', name: 'Circuit lab', color: '#6dbf9e', kind: 'production', cost: 80000, wage: 220, recipes: ['chip', 'cell'], unlockLevel: 8 },
   { id: 'assembly', name: 'Gadget line', color: '#5d6bd4', kind: 'production', cost: 90000, wage: 240, recipes: ['phone', 'lamp', 'speaker'], unlockLevel: 8 },
+  { id: 'crateyard', name: 'Crate yard', color: '#c8a46e', kind: 'production', cost: 15000, wage: 55, recipes: ['crates'], unlockLevel: 2 },
   // Retail
   { id: 'market', name: 'Corner market', color: '#ef8a8a', kind: 'retail', cost: 10000, wage: 50, store: 'market', unlockLevel: 1 },
   { id: 'outfitter', name: 'Outfitter', color: '#7fb3d5', kind: 'retail', cost: 18000, wage: 70, store: 'outfitter', unlockLevel: 4 },

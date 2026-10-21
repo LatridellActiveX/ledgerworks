@@ -3,8 +3,8 @@ import { describe, it, expect } from 'vitest'
 import { RESOURCES, RECIPES, BUILDINGS, RES, REC } from '../src/game/data'
 
 describe('game data', () => {
-  it('has about 40 resources, each with a recipe', () => {
-    expect(RESOURCES.length).toBe(40)
+  it('has 41 resources, each with a recipe', () => {
+    expect(RESOURCES.length).toBe(41)
     for (const r of RESOURCES) expect(REC[r.id], r.id).toBeTruthy()
   })
   it('recipe inputs and building recipes exist', () => {

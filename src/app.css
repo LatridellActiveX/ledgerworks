@@ -51,3 +51,7 @@ main { display: grid; grid-template-columns: 1fr 360px; gap: 16px; padding: 16px
 .plot { aspect-ratio: auto; height: 0; padding-bottom: 100%; overflow: hidden }
 .plot > svg { position: absolute; inset: 0 }
 .card > span, .card > div { display: block }
+.ex { display: grid; grid-template-columns: 1.3fr 1fr 1fr; gap: 12px }
+.ex .card { margin: 0 }
+tr.mine td { color: var(--accent); font-weight: 600 }
+@media (max-width: 800px) { .ex { grid-template-columns: 1fr } }

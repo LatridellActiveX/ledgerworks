@@ -1,6 +1,7 @@
 // Engine tests: production timing, wages, retail saturation, saves.
 import { describe, it, expect } from 'vitest'
 import * as E from '../src/game/engine'
+import * as M from '../src/game/market'
 import { saveGame, loadGame, exportCode, importCode, type KV } from '../src/game/save'
 
 function readyGame() {
@@ -48,7 +49,7 @@ describe('retail saturation', () => {
   })
   it('a finished sale pays revenue and counts toward saturation', () => {
     const s = readyGame()
-    E.buyWholesale(s, 'apples', 100)
+    expect(M.buy(s, 'apples', 100)).toBeNull()
     const cash = s.cash
     expect(E.startSell(s, 1, 'apples', 0, 100, 3)).toBeNull()
     E.advanceTo(s, s.hour + 72)

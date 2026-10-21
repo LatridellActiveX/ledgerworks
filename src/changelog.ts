@@ -4,6 +4,12 @@ export interface ChangeEntry { id: string; date: string; title: string; notes: s
 
 export const CHANGELOG: ChangeEntry[] = [
   {
+    id: 'stage5-exchange-order-book',
+    date: '2026-10-21',
+    title: 'The Exchange opens',
+    notes: ['Order book per good: cheapest first, then higher quality, then oldest.', 'Trader NPCs sell every good and buy your listings each hour; prices drift daily and dip if you flood a market.', 'Selling needs shipping crates (new good, made at the Crate yard). 3% fee on sales; cancelling within 48 h costs the fee; orders expire after 7 days.', 'Quick sell to traders at the bid price, limited per day. The wholesaler is gone.'],
+  },
+  {
     id: 'fix-price-cents-display',
     date: '2026-10-21',
     title: 'Prices show cents',
