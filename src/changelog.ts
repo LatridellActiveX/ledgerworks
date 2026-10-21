@@ -4,6 +4,12 @@ export interface ChangeEntry { id: string; date: string; title: string; notes: s
 
 export const CHANGELOG: ChangeEntry[] = [
   {
+    id: 'company-value-breakdown',
+    date: '2026-10-21',
+    title: 'Company value breakdown',
+    notes: ["The Company value screen has a donut chart of what your assets are made of: cash, buildings, inventory and bonds held.", "Tap any category to see what is inside it: each building and its level, each good in the warehouse, each bond, the patents you hold, and the bonds you owe.", "Rename your company right from the Company value screen, as well as from the Account screen."],
+  },
+  {
     id: 'farm-hands-on',
     date: '2026-10-21',
     title: 'Farms you can work',

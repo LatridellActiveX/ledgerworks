@@ -11,7 +11,7 @@
 // Patents are listed (count) but valued at $0: they raise product quality
 // and can't be sold, so counting them as money would overstate the company.
 import type { GameState } from './engine'
-import { RES } from './data'
+import { BLD, RES } from './data'
 import * as F from './finance'
 import { escrowTotal } from './bids'
 
@@ -51,4 +51,29 @@ export function recordValue(s: GameState) {
   if (hist.length && hist[hist.length - 1].h === s.hour) hist[hist.length - 1].v = v
   else hist.push({ h: s.hour, v })
   if (hist.length > HIST_MAX) hist.splice(0, hist.length - HIST_MAX)
+}
+
+// ---- Detail for the Company Value breakdown --------------------------------
+// The same numbers as valueBreakdown, split into the things each category is
+// made of, so the screen can show what is behind every slice. The category
+// totals always match valueBreakdown exactly (see tests/value.test.ts).
+export interface ValueDetail {
+  cash: { cash: number; locked: number }                    // locked = cash held in open buy orders
+  buildings: { name: string; level: number; value: number }[]
+  inventory: { res: string; name: string; units: number; value: number }[]
+  bonds: { issuer: string; rating: string; amount: number }[]
+  patents: { res: string; name: string; count: number }[]
+  liabilities: { amount: number }[]
+}
+
+export function valueDetail(s: GameState): ValueDetail {
+  const buildings = s.plots.flatMap(b => (b ? [{ name: BLD[b.type].name, level: b.level, value: BLD[b.type].cost * (b.level * (b.level + 1)) / 2 }] : []))
+  const byRes: Record<string, number> = {}
+  for (const [k, n] of Object.entries(s.stock)) { const r = k.split('|')[0]; byRes[r] = (byRes[r] ?? 0) + n }
+  const inventory = Object.entries(byRes).map(([res, units]) => ({ res, name: RES[res]?.name ?? res, units, value: units * (s.ref?.[res] ?? RES[res]?.basePrice ?? 0) }))
+    .sort((a, b) => b.value - a.value)
+  const bonds = (s.holdings ?? []).map(h => ({ issuer: h.issuer, rating: h.rating, amount: h.amount }))
+  const patents = Object.entries(s.patents ?? {}).filter(([, n]) => n > 0).map(([res, count]) => ({ res, name: RES[res]?.name ?? res, count }))
+  const liabilities = (s.bonds ?? []).map(b => ({ amount: b.amount }))
+  return { cash: { cash: s.cash, locked: escrowTotal(s) }, buildings, inventory, bonds, patents, liabilities }
 }

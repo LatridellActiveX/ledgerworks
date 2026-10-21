@@ -152,6 +152,16 @@ export default function App() {
   const xpPct = Math.floor((100 * (s.xp - xpLo)) / (xpHi - xpLo))
   const toggleView = () => { const v = view === '3d' ? '2d' : '3d'; setView(v); localStorage.setItem('ledgerworks-view', v) }
 
+  // Rename from anywhere (Account screen or Company value): one prompt, saved at once.
+  const renameCompany_ = () => {
+    const raw = prompt('New company name (2 to 40 characters)', s.company)
+    if (raw === null) return
+    const r = renameCompany(s, raw)
+    if ('error' in r) { setMsg(r.error); return }
+    setS(r.state); saveGame(r.state)
+    setMsg(`Renamed to ${r.state.company}`)
+    if (T.account()) T.p2p('me', { company: r.state.company }).catch(() => {})
+  }
   // Any player name in the game opens their profile through this.
   const openPlayer = (n: string) => { setPlayer(n); setScreen('players') }
   return (
@@ -221,7 +231,7 @@ export default function App() {
           {screen === 'execs' && <Executives s={s} act={act} />}
           {screen === 'finance' && <Finance s={s} act={act} user={user} />}
           {screen === 'levels' && <LevelScreen s={s} />}
-          {screen === 'value' && <CompanyValue s={s} onPlayer={openPlayer} />}
+          {screen === 'value' && <CompanyValue s={s} onPlayer={openPlayer} onRename={renameCompany_} />}
           {/* Player search + public profiles (ui/Players.tsx). Trade opens the trade floor offer form for that trader. */}
           {screen === 'players' && (player
             ? <PlayerProfile name={player} s={s} act={act} user={user} onBack={() => setPlayer(null)} />
@@ -238,15 +248,7 @@ export default function App() {
               <div>
                 <b className="co-name">{s.company}</b>
                 <small className="muted">Level {E.companyLevel(s.xp)} company</small>
-                <button onClick={() => {
-                  const raw = prompt('New company name (2 to 40 characters)', s.company)
-                  if (raw === null) return
-                  const r = renameCompany(s, raw)
-                  if ('error' in r) { setMsg(r.error); return }
-                  setS(r.state); saveGame(r.state)
-                  setMsg(`Renamed to ${r.state.company}`)
-                  if (T.account()) T.p2p('me', { company: r.state.company }).catch(() => {})
-                }}>✎ Rename company</button>
+                <button onClick={renameCompany_}>✎ Rename company</button>
               </div>
             </div>
             <p>{s.online ? '● online' : '○ offline'} · Overhead {(E.overhead(s) * 100).toFixed(1)}% <small className="muted">(accounting fee today {money(accountingFee(s.cash, 2_500_000 + cashLineBonus(s)))})</small></p>

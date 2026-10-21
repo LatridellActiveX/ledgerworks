@@ -11,9 +11,9 @@
 // ============================================================================
 import { PlayerSearch } from './Players'
 import { Crest } from './Crest'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import type { GameState } from '../game/engine'
-import { valueBreakdown } from '../game/value'
+import { valueBreakdown, valueDetail, type ValueDetail } from '../game/value'
 import * as T from '../game/trade'
 import { money, num } from './fmt'
 
@@ -36,7 +36,75 @@ function ValueChart({ pts }: { pts: { h: number; v: number }[] }) {
   )
 }
 
-export function CompanyValue({ s, onPlayer }: { s: GameState; onPlayer?: (name: string) => void }) {
+/** Donut of what the company's assets are made of, with the total in the middle. */
+function AssetDonut({ parts }: { parts: { label: string; v: number; c: string }[] }) {
+  const total = parts.reduce((t, p) => t + Math.max(0, p.v), 0)
+  const R = 62, C = 2 * Math.PI * R
+  let acc = 0
+  return (
+    <svg className="donut" viewBox="0 0 160 160" role="img" aria-label={`Assets ${money(total)}: ${parts.map(p => `${p.label} ${Math.round(100 * p.v / (total || 1))}%`).join(', ')}`}>
+      <circle cx="80" cy="80" r={R} fill="none" stroke="#efe8da" strokeWidth="22" />
+      {parts.filter(p => p.v > 0).map(p => {
+        const len = (p.v / (total || 1)) * C
+        const seg = <circle key={p.label} cx="80" cy="80" r={R} fill="none" stroke={p.c} strokeWidth="22" strokeDasharray={`${len} ${C - len}`} strokeDashoffset={-acc} transform="rotate(-90 80 80)" />
+        acc += len
+        return seg
+      })}
+      <text x="80" y="76" textAnchor="middle" fontSize="11" fill="#6b6378">Assets</text>
+      <text x="80" y="95" textAnchor="middle" fontSize="15" fontWeight="800" fill="#2c2540">{money(total)}</text>
+    </svg>
+  )
+}
+
+/** Expandable category with its own total and the items behind it. */
+function Category({ title, value, color, children, open }: { title: string; value: string; color: string; children: ReactNode; open?: boolean }) {
+  return <details className="vcat" open={open}>
+    <summary><i style={{ background: color }} /><span>{title}</span><b>{value}</b></summary>
+    <div className="vcat-body">{children}</div>
+  </details>
+}
+
+/** The breakdown: the donut, then every category with the things inside it. */
+function AssetBreakdown({ s, b }: { s: GameState; b: ReturnType<typeof valueBreakdown> }) {
+  const d: ValueDetail = valueDetail(s)
+  const parts = [
+    { label: 'Cash', v: b.cash, c: '#4fa52c' }, { label: 'Buildings', v: b.buildings, c: '#5d6bd4' },
+    { label: 'Inventory', v: b.inventory, c: '#e3b23c' }, { label: 'Bonds held', v: b.bondsHeld, c: '#7b61ff' },
+  ]
+  const assets = parts.reduce((t, p) => t + p.v, 0)
+  const pct = (v: number) => `${Math.round(100 * v / (assets || 1))}%`
+  return <div className="card">
+    <b>What the company is worth</b>
+    <div className="vbreak">
+      <AssetDonut parts={parts} />
+      <ul className="vlegend">{parts.map(p => <li key={p.label}><i style={{ background: p.c }} />{p.label} <b>{pct(p.v)}</b></li>)}
+        <li><i style={{ background: '#d64545' }} />Liabilities <b>−{money(b.liabilities)}</b></li></ul>
+    </div>
+    <Category title="Cash" value={money(b.cash)} color="#4fa52c" open>
+      <p className="muted">{money(d.cash.cash)} in your company{d.cash.locked > 0 ? `, plus ${money(d.cash.locked)} held in open buy orders` : ''}.</p>
+    </Category>
+    <Category title="Buildings" value={money(b.buildings)} color="#5d6bd4">
+      {d.buildings.length === 0 ? <p className="muted">No buildings yet.</p> : d.buildings.map((x, i) => <div key={i} className="vline"><span>{x.name} · level {x.level}</span><b>{money(x.value)}</b></div>)}
+      <p className="muted">Value is what it cost to reach each level: build cost plus every upgrade.</p>
+    </Category>
+    <Category title="Inventory" value={money(b.inventory)} color="#e3b23c">
+      {d.inventory.length === 0 ? <p className="muted">Nothing in the warehouse.</p> : d.inventory.map(x => <div key={x.res} className="vline"><span>{x.name} <small className="muted">· {num(Math.round(x.units))} units</small></span><b>{money(x.value)}</b></div>)}
+      <p className="muted">Valued at today's market price.</p>
+    </Category>
+    <Category title="Bonds held" value={money(b.bondsHeld)} color="#7b61ff">
+      {d.bonds.length === 0 ? <p className="muted">No bonds held.</p> : d.bonds.map((x, i) => <div key={i} className="vline"><span>{x.issuer} · {x.rating}</span><b>{money(x.amount)}</b></div>)}
+    </Category>
+    <Category title="Patents" value={`${num(b.patents)} patent${b.patents === 1 ? '' : 's'}`} color="#2fa3a3">
+      {d.patents.length === 0 ? <p className="muted">No patents yet.</p> : d.patents.map(x => <div key={x.res} className="vline"><span>{x.name}</span><b>{num(x.count)}</b></div>)}
+      <p className="muted">Patents raise product quality. They are counted, not valued as money.</p>
+    </Category>
+    <Category title="Liabilities" value={`−${money(b.liabilities)}`} color="#d64545">
+      {d.liabilities.length === 0 ? <p className="muted">No bonds owed.</p> : d.liabilities.map((x, i) => <div key={i} className="vline"><span>Bond {i + 1}</span><b>−{money(x.amount)}</b></div>)}
+    </Category>
+  </div>
+}
+
+export function CompanyValue({ s, onPlayer, onRename }: { s: GameState; onPlayer?: (name: string) => void; onRename?: () => void }) {
   const b = valueBreakdown(s)
   const [leaders, setLeaders] = useState<{ name: string; company: string; value: number }[] | null>(null)
   useEffect(() => { T.p2p('board', { res: 'apples' }).then(j => setLeaders(j.leaders ?? [])).catch(() => setLeaders(null)) }, [])
@@ -53,16 +121,16 @@ export function CompanyValue({ s, onPlayer }: { s: GameState; onPlayer?: (name: 
   return (
     <div className="cvalue">
       <div className="card cv-total">
-        <div className="cv-crest"><Crest name={s.company} size={96} /><div><small>{s.company}</small></div></div>
+        <div className="cv-crest"><Crest name={s.company} size={96} /><div><b>{s.company}</b>{onRename && <div><button onClick={onRename}>✎ Rename company</button></div>}</div></div>
         <small>Total company value</small>
         <b>{money(b.total)}</b>
         {pts.length > 1 && <span className={change >= 0 ? 'up' : 'down'}>{change >= 0 ? '▲' : '▼'} {money(Math.abs(change))} over {num(Math.round((s.hour - pts[0].h) / 24))} days</span>}
       </div>
+      <AssetBreakdown s={s} b={b} />
       <div className="card">
-        <b>Breakdown</b>
+        <b>Total</b>
         {rows.map(([k, v, c]) => <div key={k} className="cv-row"><span>{k}</span><i style={{ width: `${(100 * Math.abs(v)) / gross}%`, background: c }} /><b className={v < 0 ? 'neg' : ''}>{v < 0 ? '−' : ''}{money(Math.abs(v))}</b></div>)}
         <div className="cv-row total"><span>Total</span><i /><b>{money(b.total)}</b></div>
-        <small className="muted">Patents: {num(b.patents)} (they raise product quality; not counted as money).</small>
       </div>
       <div className="card"><b>Value history</b><ValueChart pts={pts} /></div>
       <div className="card">

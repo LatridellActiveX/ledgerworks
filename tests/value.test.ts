@@ -38,3 +38,22 @@ describe('update check', () => {
     expect(isNewer(null, 'a')).toBe(false)
   })
 })
+
+import { valueDetail, valueBreakdown } from '../src/game/value'
+import * as E from '../src/game/engine'
+describe('company value detail', () => {
+  it('the categories add up to the breakdown', () => {
+    const s = E.newGame('Val', 0)
+    E.construct(s, 0, 'orchard'); E.construct(s, 1, 'generator')
+    E.advanceTo(s, s.hour + 10)
+    E.addStock(s, 'apples', 2, 40); E.addStock(s, 'seeds', 0, 100)
+    s.patents = { apples: 2 }
+    const d = valueDetail(s), b = valueBreakdown(s)
+    const buildings = d.buildings.reduce((t, x) => t + x.value, 0)
+    const inventory = d.inventory.reduce((t, x) => t + x.value, 0)
+    expect(buildings).toBeCloseTo(b.buildings)
+    expect(inventory).toBeCloseTo(b.inventory)
+    expect(d.cash.cash).toBe(s.cash)
+    expect(d.patents).toEqual([{ res: 'apples', name: 'Apples', count: 2 }])
+  })
+})

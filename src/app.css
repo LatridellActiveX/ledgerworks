@@ -767,3 +767,18 @@ tr.bidrow td { color: #3c9a5f; font-weight: 600 }
 @keyframes pulse { 0%, 100% { opacity: 0.5 } 50% { opacity: 0.9 } }
 @keyframes drip { to { stroke-dashoffset: -14 } }
 @media (prefers-reduced-motion: reduce) { .plant, .fx-rain, .fx-sun, .fx-drip { animation: none } }
+
+/* Company value breakdown (ui/CompanyValue.tsx) */
+.vbreak { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; margin: 8px 0 }
+.donut { width: 160px; height: 160px; flex: none }
+.vlegend { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; font-size: 14px }
+.vlegend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px }
+.vcat { border-top: 1px solid #0001; padding: 6px 0 }
+.vcat summary { display: flex; align-items: center; gap: 8px; cursor: pointer; list-style: none; font-weight: 600 }
+.vcat summary::-webkit-details-marker { display: none }
+.vcat summary::after { content: '▸'; margin-left: 4px; color: #8a8296; transition: transform .15s }
+.vcat[open] summary::after { transform: rotate(90deg) }
+.vcat summary i { width: 10px; height: 10px; border-radius: 3px; flex: none }
+.vcat summary b { margin-left: auto; font-variant-numeric: tabular-nums }
+.vcat-body { padding: 6px 0 2px 18px; display: grid; gap: 4px; font-size: 13px }
+.vline { display: flex; justify-content: space-between; gap: 8px; font-variant-numeric: tabular-nums }
