@@ -1,0 +1,305 @@
+// ============================================================================
+// Ledgerworks simulation engine (pure functions, no React, easy to test).
+//
+// Time model
+//  - The game clock counts GAME HOURS as a float (state.hour).
+//  - GAME_SPEED game hours pass per real hour (4x, so 1 game day = 6 real h).
+//  - All work is "jobs" with a start and end hour. advance() moves the clock
+//    and finishes any job whose end hour has passed, in time order, and rolls
+//    over game days (which refreshes retail saturation).
+//
+// Money rules
+//  - Wages for a job are paid up front when it starts (simple + predictable).
+//  - Shop revenue is paid when the sale job finishes.
+// ============================================================================
+import { BLD, REC, RES } from './data'
+
+export const GAME_SPEED = 4 // game hours per real hour
+export const MAX_QUALITY = 12
+export const START_CASH = 60000
+
+// --------------------------------------------------------------------------
+// State types
+// --------------------------------------------------------------------------
+export type Job =
+  | { kind: 'build'; endH: number } // construction or upgrade in progress
+  | { kind: 'make'; res: string; qty: number; q: number; startH: number; endH: number }
+  | { kind: 'sell'; res: string; qty: number; q: number; price: number; startH: number; endH: number }
+
+export interface Building { uid: number; type: string; level: number; job?: Job }
+
+export interface GameState {
+  version: 1
+  company: string
+  cash: number
+  xp: number
+  hour: number // game clock, in game hours since founding
+  lastReal: number // real ms timestamp of the last advance()
+  nextUid: number
+  plots: (Building | null)[]
+  /** Warehouse, keyed "resourceId|quality" -> units. */
+  stock: Record<string, number>
+  /** Retail saturation per resource; 1 = normal, >1 = flooded, <1 = hungry. */
+  saturation: Record<string, number>
+  /** Units sold to the public today, per resource (feeds saturation). */
+  soldToday: Record<string, number>
+  log: string[]
+}
+
+// --------------------------------------------------------------------------
+// Levels and slots
+// --------------------------------------------------------------------------
+/** Total XP needed to REACH a level (level 1 needs 0). */
+export const xpForLevel = (lvl: number) => Math.round(400 * Math.pow(lvl - 1, 1.7))
+export function companyLevel(xp: number) {
+  let l = 1
+  while (xp >= xpForLevel(l + 1)) l++
+  return l
+}
+/** Building plots grow with company level: 6 at level 1, up to 24. */
+export const plotCount = (lvl: number) => Math.min(24, 5 + lvl)
+/** Best quality you can produce right now (research arrives in a later stage). */
+export const qualityCap = (lvl: number) => Math.min(MAX_QUALITY, Math.floor((lvl - 1) / 2))
+
+// --------------------------------------------------------------------------
+// Helpers
+// --------------------------------------------------------------------------
+export const key = (res: string, q: number) => `${res}|${q}`
+export const parseKey = (k: string) => { const [res, q] = k.split('|'); return { res, q: Number(q) } }
+export const haveQty = (s: GameState, res: string) =>
+  Object.entries(s.stock).reduce((t, [k, v]) => (parseKey(k).res === res ? t + v : t), 0)
+
+function addStock(s: GameState, res: string, q: number, n: number) {
+  const k = key(res, q)
+  s.stock[k] = (s.stock[k] ?? 0) + n
+  if (s.stock[k] <= 1e-9) delete s.stock[k]
+}
+
+/**
+ * Take `n` units of a resource, highest quality first. Returns the lowest
+ * quality taken (this decides output quality), or -1 if there is not enough.
+ */
+function takeStock(s: GameState, res: string, n: number): number {
+  if (haveQty(s, res) + 1e-9 < n) return -1
+  const lots = Object.keys(s.stock).map(parseKey).filter(l => l.res === res).sort((a, b) => b.q - a.q)
+  let need = n, low = MAX_QUALITY
+  for (const l of lots) {
+    const k = key(l.res, l.q), take = Math.min(need, s.stock[k])
+    addStock(s, l.res, l.q, -take)
+    need -= take; low = Math.min(low, l.q)
+    if (need <= 1e-9) break
+  }
+  return low
+}
+
+const say = (s: GameState, msg: string) => { s.log.unshift(`Day ${Math.floor(s.hour / 24) + 1}: ${msg}`); s.log.length = Math.min(s.log.length, 40) }
+
+export function newGame(company = 'My Company', now = Date.now()): GameState {
+  return {
+    version: 1, company, cash: START_CASH, xp: 0, hour: 8, lastReal: now, nextUid: 1,
+    plots: Array(24).fill(null), stock: {}, saturation: {}, soldToday: {}, log: ['Welcome to Ledgerworks!'],
+  }
+}
+
+// --------------------------------------------------------------------------
+// Construction
+// --------------------------------------------------------------------------
+/** Cost to bring a building from level-1 to `toLevel`. */
+export const upgradeCost = (type: string, toLevel: number) => BLD[type].cost * toLevel
+/** Construction time in game hours: grows with level. */
+export const buildHours = (toLevel: number) => 2 + 2 * (toLevel - 1)
+
+export function construct(s: GameState, plot: number, type: string): string | null {
+  const b = BLD[type], lvl = companyLevel(s.xp)
+  if (!b) return 'Unknown building'
+  if (plot >= plotCount(lvl) || s.plots[plot]) return 'That plot is not free'
+  if (lvl < b.unlockLevel) return `Needs company level ${b.unlockLevel}`
+  if (s.cash < b.cost) return 'Not enough cash'
+  s.cash -= b.cost
+  s.plots[plot] = { uid: s.nextUid++, type, level: 1, job: { kind: 'build', endH: s.hour + buildHours(1) } }
+  s.xp += b.cost / 200
+  say(s, `Started building a ${b.name}.`)
+  return null
+}
+
+export function upgrade(s: GameState, plot: number): string | null {
+  const bd = s.plots[plot]
+  if (!bd) return 'Empty plot'
+  if (bd.job) return 'Building is busy'
+  const cost = upgradeCost(bd.type, bd.level + 1)
+  if (s.cash < cost) return 'Not enough cash'
+  s.cash -= cost
+  bd.level++
+  bd.job = { kind: 'build', endH: s.hour + buildHours(bd.level) }
+  s.xp += cost / 200
+  say(s, `Upgrading ${BLD[bd.type].name} to level ${bd.level}.`)
+  return null
+}
+
+/** Scrap refund: full cost for levels 1-2, 60% beyond that. */
+export function scrapRefund(bd: Building) {
+  let total = 0
+  for (let l = 1; l <= bd.level; l++) total += upgradeCost(bd.type, l)
+  return Math.round(bd.level <= 2 ? total : total * 0.6)
+}
+export function scrap(s: GameState, plot: number): string | null {
+  const bd = s.plots[plot]
+  if (!bd) return 'Empty plot'
+  if (bd.job && bd.job.kind !== 'build') return 'Wait for the current job to finish'
+  s.cash += scrapRefund(bd)
+  s.plots[plot] = null
+  say(s, `Scrapped a ${BLD[bd.type].name}.`)
+  return null
+}
+
+// --------------------------------------------------------------------------
+// Production
+// --------------------------------------------------------------------------
+/** Hours a production run takes: qty / (rate * level). */
+export const makeHours = (res: string, qty: number, level: number) => qty / (REC[res].perHour * level)
+export const makeWages = (type: string, level: number, hours: number) => BLD[type].wage * level * hours
+
+export function startMake(s: GameState, plot: number, res: string, qty: number): string | null {
+  const bd = s.plots[plot]
+  if (!bd || bd.job) return 'Building is busy'
+  const bt = BLD[bd.type], rc = REC[res]
+  if (!bt.recipes?.includes(res)) return 'This building cannot make that'
+  if (!(qty > 0)) return 'Pick an amount'
+  const hours = makeHours(res, qty, bd.level), wages = makeWages(bd.type, bd.level, hours)
+  if (s.cash < wages) return 'Not enough cash for wages'
+  for (const [inp, per] of Object.entries(rc.inputs)) if (haveQty(s, inp) + 1e-9 < per * qty) return `Need ${Math.ceil(per * qty)} ${RES[inp].name}`
+  // Output quality = lowest input quality, capped by the company's know-how.
+  let q = qualityCap(companyLevel(s.xp))
+  for (const [inp, per] of Object.entries(rc.inputs)) {
+    const low = takeStock(s, inp, per * qty)
+    if (inp !== 'power' && inp !== 'water') q = Math.min(q, low) // utilities don't limit quality
+  }
+  s.cash -= wages
+  bd.job = { kind: 'make', res, qty, q, startH: s.hour, endH: s.hour + hours }
+  return null
+}
+
+// --------------------------------------------------------------------------
+// Retail: selling to the simulated public
+// --------------------------------------------------------------------------
+/** Price where demand is "normal": base markup, plus 8% per quality star. */
+export const fairPrice = (res: string, q: number) => RES[res].basePrice * 1.5 * (1 + 0.08 * q)
+
+/**
+ * Units per game hour a level-1 shop sells.
+ * - Price above fair price slows sales sharply (power 2.2), cheaper speeds up.
+ * - Higher quality sells faster (+12% per star).
+ * - Saturation divides speed: a flooded market buys slowly.
+ */
+export function sellRate(s: GameState, res: string, q: number, price: number) {
+  const r = RES[res]
+  const base = (r.dailyDemand ?? 0) / 24
+  const sat = s.saturation[res] ?? 1
+  return base * Math.pow(fairPrice(res, q) / price, 2.2) * (1 + 0.12 * q) / sat
+}
+export const sellHours = (s: GameState, res: string, q: number, price: number, qty: number, level: number) =>
+  qty / (sellRate(s, res, q, price) * level)
+
+export function startSell(s: GameState, plot: number, res: string, q: number, qty: number, price: number): string | null {
+  const bd = s.plots[plot]
+  if (!bd || bd.job) return 'Building is busy'
+  if (RES[res]?.store !== BLD[bd.type].store) return 'This shop does not sell that'
+  if ((s.stock[key(res, q)] ?? 0) + 1e-9 < qty || !(qty > 0)) return 'Not enough in the warehouse'
+  if (!(price > 0)) return 'Set a price'
+  const hours = sellHours(s, res, q, price, qty, bd.level)
+  if (hours > 72) return 'Too slow (over 3 days). Lower the price or the amount.'
+  const wages = makeWages(bd.type, bd.level, hours)
+  if (s.cash < wages) return 'Not enough cash for wages'
+  addStock(s, res, q, -qty)
+  s.cash -= wages
+  bd.job = { kind: 'sell', res, qty, q, price, startH: s.hour, endH: s.hour + hours }
+  return null
+}
+
+// --------------------------------------------------------------------------
+// NPC wholesaler: lets a new company buy any good at a 30% markup, so chains
+// can be bootstrapped before the full exchange arrives (stage 5).
+// --------------------------------------------------------------------------
+export const wholesalePrice = (res: string) => RES[res].basePrice * 1.3
+export function buyWholesale(s: GameState, res: string, qty: number): string | null {
+  const cost = wholesalePrice(res) * qty
+  if (!(qty > 0)) return 'Pick an amount'
+  if (s.cash < cost) return 'Not enough cash'
+  s.cash -= cost
+  addStock(s, res, 0, qty)
+  return null
+}
+
+// --------------------------------------------------------------------------
+// Daily cycle: saturation drifts toward how much was sold vs normal demand.
+// --------------------------------------------------------------------------
+export function rollDay(s: GameState) {
+  for (const r of Object.values(RES)) {
+    if (!r.dailyDemand) continue
+    const sold = s.soldToday[r.id] ?? 0
+    const target = 0.8 + sold / r.dailyDemand // selling 20% of demand = neutral
+    const sat = 0.7 * (s.saturation[r.id] ?? 1) + 0.3 * target
+    s.saturation[r.id] = Math.max(0.6, Math.min(3, sat))
+  }
+  s.soldToday = {}
+}
+
+function finishJob(s: GameState, bd: Building) {
+  const j = bd.job!
+  const name = BLD[bd.type].name
+  if (j.kind === 'make') {
+    addStock(s, j.res, j.q, j.qty)
+    s.xp += (makeWages(bd.type, bd.level, j.endH - j.startH)) / 50
+    say(s, `${name} made ${Math.round(j.qty)} ${RES[j.res].name} (Q${j.q}).`)
+  } else if (j.kind === 'sell') {
+    const rev = j.qty * j.price
+    s.cash += rev
+    s.soldToday[j.res] = (s.soldToday[j.res] ?? 0) + j.qty
+    s.xp += rev / 50
+    say(s, `${name} sold ${Math.round(j.qty)} ${RES[j.res].name} for $${Math.round(rev).toLocaleString()}.`)
+  } else {
+    say(s, `${name} is ready (level ${bd.level}).`)
+  }
+  bd.job = undefined
+}
+
+/**
+ * Move the clock to `toHour`, finishing jobs and rolling days in time order.
+ * Mutates and returns the state.
+ */
+export function advanceTo(s: GameState, toHour: number): GameState {
+  while (true) {
+    // Next event: earliest job end, or the next midnight.
+    const nextMidnight = (Math.floor(s.hour / 24) + 1) * 24
+    let next = nextMidnight, who: Building | null = null
+    for (const bd of s.plots) if (bd?.job && bd.job.endH < next) { next = bd.job.endH; who = bd }
+    if (next > toHour) break
+    s.hour = next
+    if (who) finishJob(s, who)
+    else rollDay(s)
+  }
+  s.hour = Math.max(s.hour, toHour)
+  return s
+}
+
+/** Advance by real wall-clock time since the last call (offline progress too). */
+export function advanceReal(s: GameState, now = Date.now()): GameState {
+  const dh = ((now - s.lastReal) / 3600000) * GAME_SPEED
+  s.lastReal = now
+  return dh > 0 ? advanceTo(s, s.hour + dh) : s
+}
+
+/** Pay 2,000 cash to finish a running job instantly ("rush"); handy in a
+ *  single-player game where waiting real hours is the main cost. */
+export function rush(s: GameState, plot: number): string | null {
+  const bd = s.plots[plot]
+  if (!bd?.job) return 'Nothing to rush'
+  const left = bd.job.endH - s.hour
+  const cost = Math.ceil(left) * 250
+  if (s.cash < cost) return 'Not enough cash'
+  s.cash -= cost
+  bd.job.endH = s.hour
+  finishJob(s, bd)
+  return null
+}
+export const rushCost = (s: GameState, bd: Building) => (bd.job ? Math.ceil(Math.max(0, bd.job.endH - s.hour)) * 250 : 0)

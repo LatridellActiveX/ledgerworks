@@ -4,6 +4,12 @@ export interface ChangeEntry { id: string; date: string; title: string; notes: s
 
 export const CHANGELOG: ChangeEntry[] = [
   {
+    id: 'stage3-company-build-produce',
+    date: '2026-10-21',
+    title: 'Run your own company',
+    notes: ['24 plots, unlocking with company level.', 'Build, upgrade and scrap buildings (full refund up to level 2).', 'Timed production that pays wages up front; output quality follows inputs.', 'A wholesaler sells starter goods. The game saves in your browser and keeps running while you are away.'],
+  },
+  {
     id: 'stage2-static-game-data',
     date: '2026-10-21',
     title: 'Goods, recipes and buildings',
