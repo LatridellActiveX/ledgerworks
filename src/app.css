@@ -677,3 +677,7 @@ tr.bidrow td { color: #3c9a5f; font-weight: 600 }
 .pill.crates { display: inline-flex; align-items: center; gap: 4px; font: 700 12px system-ui; padding: 3px 8px; border-radius: 999px; background: #f5ead6; border: 1px solid #d8c09a; color: #6a4a1a; min-height: 0 }
 .crate-line { display: flex; gap: 6px; align-items: center; font-size: 13px; padding: 6px 8px; border-radius: 8px; background: #eef7ee } .crate-line.short { background: #fff3dc; color: #7a4a00 }
 .crate-card .cc-head { display: flex; gap: 10px; align-items: center; margin-bottom: 6px }
+
+/* Samsung A-series / large text: tab labels shrink and never collide. */
+.tabbar button { min-width: 0 } .tabbar button > span:last-child { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 0 2px; font-size: clamp(9.5px, 2.9vw, 12px) }
+.gfx-set { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 48px }

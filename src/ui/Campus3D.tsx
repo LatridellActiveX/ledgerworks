@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from 'react'
 import type { GameState } from '../game/engine'
 import { Campus, tilePos } from './campus'
 import * as E from '../game/engine'
+import * as GFX from '../game/gfx'
 import { ResIcon } from './art'
 import { dur, money, num } from './fmt'
 import { activityOf, chipLabel } from '../game/activity'
@@ -132,6 +133,8 @@ export async function loadScene(): Promise<any> {
 
 export function Campus3D({ s, slots, sel, onPick, mode, onCollect }: { s: GameState; slots: number; sel: number | null; onPick: (i: number) => void; mode: '3d' | '2d'; onCollect: (i: number, r: DOMRect) => void }) {
   const flat = useRef<HTMLDivElement>(null)
+  const [gfxGen, setGfxGen] = useState(0) // bump to remount the 3D scene with new graphics settings
+  useEffect(() => { const f = () => setGfxGen(g => g + 1); addEventListener('lw:gfx', f); return () => removeEventListener('lw:gfx', f) }, [])
   const bubbles = bubblesFor(s)
   const box = useRef<HTMLDivElement>(null)
   const handle = useRef<Handle | null>(null)
@@ -144,11 +147,13 @@ export function Campus3D({ s, slots, sel, onPick, mode, onCollect }: { s: GameSt
     loadScene().then(m => {
       if (dead || !box.current) return
       if (!m.webglOK()) { setState('failed'); return }
-      handle.current = m.mount(box.current, { onPick: (i: number) => pick.current(i) })
+      // Graphics quality: preset from Settings (or Auto); a slow FPS sample in
+      // Auto steps down a tier and remounts the scene with the lighter preset.
+      handle.current = m.mount(box.current, { onPick: (i: number) => pick.current(i), quality: GFX.PRESETS[GFX.currentTier()], onFps: (fps: number) => { if (GFX.onFpsSample(fps)) setGfxGen(g => g + 1) } })
       setState('ready')
     }).catch(() => { setState('failed'); dispatchEvent(new Event('lw:chunk-error')) /* maybe a newer deploy replaced the 3D bundle */ })
     return () => { dead = true; handle.current?.dispose(); handle.current = null }
-  }, [mode])
+  }, [mode, gfxGen])
 
   // Push a light snapshot of the state into the scene every render.
   useEffect(() => {

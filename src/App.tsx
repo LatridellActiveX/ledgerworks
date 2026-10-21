@@ -5,6 +5,7 @@
 //   warehouse + exchange | event log | change log
 // ============================================================================
 import { Boot } from './ui/Boot'
+import * as GFX from './game/gfx'
 import { Warehouse, compact as compactNum } from './ui/Warehouse'
 import { Chains } from './ui/Chains'
 import { News, NewsStrip } from './ui/News'
@@ -46,6 +47,7 @@ import { cloudKey, cloudLoad, cloudSave, syncWorld, useCloudKey } from './game/c
 import './app.css'
 
 export default function App() {
+  const [gfx, setGfx] = useState(GFX.getSetting)
   const [booting, setBooting] = useState(() => !(globalThis as any).__lwNoBoot)
   const [s, setS] = useState<E.GameState>(() => E.advanceReal(loadGame()))
   const [sel, setSel] = useState<number | null>(null)
@@ -234,6 +236,9 @@ export default function App() {
             </div>
             <button onClick={() => setTut({ ...tut, off: !tut.off, done: tut.off ? false : tut.done })}>Tutorial: {tut.off ? 'off' : 'on'}</button>
             <button onClick={() => { setTut({ step: 0, done: false, off: false }); setScreen('map') }}>Restart tutorial</button>
+            {/* Graphics quality for the 3D map (game/gfx.ts). Auto adapts to the device. */}
+            <label className="gfx-set">Graphics quality <select value={gfx} onChange={e => { const g = e.target.value as GFX.GfxSetting; GFX.setSetting(g); setGfx(g); dispatchEvent(new Event('lw:gfx')) }}>
+              {(['auto', 'high', 'medium', 'low'] as const).map(g => <option key={g} value={g}>{g === 'auto' ? `Auto (now ${GFX.currentTier()})` : g[0].toUpperCase() + g.slice(1)}</option>)}</select></label>
             <button onClick={() => setScreen('privacy')}>🔒 Privacy policy</button>
             {/* Data deletion (see src/legal/privacy.ts). Two confirmations; the
                 server also needs the password for accounts. */}

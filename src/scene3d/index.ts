@@ -15,6 +15,7 @@
 // Click a plot to select it (outline highlight); drag to orbit, wheel or
 // pinch to zoom, right-drag / two fingers to pan.
 // ============================================================================
+import { PRESETS, pixelRatioFor, type Preset } from '../game/gfx'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js'
@@ -62,12 +63,18 @@ const box = (w: number, h: number, d: number, m: THREE.Material | THREE.Material
 const cyl = (rt: number, rb: number, h: number, m: THREE.Material, x = 0, y = 0, z = 0, seg = 16) => mesh(new THREE.CylinderGeometry(rt, rb, h, seg), m, x, y + h / 2, z)
 
 // --------------------------------------------------------------------------
-export function mount(el: HTMLElement, opts: { onPick: (i: number) => void }): SceneHandle {
+/**
+ * opts.quality: graphics preset (see game/gfx.ts): pixel-ratio cap, shadows,
+ * particle/sparkle/walker counts. opts.onFps gets the average frame rate of
+ * the first few seconds so Auto quality can step down on slow phones.
+ */
+export function mount(el: HTMLElement, opts: { onPick: (i: number) => void; quality?: Preset; onFps?: (fps: number) => void }): SceneHandle {
   const mobile = matchMedia('(pointer: coarse)').matches || innerWidth < 760
-  const renderer = new THREE.WebGLRenderer({ antialias: !mobile, powerPreference: 'high-performance', preserveDrawingBuffer: true })
-  renderer.setPixelRatio(Math.min(devicePixelRatio, mobile ? 1.5 : 1.75))
-  renderer.shadowMap.enabled = true
-  renderer.shadowMap.type = THREE.PCFSoftShadowMap
+  const Qp: Preset = opts.quality ?? PRESETS.high
+  const renderer = new THREE.WebGLRenderer({ antialias: Qp.antialias && !mobile, powerPreference: 'high-performance', preserveDrawingBuffer: true })
+  renderer.setPixelRatio(pixelRatioFor(Qp, { dpr: devicePixelRatio, mobile }))
+  renderer.shadowMap.enabled = Qp.shadows
+  renderer.shadowMap.type = Qp.softShadows ? THREE.PCFSoftShadowMap : THREE.PCFShadowMap
   renderer.toneMapping = THREE.ACESFilmicToneMapping
   renderer.toneMappingExposure = 1.05
   renderer.outputColorSpace = THREE.SRGBColorSpace
@@ -135,7 +142,7 @@ export function mount(el: HTMLElement, opts: { onPick: (i: number) => void }): S
   scene.add(hemi)
   const sun = new THREE.DirectionalLight('#fff1d6', 2.4)
   sun.castShadow = true
-  sun.shadow.mapSize.set(mobile ? 1024 : 2048, mobile ? 1024 : 2048)
+  sun.shadow.mapSize.set(Math.min(Qp.shadowMap, mobile ? 1024 : 2048), Math.min(Qp.shadowMap, mobile ? 1024 : 2048))
   Object.assign(sun.shadow.camera, { left: -70, right: 70, top: 70, bottom: -70, near: 10, far: 300 })
   sun.shadow.bias = -0.0005; sun.shadow.normalBias = 0.04; sun.shadow.radius = 4
   scene.add(sun, sun.target)
@@ -256,7 +263,7 @@ export function mount(el: HTMLElement, opts: { onPick: (i: number) => void }): S
   const built: ({ key: string; g: THREE.Group; emit: Emitter[]; spin?: THREE.Object3D; nod?: THREE.Object3D; swing?: THREE.Object3D; lod: THREE.Object3D[]; top: number } | null)[] = Array(COLS * ROWS).fill(null)
 
   // ---- Smoke / steam particles: one Points cloud shared by all emitters.
-  const PN = mobile ? 160 : 360
+  const PN = Math.min(Qp.particles, mobile ? 160 : 360)
   const pGeo = new THREE.BufferGeometry()
   const pPos = new Float32Array(PN * 3), pLife = new Float32Array(PN), pSize = new Float32Array(PN)
   const pOwn: (Emitter & { ox: number; oz: number } | null)[] = Array(PN).fill(null)
@@ -292,7 +299,7 @@ export function mount(el: HTMLElement, opts: { onPick: (i: number) => void }): S
     scene.add(t); trucks.push(t)
   }
   const workers: THREE.Group[] = []
-  for (let k = 0; k < (mobile ? 8 : 16); k++) {
+  for (let k = 0; k < Math.min(Qp.walkers, mobile ? 8 : 16); k++) {
     const w = new THREE.Group()
     w.add(mesh(new THREE.CapsuleGeometry(0.32, 0.7, 3, 8), mat(['#5d6bd4', '#e07a5f', '#3c9a5f', '#e3b23c', '#8a6fb5'][k % 5]), 0, 0.8, 0))
     w.add(mesh(new THREE.SphereGeometry(0.28, 10, 8), mat('#f2c9a5'), 0, 1.65, 0))
@@ -358,7 +365,7 @@ export function mount(el: HTMLElement, opts: { onPick: (i: number) => void }): S
     const r = new THREE.Mesh(ringGeo, ringMake), { x, z } = plotXZ(i)
     r.position.set(x, 0.26, z); r.visible = false; r.renderOrder = 2; scene.add(r); return r
   })
-  const SN = mobile ? 60 : 140 // sparkle cap
+  const SN = Math.min(Qp.sparkles, mobile ? 60 : 140) // sparkle cap
   const sPos = new Float32Array(SN * 3), sCol = new Float32Array(SN * 3), sLife = new Float32Array(SN)
   const sGeo = new THREE.BufferGeometry()
   sGeo.setAttribute('position', new THREE.BufferAttribute(sPos, 3)); sGeo.setAttribute('color', new THREE.BufferAttribute(sCol, 3))
@@ -453,8 +460,11 @@ export function mount(el: HTMLElement, opts: { onPick: (i: number) => void }): S
   // ---- Animation loop
   const clock = new THREE.Clock()
   let pi = 0, emitAcc = 0
+  // FPS sample: frames counted between 1.5 s and 6.5 s after mount (skips the warm-up).
+  let fpsN = 0, fpsSent = false
   renderer.setAnimationLoop(() => {
     const dt = Math.min(0.05, clock.getDelta()), t = clock.elapsedTime
+    if (!fpsSent && t > 1.5) { fpsN++; if (t > 6.5) { fpsSent = true; opts.onFps?.(fpsN / (t - 1.5)) } }
     // Turn toward the goal angle (90-degree steps), keep the iso offset, then let controls damp pan/zoom.
     az += (azGoal - az) * Math.min(1, dt * 8); placeCam()
     controls.update()

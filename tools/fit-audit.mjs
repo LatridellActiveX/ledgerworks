@@ -10,7 +10,7 @@ for (const w of (process.env.WIDTHS || '360,390,412').split(',').map(Number)) {
     const p = await b.newPage({ viewport: { width: w, height: 860 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 })
     await p.addInitScript(() => { globalThis.__lwNoBoot = true; localStorage.setItem('ledgerworks-guest', '1'); localStorage.setItem('ledgerworks-tutorial', JSON.stringify({ step: 0, done: true, off: false })) })
     await p.goto(U); await p.waitForTimeout(1500)
-    await p.getByRole('button', { name: sc, exact: true }).first().click({ force: true }); await p.waitForTimeout(700)
+    if (sc !== 'Map') await p.getByRole('button', { name: sc, exact: true }).first().click({ force: true }); await p.waitForTimeout(700)
     if (sc === 'Warehouse' && process.env.DETAIL) { await p.locator('.wh-tile').first().click({ force: true }).catch(() => {}); await p.waitForTimeout(500) }
     for (const sub of sc === 'Warehouse' ? ['Inventory', 'Incoming', 'Contracts', 'History'] : ['']) {
       if (sub) { await p.getByRole('button', { name: sub, exact: true }).first().click({ force: true }).catch(() => {}); await p.waitForTimeout(300) }

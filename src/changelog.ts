@@ -4,6 +4,12 @@ export interface ChangeEntry { id: string; date: string; title: string; notes: s
 
 export const CHANGELOG: ChangeEntry[] = [
   {
+    id: 'galaxy-a-graphics',
+    date: '2026-10-21',
+    title: "Better on Samsung Galaxy A phones",
+    notes: ["Tested on Galaxy A15, A25, A35, A54 and A55 screen sizes with text and display zoom up to 160%. The bottom tab labels now shrink and never run into each other.", "New Settings \u2192 Graphics quality: Auto, High, Medium or Low. Auto picks a level for your phone, then checks how smoothly the 3D map runs for a few seconds and lowers the detail if it's slow.", "Lower levels draw fewer pixels, use simpler or no shadows, and show less smoke, sparkles and fewer workers."],
+  },
+  {
     id: 'crates-one-step',
     date: '2026-10-21',
     title: "Easier shipping crates",
