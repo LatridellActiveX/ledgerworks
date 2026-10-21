@@ -291,3 +291,25 @@ select.realm { border-radius: 999px; padding: 4px 10px; font: inherit; font-size
 @media (prefers-reduced-motion: reduce) {
   .act *, .act, .bubble .face, .burst::before, .burst::after, .status .gear, .status .cart, .bar.wide i::after, .fly, .num-pop { animation: none !important; transition: none !important }
 }
+
+/* ---- Detailed 2D campus animations (all CSS; off under reduced motion). */
+.m2.idle { filter: saturate(.85) brightness(.97) }
+.smoke2 circle { fill: #cfcac2; opacity: 0; animation: smoke2 2.8s ease-out infinite; transform-box: fill-box; transform-origin: center }
+.smoke2.steam circle { fill: #f4f6f8 }
+@keyframes smoke2 { 0% { opacity: .85; transform: translate(0, 0) scale(.5) } 100% { opacity: 0; transform: translate(10px, -30px) scale(1.8) } }
+.sway { animation: sway 3.4s ease-in-out infinite }
+@keyframes sway { 50% { transform: rotate(2.5deg) } }
+.shopper { animation: shopper 3.9s ease-in-out infinite }
+@keyframes shopper { 0%, 100% { transform: translate(0, 0); opacity: 1 } 45% { transform: translate(-14px, -7px); opacity: 1 } 50% { opacity: 0 } 55% { transform: translate(-14px, -7px); opacity: 0 } }
+.spark2 circle { opacity: 0; animation: spark2 1.8s ease-out infinite; transform-box: fill-box; transform-origin: center }
+@keyframes spark2 { 0% { opacity: 0; transform: translateY(4px) scale(.4) } 30% { opacity: 1; transform: translateY(-4px) scale(1.2) } 100% { opacity: 0; transform: translateY(-18px) scale(.6) } }
+.spark2.hot circle { animation-duration: .9s }
+.bob2 { animation: bob2 2.2s ease-in-out infinite }
+@keyframes bob2 { 50% { transform: translateY(-1.5px) } }
+.swing2 { animation: swing2 6s ease-in-out infinite }
+@keyframes swing2 { 50% { transform: rotate(-18deg) } }
+.blink2 { animation: blink2 1.2s steps(2) infinite }
+@keyframes blink2 { 50% { opacity: .2 } }
+.flare { animation: flare .6s ease-in-out infinite alternate; transform-box: fill-box; transform-origin: bottom }
+@keyframes flare { to { transform: scaleY(1.35) } }
+@media (prefers-reduced-motion: reduce) { .smoke2 circle, .sway, .shopper, .spark2 circle, .bob2, .swing2, .blink2, .flare { animation: none !important } .smoke2 circle { opacity: .4 } }

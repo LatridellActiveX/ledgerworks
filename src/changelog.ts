@@ -4,6 +4,12 @@ export interface ChangeEntry { id: string; date: string; title: string; notes: s
 
 export const CHANGELOG: ChangeEntry[] = [
   {
+    id: 'detailed-2d-campus',
+    date: '2026-10-21',
+    title: 'A more detailed 2D view',
+    notes: ['The 2D map now draws every building type in the same detail as the 3D view: framed windows, cornices, rooftop air units, vents and pipes, loading docks, name signs, striped awnings and soft shadows.', 'Each type has its own props: crop rows, tanks and silos, cranes, pumpjacks, solar panels, animals, a car lot with cars, conveyor belts and more. Buildings gain floors, wings and rooftop gear as they level up.', 'Plots have sidewalks, planters and street lamps. At night buildings darken and their windows light up.', 'Busy buildings show smoke, shoppers, coin sparkles and sparks in 2D too, along with the same progress rings, status chips and easy-to-tap collect bubbles.', 'If your device is set to reduce motion, these animations are turned off.'],
+  },
+  {
     id: 'activity-animations-busy-states',
     date: '2026-10-21',
     title: 'Busy buildings come alive',
