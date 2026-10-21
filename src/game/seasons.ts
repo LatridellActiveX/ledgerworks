@@ -3,14 +3,14 @@
 //
 // A second, separate world, picked on the start screen. It runs in timed
 // seasons on the shared world clock, so every player is in the same season:
-//  - One season = 4 phases of 7 game days = 28 game days (7 real days at 4x).
+//  - One season = 4 phases of 7 game days = 28 game days (28 real days: the game runs in real time since 2026-10-21).
 //  - Spring: farms grow 25% faster.   Summer: shops sell 20% faster.
 //    Autumn: food sells 15% faster, farms 10% slower.
 //    Winter: farms 30% slower; energy goods sell 30% faster.
 //  - When a season ends, the company's final value is recorded and the player
 //    starts fresh in the next season. Classic realm saves are never touched.
 // ============================================================================
-import { GAME_SPEED } from './engine-constants'
+import { GAME_SPEED, LEGACY_SPEED, SPEED_SWITCH_AT } from './engine-constants'
 
 export type Realm = 'classic' | 'seasons'
 export type SeasonPhase = 'spring' | 'summer' | 'autumn' | 'winter'
@@ -20,7 +20,16 @@ export const SEASON_DAYS = PHASE_DAYS * PHASES.length
 
 /** Real moment that counts as world hour 0 (shared with the server's market object). */
 export const EPOCH = Date.UTC(2026, 9, 21)
-export const worldHour = (now = Date.now()) => ((now - EPOCH) / 3600000) * GAME_SPEED
+/**
+ * Shared world clock in game hours. Piecewise so it never jumps: 4x from the
+ * epoch until SPEED_SWITCH_AT, then real time (1x) from there on. The server's
+ * market day counter and the seasons both read this, so they stay continuous.
+ */
+export const worldHour = (now = Date.now()) => {
+  const H = 3600000
+  if (now <= SPEED_SWITCH_AT) return ((now - EPOCH) / H) * LEGACY_SPEED
+  return ((SPEED_SWITCH_AT - EPOCH) / H) * LEGACY_SPEED + ((now - SPEED_SWITCH_AT) / H) * GAME_SPEED
+}
 
 export function seasonAt(now = Date.now()) {
   const day = Math.max(0, Math.floor(worldHour(now) / 24))

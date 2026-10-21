@@ -3,7 +3,8 @@
 //
 // Time model
 //  - The game clock counts GAME HOURS as a float (state.hour).
-//  - GAME_SPEED game hours pass per real hour (4x, so 1 game day = 6 real h).
+//  - GAME_SPEED game hours pass per real hour: real time (1x), so a game
+//    day is a real day. (Saves from the old 4x clock are converted in save.ts.)
 //  - All work is "jobs" with a start and end hour. advance() moves the clock
 //    and finishes any job whose end hour has passed, in time order, and rolls
 //    over game days (which refreshes retail saturation).
@@ -43,6 +44,7 @@ export interface Building { uid: number; type: string; level: number; job?: Job;
 
 export interface GameState {
   version: 1
+  clock?: number // 1 = real-time clock (see save.ts toRealTime)
   company: string
   cash: number
   xp: number
@@ -135,7 +137,7 @@ const say = (s: GameState, msg: string) => { s.log.unshift(`Day ${Math.floor(s.h
 
 export function newGame(company = 'My Company', now = Date.now()): GameState {
   const s: GameState = {
-    version: 1, company, cash: START_CASH, xp: 0, hour: 8, lastReal: now, nextUid: 1,
+    version: 1, clock: 1, company, cash: START_CASH, xp: 0, hour: 8, lastReal: now, nextUid: 1,
     plots: Array(24).fill(null), stock: {}, saturation: {}, soldToday: {}, log: ['Welcome to Ledgerworks!'],
     seed: 12345, ref: {}, asks: [], bidLeft: {}, exSold: {}, patents: {}, execs: {}, candidates: [], stats: X.emptyStats(), ach: {},
   }

@@ -1,7 +1,10 @@
 import { describe, it, expect } from 'vitest'
 import * as S from '../src/game/seasons'
+import { SPEED_SWITCH_AT } from '../src/game/engine-constants'
 
-const at = (day: number) => S.EPOCH + (day * 24 / 4) * 3600000 + 1000 // world day -> real ms (4x speed)
+// world day -> real ms, inverting the piecewise clock (4x before the switch, 1x after)
+const at = (day: number) => { const h = day * 24 + 0.001; const w = S.worldHour(SPEED_SWITCH_AT)
+  return h <= w ? S.EPOCH + (h / 4) * 3600000 : SPEED_SWITCH_AT + (h - w) * 3600000 }
 describe('seasons realm', () => {
   it('cycles four 7-day phases per 28-day season', () => {
     expect(S.seasonAt(at(0))).toMatchObject({ no: 1, phase: 'spring', day: 1, daysLeft: 28 })

@@ -14,7 +14,7 @@
 //    maximum), per-user 16-byte random salt; compared in constant time.
 //  - Sessions: 32 random bytes in an HttpOnly; Secure; SameSite=Lax cookie,
 //    30-day expiry. Only the SHA-256 of the token is stored in D1.
-//  - Rate limit: 5 failed logins per name+IP locks that pair for 15 minutes.
+//  - Rate limit: 5 failed logins for a username lock it for 15 minutes.
 //  - The legacy cloud key (id.token) keeps working for /api/save + /api/load
 //    as a recovery path.
 // ============================================================================
@@ -121,7 +121,9 @@ export async function handleAuth(req: Request, env: AuthEnv, path: string): Prom
     return json({ ok: true, name }, 200, { 'set-cookie': await startSession(env, name) })
   }
   if (op === 'login') {
-    const k = `${name}|${req.headers.get('cf-connecting-ip') ?? '?'}`, now = Date.now()
+    // Keyed by username (not name+IP): attackers and proxies rotate IPs, so a
+    // per-IP key alone would never trip. A lock lasts 15 minutes at most.
+    const k = name, now = Date.now()
     const lock = await env.DB.prepare('SELECT fails, until FROM login_fails WHERE k = ?').bind(k).first<any>()
     if (isLocked(lock, now)) return json({ error: `Too many tries. Try again in ${Math.ceil((lock.until - now) / 60000)} min.` }, 429)
     const u = await env.DB.prepare('SELECT salt, hash, iters FROM users WHERE name = ?').bind(name).first<any>()

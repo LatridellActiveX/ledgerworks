@@ -4,6 +4,12 @@ export interface ChangeEntry { id: string; date: string; title: string; notes: s
 
 export const CHANGELOG: ChangeEntry[] = [
   {
+    id: 'real-time-clock-1x',
+    date: '2026-10-21',
+    title: 'The game now runs in real time',
+    notes: ['Time no longer runs 4x faster. A 3-hour job takes 3 real hours, and production, selling, construction, research, contracts, seasons and the market all follow the real clock.', 'Jobs already running when you update keep the same real finish time and progress, so nothing jumps ahead or falls behind.', 'Seasons and market days continue from where they were. Each world day is now a real day.', 'Delivery bubbles still pop up every 2 real minutes.', 'Signing in is now paused for 15 minutes after several wrong passwords on the same account, wherever the attempts come from.'],
+  },
+  {
     id: 'accounts-passwords-tutorial',
     date: '2026-10-21',
     title: 'Accounts with passwords, and a guided tour',
