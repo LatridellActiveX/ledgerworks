@@ -4,6 +4,12 @@ export interface ChangeEntry { id: string; date: string; title: string; notes: s
 
 export const CHANGELOG: ChangeEntry[] = [
   {
+    id: 'stage2-static-game-data',
+    date: '2026-10-21',
+    title: 'Goods, recipes and buildings',
+    notes: ['40 goods across food, clothing, energy, construction and gadgets.', '19 building types: 14 production, 5 shops.'],
+  },
+  {
     id: 'stage1-setup-hello',
     date: '2026-10-21',
     title: 'Ledgerworks is born',
