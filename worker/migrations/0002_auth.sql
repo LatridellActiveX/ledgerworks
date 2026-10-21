@@ -16,7 +16,7 @@ CREATE TABLE IF NOT EXISTS sessions (
 );
 CREATE INDEX IF NOT EXISTS sessions_name ON sessions(name);
 CREATE TABLE IF NOT EXISTS login_fails (
-  k TEXT PRIMARY KEY,           -- "name|ip"
+  k TEXT PRIMARY KEY,           -- username (older rows were "name|ip"; the Worker deletes those)
   fails INTEGER NOT NULL,
   until INTEGER NOT NULL        -- locked until this ms timestamp (0 = not locked)
 );

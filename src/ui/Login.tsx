@@ -1,11 +1,13 @@
 // Sign-in / sign-up screen (full screen, over the map). Also "Play as guest".
 // After signing in we load the account's cloud save if it has one.
+import { PrivacyOverlay } from './Privacy'
 import { useState } from 'react'
 import * as A from '../game/auth'
 import { Logo } from './art'
 
 export function Login({ onDone, onClose }: { onDone: (name: string | null) => void; onClose?: () => void }) {
   const [mode, setMode] = useState<'in' | 'up'>('in')
+  const [priv, setPriv] = useState(false) // privacy policy overlay
   const [name, setName] = useState(''), [pw, setPw] = useState(''), [err, setErr] = useState(''), [busy, setBusy] = useState(false)
   const go = async () => {
     setBusy(true); setErr('')
@@ -26,8 +28,10 @@ export function Login({ onDone, onClose }: { onDone: (name: string | null) => vo
           <button className="primary big" disabled={busy}>{busy ? '…' : mode === 'in' ? 'Sign in' : 'Create account'}</button>
         </form>
         <button className="link" onClick={() => { A.setGuest(true); onDone(null) }}>Play as guest</button>
+        <small className="muted legal">By signing up you agree to our <button type="button" className="link" onClick={() => setPriv(true)}>Privacy policy</button>.</small>
         <small className="muted">Have an old cloud key? Load it from Menu → Saves & account, then create an account here to give it a password.</small>
       </div>
+      {priv && <PrivacyOverlay onClose={() => setPriv(false)} />}
     </section>
   )
 }

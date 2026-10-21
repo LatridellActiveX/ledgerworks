@@ -4,6 +4,7 @@
 //   top bar (cash, level, clock) | plot grid | side panel (selected plot)
 //   warehouse + exchange | event log | change log
 // ============================================================================
+import { PrivacyBody } from './ui/Privacy'
 import { activityOf, chipLabel, type ActState } from './game/activity'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import * as E from './game/engine'
@@ -11,6 +12,7 @@ import { BLD, BUILDINGS, REC, RES, RESOURCES } from './game/data'
 import { loadGame, saveGame, exportCode, importCode, freshGame } from './game/save'
 import * as SEA from './game/seasons'
 import { companyValue } from './game/trade'
+import * as T from './game/trade'
 import { CompanyValue } from './ui/CompanyValue'
 import { UpdatePrompt } from './ui/UpdatePrompt'
 import { Login } from './ui/Login'
@@ -181,11 +183,24 @@ export default function App() {
             <button onClick={async () => { const k = prompt('Cloud key (copy it from another device). Leave as-is to load this browser\'s cloud save.', cloudKey()); if (!k) return; try { useCloudKey(k); const n = await cloudLoad(); setS(n); saveGame(n); setMsg('Loaded from the cloud') } catch (e: any) { setMsg(e.message) } }}>Cloud load</button>
             <button className="danger" onClick={() => { if (confirm('Start over? Your current company is lost.')) { const n = freshGame(prompt('Company name', 'My Company') || 'My Company'); setS(n); saveGame(n); setSel(null); setScreen('map') } }}>New company</button>
           </div>}
+          {screen === 'privacy' && <PrivacyBody />}
           {screen === 'settings' && <div className="menu-list">
             <button onClick={toggleView}>Map view: {view === '3d' ? '3D (tap for 2D)' : '2D (tap for 3D)'}</button>
             <button onClick={() => { setSound(!sound); setSnd(!sound); if (!sound) setTimeout(() => sfx('pop'), 50) }}>Sound: {sound ? 'on 🔊' : 'off 🔇'}</button>
             <button onClick={() => setTut({ ...tut, off: !tut.off, done: tut.off ? false : tut.done })}>Tutorial: {tut.off ? 'off' : 'on'}</button>
             <button onClick={() => { setTut({ step: 0, done: false, off: false }); setScreen('map') }}>Restart tutorial</button>
+            <button onClick={() => setScreen('privacy')}>🔒 Privacy policy</button>
+            {/* Data deletion (see src/legal/privacy.ts). Two confirmations; the
+                server also needs the password for accounts. */}
+            <button className="danger" onClick={async () => {
+              if (!confirm(user ? `Permanently delete the account "${user}", its cloud saves and its trade floor account? This cannot be undone.` : 'Permanently delete this browser\'s cloud saves, trade floor account and local game data? This cannot be undone.')) return
+              try {
+                if (user) { const pw = prompt('Enter your password to confirm'); if (!pw) return; await A.deleteAccount(user, pw) }
+                else await A.deleteGuestCloud()
+                if (T.account()) await T.p2p('delete').catch(() => {})
+                A.clearLocalData(); alert('Your data was deleted.'); location.reload()
+              } catch (e: any) { setMsg(e.message) }
+            }}>{user ? 'Delete my account' : 'Delete my data'}</button>
             <p className="muted">Map: drag to pan · pinch or scroll to zoom · Q / E or ⟲ ⟳ to turn (3D) · tap a plot to manage it.</p>
           </div>}
         </div>
@@ -194,7 +209,7 @@ export default function App() {
       {/* Hamburger drawer: the less-used screens and settings. */}
       {menu && <div className="drawer-bg" onClick={() => setMenu(false)}><nav className="drawer" onClick={e => e.stopPropagation()}>
         <div className="drawer-head"><Logo /><b>{s.company}</b></div>
-        {(['value', 'market', 'log', 'changes', 'account', 'settings'] as const).map(t => <button key={t} onClick={() => open(t)}>{SCREEN_ICON[t]} {SCREEN_TITLE[t]}</button>)}
+        {(['value', 'market', 'log', 'changes', 'account', 'settings', 'privacy'] as const).map(t => <button key={t} onClick={() => open(t)}>{SCREEN_ICON[t]} {SCREEN_TITLE[t]}</button>)}
         <button onClick={() => { toggleView(); setMenu(false) }}>{view === '3d' ? '▦ Switch to 2D map' : '◈ Switch to 3D map'}</button>
       </nav></div>}
 
@@ -214,9 +229,9 @@ export default function App() {
 }
 
 /** Every screen the HUD can open. 'map' is the plain map. */
-type Screen = 'map' | 'value' | 'building' | 'warehouse' | 'exchange' | 'trade' | 'research' | 'board' | 'finance' | 'market' | 'log' | 'changes' | 'account' | 'settings'
-const SCREEN_TITLE: Record<Screen, string> = { map: 'Map', value: 'Company value', building: 'Building', warehouse: 'Warehouse', exchange: 'Market', trade: 'Market', research: 'Research', board: 'Research', finance: 'Finance', market: 'Public demand', log: 'Events', changes: 'Change log', account: 'Saves & account', settings: 'Settings' }
-const SCREEN_ICON: Partial<Record<Screen, string>> = { value: '💹', market: '📈', log: '🔔', changes: '📝', account: '💾', settings: '⚙' }
+type Screen = 'map' | 'value' | 'building' | 'warehouse' | 'exchange' | 'trade' | 'research' | 'board' | 'finance' | 'market' | 'log' | 'changes' | 'account' | 'settings' | 'privacy'
+const SCREEN_TITLE: Record<Screen, string> = { map: 'Map', value: 'Company value', building: 'Building', warehouse: 'Warehouse', exchange: 'Market', trade: 'Market', research: 'Research', board: 'Research', finance: 'Finance', market: 'Public demand', log: 'Events', changes: 'Change log', account: 'Saves & account', settings: 'Settings', privacy: 'Privacy policy' }
+const SCREEN_ICON: Partial<Record<Screen, string>> = { value: '💹', market: '📈', log: '🔔', changes: '📝', account: '💾', settings: '⚙', privacy: '🔒' }
 /** The bottom tab bar (original simple glyphs). */
 const TABS: [Screen, string, string][] = [['map', 'Map', '🗺'], ['warehouse', 'Warehouse', '📦'], ['exchange', 'Market', '⇄'], ['research', 'Research', '🔬'], ['finance', 'Finance', '🏦']]
 

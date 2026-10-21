@@ -4,6 +4,12 @@ export interface ChangeEntry { id: string; date: string; title: string; notes: s
 
 export const CHANGELOG: ChangeEntry[] = [
   {
+    id: 'privacy-policy-delete-account',
+    date: '2026-10-21',
+    title: 'Privacy policy and account deletion',
+    notes: ['A privacy policy explains exactly what Ledgerworks stores and why. Find it in the menu, in Settings, on the sign-in screen, or at /privacy.', 'Settings now has Delete my account. It permanently removes your account, sign-in sessions, cloud saves and trade floor account after you confirm with your password. Guests get Delete my data, which removes this browser\'s cloud saves and local data.', 'Old sign-in rate-limit records that included IP addresses are deleted automatically.'],
+  },
+  {
     id: 'real-time-clock-1x',
     date: '2026-10-21',
     title: 'The game now runs in real time',

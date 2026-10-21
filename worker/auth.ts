@@ -65,6 +65,8 @@ export async function ensureAuthSchema(env: AuthEnv) {
     env.DB.prepare('CREATE TABLE IF NOT EXISTS sessions (token_hash TEXT PRIMARY KEY, name TEXT NOT NULL, expires INTEGER NOT NULL)'),
     env.DB.prepare('CREATE INDEX IF NOT EXISTS sessions_name ON sessions(name)'),
     env.DB.prepare('CREATE TABLE IF NOT EXISTS login_fails (k TEXT PRIMARY KEY, fails INTEGER NOT NULL, until INTEGER NOT NULL)'),
+    // Old rate-limit rows were keyed "name|ip"; drop them so no IPs are kept.
+    env.DB.prepare("DELETE FROM login_fails WHERE k LIKE '%|%'"),
   ])
   schemaReady = true
 }
@@ -119,6 +121,21 @@ export async function handleAuth(req: Request, env: AuthEnv, path: string): Prom
     const salt = randomHex(16)
     await env.DB.prepare('INSERT INTO users (name, salt, hash, iters, player_id, created) VALUES (?,?,?,?,?,?)').bind(name, salt, await hashPassword(b.password, salt), ITERS, player, Date.now()).run()
     return json({ ok: true, name }, 200, { 'set-cookie': await startSession(env, name) })
+  }
+  if (op === 'delete') {
+    // Permanently delete the signed-in account. Needs the session AND the
+    // password (so a borrowed unlocked device can't do it by accident).
+    const me = await sessionUser(req, env)
+    if (!me || me.name !== name) return json({ error: 'Sign in as this user first' }, 401)
+    const u = await env.DB.prepare('SELECT salt, hash, iters FROM users WHERE name = ?').bind(name).first<any>()
+    if (!u || !safeEqual(await hashPassword(String(b.password ?? ''), u.salt, u.iters), u.hash)) return json({ error: 'Wrong password' }, 401)
+    await env.DB.batch([
+      env.DB.prepare('DELETE FROM saves WHERE player_id IN (?, ?)').bind(me.player_id, me.player_id + '-s'),
+      env.DB.prepare('DELETE FROM sessions WHERE name = ?').bind(name),
+      env.DB.prepare('DELETE FROM login_fails WHERE k = ?').bind(name),
+      env.DB.prepare('DELETE FROM users WHERE name = ?').bind(name),
+    ])
+    return json({ ok: true }, 200, { 'set-cookie': setCookie('', 0) })
   }
   if (op === 'login') {
     // Keyed by username (not name+IP): attackers and proxies rotate IPs, so a

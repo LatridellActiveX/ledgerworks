@@ -21,3 +21,16 @@ export const signup = (name: string, password: string) => { const { id, token } 
 export const logout = () => call('logout', {})
 export const isGuest = () => localStorage.getItem(GUEST_KEY) === '1'
 export const setGuest = (on: boolean) => (on ? localStorage.setItem(GUEST_KEY, '1') : localStorage.removeItem(GUEST_KEY))
+
+/** Permanently delete the signed-in account (server checks session + password). */
+export const deleteAccount = (name: string, password: string) => call('delete', { name, password })
+/** Guest: delete this browser's cloud saves (proved by its cloud token). */
+export async function deleteGuestCloud() {
+  const { id, token } = identity()
+  const r = await fetch('/api/cloud-delete', { method: 'POST', body: JSON.stringify({ id, token }) })
+  if (!r.ok && r.status !== 404) throw new Error((await r.json().catch(() => ({}))).error || 'Delete failed')
+}
+/** Remove every Ledgerworks key from this browser's localStorage. */
+export function clearLocalData() {
+  for (const k of Object.keys(localStorage)) if (k.startsWith('ledgerworks-')) localStorage.removeItem(k)
+}

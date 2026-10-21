@@ -17,6 +17,7 @@
 //    shared economy. Being one object means every price update is applied in
 //    order, with no races between players or the cron.
 // ============================================================================
+import { privacyHtml } from '../src/legal/privacy'
 import { MarketDO } from './market-do'
 import { handleAuth, sessionUser } from './auth'
 export { MarketDO }
@@ -42,6 +43,19 @@ async function sha(t: string) {
 export default {
   async fetch(req: Request, env: Env): Promise<Response> {
     const url = new URL(req.url)
+    // Plain privacy policy page (same text as the in-game Privacy screen).
+    if (url.pathname === '/privacy' || url.pathname === '/privacy/') return new Response(privacyHtml(), { headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-cache' } })
+    // Guest data deletion: removes the cloud saves for this id, proven by its token.
+    if (url.pathname === '/api/cloud-delete' && req.method === 'POST') {
+      const b = await req.json<any>().catch(() => ({}))
+      if (typeof b.id !== 'string' || typeof b.token !== 'string' || !/^[0-9a-f]{8,64}$/.test(b.id)) return json({ error: 'bad request' }, 400)
+      const row = await env.DB.prepare('SELECT token_hash FROM saves WHERE player_id=?').bind(b.id).first<any>()
+      if (row && row.token_hash !== (await sha(b.token))) return json({ error: 'wrong token' }, 403)
+      // An account owns this id: it must be deleted through the account (password).
+      if (await env.DB.prepare('SELECT 1 FROM users WHERE player_id = ?').bind(b.id).first().catch(() => null)) return json({ error: 'This save belongs to an account. Sign in to delete it.' }, 409)
+      await env.DB.prepare('DELETE FROM saves WHERE player_id IN (?, ?)').bind(b.id, b.id + '-s').run()
+      return json({ ok: true })
+    }
     if (url.pathname === '/version.json') return new Response(JSON.stringify({ build: __BUILD__, buildId: __BUILD_ID__, version: __BUILD__.slice(0, 16).replace('T', ' ') }), {
       // Never cached, so open tabs always see a new deploy (update pop-up).
       headers: { 'content-type': 'application/json', 'cache-control': 'no-store, max-age=0' },
