@@ -4,6 +4,12 @@ export interface ChangeEntry { id: string; date: string; title: string; notes: s
 
 export const CHANGELOG: ChangeEntry[] = [
   {
+    id: 'stage10-bonds-gov-abundance',
+    date: '2026-10-21',
+    title: 'Bonds, government orders and running-out mines',
+    notes: ['Oil wells and gravel pits roll an abundance per good (15-100%) that sets their speed and slowly runs out. Scrap and rebuild to roll again.', 'Bonds from level 8: borrow in $5,000 lots at a daily rate your credit rating allows, or buy NPC firms' bonds for interest (they can default). Repay after 14 days.', 'Government orders from level 14: weekly big orders with a 10% deposit, minimum quality, paid deliveries and a 6-day deadline.', 'New Finance tab.'],
+  },
+  {
     id: 'stage9-executives-achievements',
     date: '2026-10-21',
     title: 'The board and your goals',

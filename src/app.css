@@ -134,3 +134,9 @@ button.primary { background: linear-gradient(#ea8a70, #db6d52); font-weight: 600
 .ach.got { background: linear-gradient(90deg, #fff4d6, #fff) }
 .medal { color: #e3b23c; font-size: 16px; min-width: 40px }
 @media (max-width: 900px) { .boardtab { grid-template-columns: 1fr } .seats { grid-template-columns: 1fr 1fr } }
+.fin { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px }
+.fin .card { margin: 0 }
+.rating { padding: 1px 6px; border-radius: 6px; color: #fff; background: #3c9a5f }
+.rating.r3, .rating.r4 { background: #d9a43c } .rating.r5, .rating.r6 { background: #d0584a }
+.abund { font-size: 13px; color: var(--muted) }
+@media (max-width: 900px) { .fin { grid-template-columns: 1fr } }

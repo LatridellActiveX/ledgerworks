@@ -17,6 +17,7 @@ import { marketDay, npcHour, restockNpc, type Order } from './market'
 import { ACCOUNTING_FREE, accountingFee, adminOverhead, isPhaseDay, nextPhase, PHASE_LABEL, productionMult, retailMult } from './economy'
 import { rand } from './rng'
 import * as X from './execs'
+import * as F from './finance'
 import { qFromPatents } from './research'
 import { applyResearch, RESEARCH_LEVEL, researchable, researchedQ } from './research'
 
@@ -32,7 +33,7 @@ export type Job =
   | { kind: 'make'; res: string; qty: number; q: number; startH: number; endH: number }
   | { kind: 'sell'; res: string; qty: number; q: number; price: number; startH: number; endH: number }
 
-export interface Building { uid: number; type: string; level: number; job?: Job }
+export interface Building { uid: number; type: string; level: number; job?: Job; abund?: Record<string, number> }
 
 export interface GameState {
   version: 1
@@ -68,6 +69,11 @@ export interface GameState {
   candidates: X.Exec[]
   stats: X.Stats
   ach: Record<string, number> // tiers reached per achievement
+  // --- Finance (stage 10) ---
+  bonds?: F.Bond[] // bonds you issued (debt)
+  holdings?: F.Holding[] // bonds you bought
+  bondOffers?: F.Holding[] // NPC bonds for sale this week
+  gov?: F.GovOrder // current government order
 }
 
 // --------------------------------------------------------------------------
@@ -124,6 +130,7 @@ export function newGame(company = 'My Company', now = Date.now()): GameState {
   }
   restockNpc(s)
   X.newCandidates(s)
+  F.newBondOffers(s)
   return s
 }
 
@@ -143,6 +150,7 @@ export function construct(s: GameState, plot: number, type: string): string | nu
   if (s.cash < b.cost) return 'Not enough cash'
   s.cash -= b.cost
   s.plots[plot] = { uid: s.nextUid++, type, level: 1, job: { kind: 'build', endH: s.hour + buildHours(1) } }
+  F.rollAbundance(s, s.plots[plot]!)
   s.xp += b.cost / 200
   s.stats.built++
   say(s, `Started building a ${b.name}.`)
@@ -174,6 +182,7 @@ export function scrap(s: GameState, plot: number): string | null {
   if (!bd) return 'Empty plot'
   if (bd.job && bd.job.kind !== 'build') return 'Wait for the current job to finish'
   s.cash += scrapRefund(bd)
+  if (F.isExtractor(bd.type)) s.stats.scrappedMines++
   s.plots[plot] = null
   say(s, `Scrapped a ${BLD[bd.type].name}.`)
   return null
@@ -184,8 +193,8 @@ export function scrap(s: GameState, plot: number): string | null {
 // --------------------------------------------------------------------------
 /** Hours a production run takes: qty / (rate * level). */
 /** Hours a production run takes; economy phase speeds up or slows the building. */
-export const makeHours = (res: string, qty: number, level: number, type?: string, s?: GameState) =>
-  qty / (REC[res].perHour * level * (type && s ? productionMult(type, s.phase) : 1))
+export const makeHours = (res: string, qty: number, level: number, type?: string, s?: GameState, abund = 1) =>
+  qty / (REC[res].perHour * level * abund * (type && s ? productionMult(type, s.phase) : 1))
 /** Company admin overhead fraction from all building levels. */
 export const overhead = (s?: GameState) => (s ? adminOverhead(s.plots.filter(Boolean).map(b => b!.level)) * (1 - X.overheadCut(s)) : 0)
 /** Wages for `hours` of work, including admin overhead when a state is given. */
@@ -197,7 +206,7 @@ export function startMake(s: GameState, plot: number, res: string, qty: number):
   const bt = BLD[bd.type], rc = REC[res]
   if (!bt.recipes?.includes(res)) return 'This building cannot make that'
   if (!(qty > 0)) return 'Pick an amount'
-  const hours = makeHours(res, qty, bd.level, bd.type, s), wages = makeWages(bd.type, bd.level, hours, s)
+  const hours = makeHours(res, qty, bd.level, bd.type, s, bd.abund?.[res] ?? 1), wages = makeWages(bd.type, bd.level, hours, s)
   if (s.cash < wages) return 'Not enough cash for wages'
   for (const [inp, per] of Object.entries(rc.inputs)) if (haveQty(s, inp) + 1e-9 < per * qty) return `Need ${Math.ceil(per * qty)} ${RES[inp].name}`
   // Output quality: the product's researched quality, but at most the
@@ -266,8 +275,12 @@ export function rollDay(s: GameState) {
   // Executives: pay salaries; refresh candidates weekly.
   const pay = X.dailySalaries(s)
   if (pay > 0) { s.cash -= pay; say(s, `Executive salaries: $${pay.toLocaleString()}.`) }
-  if (Math.floor(s.hour / 24) % 7 === 0) X.newCandidates(s)
-  const fee = accountingFee(s.cash, ACCOUNTING_FREE + X.cashLineBonus(s))
+  if (Math.floor(s.hour / 24) % 7 === 0) { X.newCandidates(s); F.newBondOffers(s) }
+  F.bondDay(s, m => say(s, m))
+  F.govDay(s, m => say(s, m))
+  F.depleteAll(s)
+  // Accounting base: cash plus bonds you hold.
+  const fee = accountingFee(s.cash + F.heldValue(s), ACCOUNTING_FREE + X.cashLineBonus(s))
   if (fee > 0) { s.cash -= fee; say(s, `Accounting fee: $${fee.toLocaleString()}.`) }
   // Weekly economy roll (offline only; online the server decides).
   const day = Math.floor(s.hour / 24)

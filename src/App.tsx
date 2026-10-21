@@ -16,6 +16,7 @@ import { RetailPanel } from './ui/RetailPanel'
 import { Exchange } from './ui/Exchange'
 import { Research } from './ui/Research'
 import { Board } from './ui/Board'
+import { Finance } from './ui/Finance'
 import { cashLineBonus, checkAchievements } from './game/execs'
 import { PHASE_LABEL, accountingFee, productionMult } from './game/economy'
 import { cloudKey, cloudLoad, cloudSave, syncWorld, useCloudKey } from './game/cloud'
@@ -25,7 +26,7 @@ export default function App() {
   const [s, setS] = useState<E.GameState>(() => E.advanceReal(loadGame()))
   const [sel, setSel] = useState<number | null>(null)
   const [msg, setMsg] = useState('')
-  const [tab, setTab] = useState<'warehouse' | 'exchange' | 'research' | 'board' | 'market' | 'log' | 'changes'>('warehouse')
+  const [tab, setTab] = useState<'warehouse' | 'exchange' | 'research' | 'board' | 'finance' | 'market' | 'log' | 'changes'>('warehouse')
 
   /** Run a mutating engine action on a copy, show its error if any. */
   const act = (f: (st: E.GameState) => string | null | void) => {
@@ -95,13 +96,14 @@ export default function App() {
       </main>
 
       <nav className="tabs">
-        {(['warehouse', 'exchange', 'research', 'board', 'market', 'log', 'changes'] as const).map(t => <button key={t} className={tab === t ? 'on' : ''} onClick={() => setTab(t)}>{t === 'warehouse' ? 'Warehouse' : t === 'exchange' ? 'Exchange' : t === 'research' ? 'Research' : t === 'board' ? 'Board & goals' : t === 'market' ? 'Public demand' : t === 'log' ? 'Events' : 'Change log'}</button>)}
+        {(['warehouse', 'exchange', 'research', 'board', 'finance', 'market', 'log', 'changes'] as const).map(t => <button key={t} className={tab === t ? 'on' : ''} onClick={() => setTab(t)}>{t === 'warehouse' ? 'Warehouse' : t === 'exchange' ? 'Exchange' : t === 'research' ? 'Research' : t === 'board' ? 'Board & goals' : t === 'finance' ? 'Finance' : t === 'market' ? 'Public demand' : t === 'log' ? 'Events' : 'Change log'}</button>)}
       </nav>
       <section className="bottom">
         {tab === 'warehouse' && <Warehouse s={s} />}
         {tab === 'exchange' && <Exchange s={s} act={act} />}
         {tab === 'research' && <Research s={s} act={act} />}
         {tab === 'board' && <Board s={s} act={act} />}
+        {tab === 'finance' && <Finance s={s} act={act} />}
         {tab === 'market' && <Demand s={s} />}
         {tab === 'log' && <ul className="log">{s.log.map((l, i) => <li key={i}>{l}</li>)}</ul>}
         {tab === 'changes' && <ul className="log">{CHANGELOG.map(c => <li key={c.id}><b>{c.date} · {c.title}</b> — {c.notes.join(' ')}</li>)}</ul>}
@@ -164,7 +166,8 @@ function MakeForm({ s, plot, act }: { s: E.GameState; plot: number; act: Act }) 
   const [res, setRes] = useState(bt.recipes![0])
   const [hours, setHours] = useState(2)
   const rc = REC[res]
-  const qty = Math.floor(rc.perHour * bd.level * hours * productionMult(bd.type, s.phase))
+  const ab = bd.abund?.[res] ?? 1
+  const qty = Math.floor(rc.perHour * bd.level * hours * ab * productionMult(bd.type, s.phase))
   const wages = E.makeWages(bd.type, bd.level, hours, s)
   const missing = useMemo(() => Object.entries(rc.inputs).filter(([k, v]) => E.haveQty(s, k) < v * qty), [s, rc, qty])
   return (
@@ -172,6 +175,7 @@ function MakeForm({ s, plot, act }: { s: E.GameState; plot: number; act: Act }) 
       <label>Make <select value={res} onChange={e => setRes(e.target.value)}>{bt.recipes!.map(r => <option key={r} value={r}>{RES[r].name}</option>)}</select></label>
       <label>For <select value={hours} onChange={e => setHours(Number(e.target.value))}>{[0.5, 1, 2, 4, 8, 12, 24].map(h => <option key={h} value={h}>{dur(h)}</option>)}</select></label>
       <div><ResIcon id={res} /> {num(qty)} units · wages {money(wages)}</div>
+      {bd.abund && <div className="abund">Abundance: {Object.entries(bd.abund).map(([k, v]) => <span key={k}><ResIcon id={k} size={14} /> {(v * 100).toFixed(1)}% </span>)}</div>}
       <div className="inputs">{Object.entries(rc.inputs).map(([k, v]) => (
         <span key={k} className={E.haveQty(s, k) < v * qty ? 'short' : ''}><ResIcon id={k} size={16} /> {num(v * qty)} {RES[k].name} (have {num(E.haveQty(s, k))})</span>
       ))}{Object.keys(rc.inputs).length === 0 && <span className="muted">No inputs needed</span>}</div>
