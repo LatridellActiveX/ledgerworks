@@ -7,6 +7,8 @@
 import { Boot } from './ui/Boot'
 import { PlayerSearch, PlayerProfile } from './ui/Players'
 import { PlayerCtx } from './ui/PlayerLink'
+import { FarmPlot } from './ui/Farm'
+import { isFarm } from './game/farm'
 import * as GFX from './game/gfx'
 import { Warehouse, compact as compactNum } from './ui/Warehouse'
 import { Chains } from './ui/Chains'
@@ -143,7 +145,8 @@ export default function App() {
 
   // ---- HUD layout (map fills the screen; menus are their own screens) ----
   const idle = s.plots.flatMap((bd, i) => (bd && !bd.job ? [i] : []))
-  const nextIdle = s.plots.reduce((m, bd) => (bd?.job && bd.job.endH < m ? bd.job.endH : m), Infinity)
+  // A ripe crop is ready to harvest now, so it counts as free from this hour.
+  const nextIdle = s.plots.reduce((m, bd) => { if (!bd?.job) return m; const t = bd.job.ripeH !== undefined ? s.hour : bd.job.endH; return t < m ? t : m }, Infinity)
   const unseen = Math.max(0, s.log.length - seenLog)
   const open = (t: Screen) => { sfx('tap'); setScreen(t); setMenu(false); setWhOpen(null); setChainFrom(null); if (t === 'log') { setSeenLog(s.log.length); localStorage.setItem('ledgerworks-seen-log', String(s.log.length)) } }
   const xpPct = Math.floor((100 * (s.xp - xpLo)) / (xpHi - xpLo))
@@ -351,14 +354,15 @@ function BuildingPanel({ s, plot, act }: { s: E.GameState; plot: number; act: Ac
     <div>
       <h3>{bt.name} · level {bd.level} <StatusChip state={activityOf(s, bd)!.state} /></h3>
       <div className="hero"><BuildingArt type={bd.type} level={bd.level} busy={!!bd.job} /></div>
+      {isFarm(bd.type) && <FarmPlot s={s} plot={plot} act={act} />}
       {bd.job ? (
         <div className="card">
           <span>{bd.job.kind === 'build' ? 'Under construction' : bd.job.kind === 'make'
             ? <>Making {num(bd.job.qty)} <ResIcon id={bd.job.res} /> {RES[bd.job.res].name} Q{bd.job.q}</>
             : <>Selling {num(bd.job.qty)} <ResIcon id={bd.job.res} /> {RES[bd.job.res].name} at {money(bd.job.price)}</>}</span>
-          <div>Done in {dur(bd.job.endH - s.hour)} (game time)</div>
+          {bd.job.ripeH !== undefined ? <div>Ripe. Harvest it from the plot above.</div> : <div>Done in {dur(bd.job.endH - s.hour)} (game time)</div>}
           {bd.job.kind !== 'build' && <JobProgress s={s} plot={plot} act={act} />}
-          <button onClick={() => act(st => E.rush(st, plot))}>Rush for {money(E.rushCost(s, bd))}</button>
+          {bd.job.ripeH === undefined && <button onClick={() => act(st => E.rush(st, plot))}>Rush for {money(E.rushCost(s, bd))}</button>}
         </div>
       ) : bt.kind === 'production' ? <MakeForm s={s} plot={plot} act={act} /> : <RetailPanel s={s} plot={plot} act={act} />}
       <div className="row">

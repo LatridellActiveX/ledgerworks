@@ -749,3 +749,21 @@ tr.bidrow td { color: #3c9a5f; font-weight: 600 }
 .ship summary { cursor: pointer; font-weight: 600 }
 .bond-row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; padding: 6px 0; border-bottom: 1px solid #0001 }
 .bond-cta { display: grid; gap: 6px }
+
+/* Orchard plot (ui/Farm.tsx) */
+.farm { display: grid; gap: 8px; margin: 8px 0 }
+.farm-scene { width: 100%; height: auto; border-radius: 14px; box-shadow: 0 6px 18px #0002; display: block }
+.farm-stats { display: grid; gap: 4px; font-size: 13px }
+.farm-stats .bar { display: inline-block; width: 90px; vertical-align: middle }
+.farm-actions { flex-wrap: wrap }
+.farm-late .farm-scene { filter: saturate(0.7) }
+.farm-ripe .plant { animation: none }
+.plant { transform-box: fill-box; transform-origin: 50% 100%; animation: sway 3.2s ease-in-out infinite }
+.fx-rain { animation: rain 0.8s linear infinite }
+.fx-sun { animation: pulse 2.4s ease-in-out infinite }
+.fx-drip { animation: drip 1.6s linear infinite }
+@keyframes sway { 0%, 100% { transform: rotate(-2deg) } 50% { transform: rotate(2deg) } }
+@keyframes rain { 0% { transform: translateY(-6px); opacity: 0 } 30% { opacity: 1 } 100% { transform: translateY(14px); opacity: 0 } }
+@keyframes pulse { 0%, 100% { opacity: 0.5 } 50% { opacity: 0.9 } }
+@keyframes drip { to { stroke-dashoffset: -14 } }
+@media (prefers-reduced-motion: reduce) { .plant, .fx-rain, .fx-sun, .fx-drip { animation: none } }

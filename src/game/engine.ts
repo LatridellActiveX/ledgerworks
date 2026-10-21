@@ -29,6 +29,7 @@ import { GAME_SPEED } from './engine-constants'
 import * as SEA from './seasons'
 import * as R from './routes'
 import * as B from './bids'
+import * as FM from './farm'
 export const MAX_QUALITY = 12
 export const START_CASH = 60000
 
@@ -37,13 +38,13 @@ export const START_CASH = 60000
 // --------------------------------------------------------------------------
 export type Job =
   | { kind: 'build'; endH: number } // construction or upgrade in progress
-  | { kind: 'make'; res: string; qty: number; q: number; startH: number; endH: number; got?: number; lastH?: number; uc?: number /* cost per unit (inputs + wages), for average cost */ }
+  | { kind: 'make'; res: string; qty: number; q: number; startH: number; endH: number; got?: number; lastH?: number; uc?: number /* cost per unit (inputs + wages), for average cost */; ripeH?: number /* farm crops: hour they ripened (waiting for harvest) */; tends?: number; tendH?: number /* farm crops: tending */ }
   | { kind: 'sell'; res: string; qty: number; q: number; price: number; startH: number; endH: number; got?: number; gotC?: number; lastH?: number }
 // Partial collection (see collect()): `got` = whole units already handed
 // over (made goods, or sold units already paid), `gotC` = cents already paid
 // for a sale, `lastH` = game hour of the last collection.
 
-export interface Building { uid: number; type: string; level: number; job?: Job; abund?: Record<string, number> }
+export interface Building { uid: number; type: string; level: number; job?: Job; abund?: Record<string, number>; soil?: number; irrigated?: boolean; graft?: boolean }
 
 export interface GameState {
   version: 1
@@ -52,6 +53,8 @@ export interface GameState {
   cash: number
   xp: number
   hour: number // game clock, in game hours since founding
+  /** Today's weather on the farms (see farm.ts). */
+  weather?: 'clear' | 'rain' | 'frost' | 'heat'
   lastReal: number // real ms timestamp of the last advance()
   nextUid: number
   plots: (Building | null)[]
@@ -274,19 +277,26 @@ export function startMake(s: GameState, plot: number, res: string, qty: number):
   const bt = BLD[bd.type], rc = REC[res]
   if (!bt.recipes?.includes(res)) return 'This building cannot make that'
   const bq = badQty(qty); if (bq) return bq
-  const hours = makeHours(res, qty, bd.level, bd.type, s, bd.abund?.[res] ?? 1), wages = makeWages(bd.type, bd.level, hours, s)
+  // Farms: a plot rolls its soil the first time it plants, and soil sets the pace.
+  if (FM.isFarm(bd.type) && bd.soil === undefined) bd.soil = FM.rollSoil(() => { const [r, n] = rand(s.seed); s.seed = n; return r })
+  const soil = FM.isFarm(bd.type) ? bd.soil ?? 1 : 1
+  const hours = makeHours(res, qty, bd.level, bd.type, s, (bd.abund?.[res] ?? 1) * soil), wages = makeWages(bd.type, bd.level, hours, s)
   if (s.cash < wages) return 'Not enough cash for wages'
-  for (const [inp, per] of Object.entries(rc.inputs)) if (haveQty(s, inp) + 1e-9 < per * qty) return `Need ${Math.ceil(per * qty)} ${RES[inp].name}`
+  // A drip line cuts the water needed; everything else is as the recipe says.
+  const inputs = Object.fromEntries(Object.entries(rc.inputs).map(([k, v]) => [k, k === 'water' && FM.isFarm(bd.type) ? v * FM.waterFactor(bd.irrigated) : v]))
+  for (const [inp, per] of Object.entries(inputs)) if (haveQty(s, inp) + 1e-9 < per * qty) return `Need ${Math.ceil(per * qty)} ${RES[inp].name}`
   // Output quality: the product's researched quality, but at most the
   // lowest input quality + 1 (inputs are taken best-first).
   let q = Math.min(MAX_QUALITY, researchedQ(s, res))
   // Unit cost for "average cost": inputs at their average cost (or market price) plus wages.
-  const inCost = Object.entries(rc.inputs).reduce((t, [inp, per]) => t + per * qty * (s.avgCost?.[inp] ?? s.ref[inp] ?? RES[inp].basePrice), 0)
+  const inCost = Object.entries(inputs).reduce((t, [inp, per]) => t + per * qty * (s.avgCost?.[inp] ?? s.ref[inp] ?? RES[inp].basePrice), 0)
   setWhy('used in production')
-  for (const [inp, per] of Object.entries(rc.inputs)) {
+  for (const [inp, per] of Object.entries(inputs)) {
     const low = takeStock(s, inp, per * qty)
     q = Math.min(q, low + 1)
   }
+  // A graft lifts the next crop from this plot one quality step, once.
+  if (bd.graft && FM.isFarm(bd.type)) { q = Math.min(MAX_QUALITY, q + 1); bd.graft = false }
   s.cash -= wages
   bd.job = { kind: 'make', res, qty, q, startH: s.hour, endH: s.hour + hours, uc: (inCost + wages) / qty }
   return null
@@ -390,13 +400,14 @@ const jobFrac = (j: { startH: number; endH: number }, hour: number) => (j.endH <
 /** Total cents a sale earns (the job's full revenue, rounded to a cent). */
 export const saleCents = (j: { qty: number; price: number }) => Math.round(j.qty * j.price * 100)
 /** Whole units made / sold so far. */
-export const unitsDone = (j: { qty: number; startH: number; endH: number }, hour: number) => Math.min(j.qty, Math.floor(j.qty * jobFrac(j, hour) + 1e-9))
+export const unitsDone = (j: { qty: number; startH: number; endH: number; ripeH?: number }, hour: number) =>
+  j.ripeH !== undefined ? FM.ripeUnits(j, j.ripeH, hour) : Math.min(j.qty, Math.floor(j.qty * jobFrac(j, hour) + 1e-9))
 /** What can be collected now: units of goods (make) or cents (sell). */
 export function pending(s: GameState, bd: Building): { kind: 'goods' | 'cash'; res: string; q: number; units: number; cents: number } | null {
   const j = bd.job
   if (!j || j.kind === 'build') return null
   const u = unitsDone(j, s.hour)
-  if (j.kind === 'make') return { kind: 'goods', res: j.res, q: j.q, units: u - (j.got ?? 0), cents: 0 }
+  if (j.kind === 'make') return { kind: 'goods', res: j.res, q: j.ripeH !== undefined ? FM.ripeQuality(j.q, j.ripeH, s.hour) : j.q, units: u - (j.got ?? 0), cents: 0 }
   const cents = Math.floor((saleCents(j) * u) / j.qty)
   return { kind: 'cash', res: j.res, q: j.q, units: u - (j.got ?? 0), cents: cents - (j.gotC ?? 0) }
 }
@@ -413,11 +424,79 @@ export function collect(s: GameState, plot: number): string | null {
   if (!bd || !j || j.kind === 'build') return 'Nothing to collect'
   const p = pending(s, bd)!
   if (p.units < 1) return 'Nothing ready yet'
-  if (j.kind === 'make') { setWhy('made'); addStock(s, j.res, j.q, p.units, j.uc); j.got = (j.got ?? 0) + p.units }
+  if (j.kind === 'make') { setWhy('made'); addStock(s, j.res, p.q, p.units, j.uc); j.got = (j.got ?? 0) + p.units }
   else { s.cash += p.cents / 100; j.got = (j.got ?? 0) + p.units; j.gotC = (j.gotC ?? 0) + p.cents }
   j.lastH = s.hour
   return null
 }
+/** When a crop ripened, if it has (only crop jobs have this). */
+const ripeOf = (j: Job | undefined) => (j && j.kind === 'make' ? j.ripeH : undefined)
+
+/** A farm crop's timer has run out: it ripens and waits on the plot for harvest. */
+function ripen(s: GameState, bd: Building) {
+  const j = bd.job!
+  if (j.kind !== 'make') return
+  j.ripeH = j.endH
+  // Tended often enough, the crop comes out a quality step higher.
+  if ((j.tends ?? 0) >= FM.TEND_QUALITY_AT) j.q = Math.min(MAX_QUALITY, j.q + 1)
+  say(s, `${BLD[bd.type].name}: ${RES[j.res].name} is ripe. Harvest it soon, it loses value each hour.`)
+}
+
+/** Harvest a ripe crop: everything still on the plot goes to the warehouse and the plot is free. */
+export function harvest(s: GameState, plot: number): string | null {
+  const bd = s.plots[plot], j = bd?.job
+  if (!bd || !j || j.kind !== 'make' || j.ripeH === undefined) return 'Not ripe yet'
+  const p = pending(s, bd)!
+  const units = Math.max(0, p.units)
+  if (units > 0) { setWhy('harvested'); addStock(s, j.res, p.q, units, j.uc) }
+  s.xp += makeWages(bd.type, bd.level, j.endH - j.startH) / 50
+  bd.soil = FM.soilAfterHarvest(bd.soil ?? 1)
+  say(s, `Harvested ${Math.round(units)} ${RES[j.res].name} (Q${p.q}).`)
+  bd.job = undefined
+  return null
+}
+
+/** Tend a growing crop: it ripens sooner. Free, but one tend per cooldown. */
+export function tend(s: GameState, plot: number): string | null {
+  const bd = s.plots[plot], j = bd?.job
+  if (!bd || !j || j.kind !== 'make' || j.ripeH !== undefined) return 'Nothing to tend'
+  if (s.hour - (j.tendH ?? -Infinity) < FM.TEND_GAP_H) return 'Tended recently'
+  FM.speedUp(j, s.hour, FM.TEND_SPEED)
+  j.tends = (j.tends ?? 0) + 1
+  j.tendH = s.hour
+  if (j.endH <= s.hour) ripen(s, bd)
+  return null
+}
+
+/** Put a drip line on a farm plot: less water for every crop. */
+export function irrigate(s: GameState, plot: number): string | null {
+  const bd = s.plots[plot]
+  if (!bd || !FM.isFarm(bd.type)) return 'Only farms can be irrigated'
+  if (bd.irrigated) return 'Already irrigated'
+  if (bd.job) return 'Building is busy'
+  const cost = 2500 * bd.level
+  if (s.cash < cost) return 'Not enough cash'
+  s.cash -= cost
+  bd.irrigated = true
+  return null
+}
+
+/** Graft a better variety onto a plot: a chance that its next crop comes out a quality step higher. */
+export function graft(s: GameState, plot: number): string | null {
+  const bd = s.plots[plot]
+  if (!bd || !FM.isFarm(bd.type)) return 'Only farms can be grafted'
+  if (bd.job) return 'Building is busy'
+  if (bd.graft) return 'Already grafted'
+  const cost = 300 * bd.level
+  if (s.cash < cost) return 'Not enough cash'
+  if (haveQty(s, 'seeds') < 3) return 'Need 3 Seeds'
+  s.cash -= cost
+  takeStock(s, 'seeds', 3)
+  const [r, n] = rand(s.seed); s.seed = n
+  bd.graft = r < FM.GRAFT_CHANCE
+  return bd.graft ? null : 'The graft did not take. Seeds and cash are gone.'
+}
+
 /**
  * Stop a running job early. You keep everything made or sold so far (it is
  * collected now). Unsold shop goods go back to the warehouse. Wages and the
@@ -428,7 +507,7 @@ export function cancelJob(s: GameState, plot: number): string | null {
   if (!bd || !j || j.kind === 'build') return 'Nothing to stop'
   const p = pending(s, bd)!
   const done = unitsDone(j, s.hour)
-  if (j.kind === 'make') { setWhy('made'); addStock(s, j.res, j.q, p.units, j.uc); say(s, `${BLD[bd.type].name} stopped after ${done} of ${j.qty} ${RES[j.res].name}.`) }
+  if (j.kind === 'make') { setWhy('made'); addStock(s, j.res, p.q, Math.max(0, p.units), j.uc); say(s, `${BLD[bd.type].name} stopped after ${done} of ${j.qty} ${RES[j.res].name}.`) }
   else {
     s.cash += p.cents / 100
     setWhy('back from store')
@@ -474,18 +553,21 @@ export function advanceTo(s: GameState, toHour: number): GameState {
     // the next whole hour (NPC buyers), or midnight.
     const nextHour = Math.floor(s.hour + 1e-9) + 1
     let next = nextHour, who: Building | null = null, route: R.Route | null = null
-    for (const bd of s.plots) if (bd?.job && bd.job.endH < next) { next = bd.job.endH; who = bd }
+    for (const bd of s.plots) if (bd?.job && ripeOf(bd.job) === undefined && bd.job.endH < next) { next = bd.job.endH; who = bd }
+    for (const bd of s.plots) { const rh = ripeOf(bd?.job); if (bd && rh !== undefined && rh + FM.SPOIL_H < next) { next = Math.max(s.hour, rh + FM.SPOIL_H); who = bd } }
     const re = R.nextRouteEvent(s)
     if (re && re.h < next) { next = Math.max(s.hour, re.h); who = null; route = re.r }
     if (next > toHour) break
     s.hour = next
     if (route) R.runRoute(s, route)
+    else if (who && ripeOf(who.job) !== undefined) { say(s, `${BLD[who.type].name}: the crop spoiled before it was harvested.`); who.job = undefined }
+    else if (who && FM.isFarm(who.type) && who.job?.kind === 'make') ripen(s, who)
     else if (who) finishJob(s, who)
     else {
       npcHour(s, m => say(s, m))
       B.bidHour(s) // standing buy orders check the book and passing sellers
       X.payHour(s) // executives draw 1/24 of their daily salary every game hour
-      if (nextHour % 24 === 0) rollDay(s)
+      if (nextHour % 24 === 0) { rollDay(s); const [r, n] = rand(s.seed); s.seed = n; for (const line of FM.farmDay(s, r)) say(s, line) }
     }
   }
   s.hour = Math.max(s.hour, toHour)
@@ -511,7 +593,8 @@ export function rush(s: GameState, plot: number): string | null {
   if (s.cash < cost) return 'Not enough cash'
   s.cash -= cost
   bd.job.endH = s.hour
-  finishJob(s, bd)
+  if (bd.job.kind === 'make' && FM.isFarm(bd.type)) ripen(s, bd)
+  else finishJob(s, bd)
   return null
 }
 export const rushCost = (s: GameState, bd: Building) => (bd.job ? Math.ceil(Math.max(0, bd.job.endH - s.hour)) * 250 : 0)

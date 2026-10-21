@@ -4,6 +4,12 @@ export interface ChangeEntry { id: string; date: string; title: string; notes: s
 
 export const CHANGELOG: ChangeEntry[] = [
   {
+    id: 'farm-hands-on',
+    date: '2026-10-21',
+    title: 'Farms you can work',
+    notes: ["Orchards draw their plot: sprouts, young plants, a mature crop, and fruit when it is ripe. The plot shows the soil, today's weather and any drip line or graft.", "Tend a growing crop to bring it in sooner. Three tends during its growth lift its quality by one step at harvest. Tends are free but have a short cooldown.", "A crop no longer pays out by itself when its timer ends. It ripens and waits for you to Harvest it. Crops lose a little value each hour, drop a quality step after 6 hours, and are lost after 3 days.", "Soil varies from plot to plot and gets worn by harvests. Idle plots recover.", "Weather changes each day: rain speeds growth, heat slows it unless the plot is irrigated, and frost takes part of an untended crop. Tend a plot daily to protect it.", "Drip lines cut water use by a third. Grafting gives the next crop from a plot a chance of +1 quality."],
+  },
+  {
     id: 'trading-contracts-bonds',
     date: '2026-10-21',
     title: 'Contracts, bonds and player orders',
