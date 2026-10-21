@@ -20,10 +20,18 @@ const snippet = `async () => {
     ],
   };
   if (tag !== 'v1') meta.migrations = { new_tag: 'v1', steps: [{ new_sqlite_classes: ['MarketDO'] }] };
+  // Upload; if the DO migration was already applied (tag mismatch), retry without it.
+  const send = async () => {
   const b = 'LW' + Date.now();
   const body = ['--'+b,'Content-Disposition: form-data; name="metadata"','Content-Type: application/json','',JSON.stringify(meta),
     '--'+b,'Content-Disposition: form-data; name="worker.js"; filename="worker.js"','Content-Type: application/javascript+module','',code,'--'+b+'--'].join('\\r\\n');
-  const up = await cloudflare.request({ method:'PUT', path: base, body, contentType:'multipart/form-data; boundary='+b, rawBody:true });
+  return cloudflare.request({ method:'PUT', path: base, body, contentType:'multipart/form-data; boundary='+b, rawBody:true });
+  };
+  let up;
+  try { up = await send(); } catch (e) {
+    if (!String(e).includes('migration tag')) throw e;
+    delete meta.migrations; up = await send();
+  }
   await cloudflare.request({ method:'PUT', path: base + '/schedules', body: [{ cron: '*/15 * * * *' }] });
   await cloudflare.request({ method:'POST', path: base + '/subdomain', body:{ enabled:true } });
   return { ok: up.success, hadTag: tag };
