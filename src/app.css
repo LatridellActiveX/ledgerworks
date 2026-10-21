@@ -690,7 +690,7 @@ tr.bidrow td { color: #3c9a5f; font-weight: 600 }
 .exec-seats { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 10px }
 .exec-card { margin: 0; flex-direction: row !important; align-items: flex-start; gap: 10px }
 .exec-portrait { flex: none }
-.exec-info { display: flex; flex-direction: column; gap: 3px; min-width: 0; flex: 1 }
+.execs .exec-card .exec-info { display: flex !important; flex-direction: column !important; align-items: flex-start; gap: 3px; min-width: 0; flex: 1 }
 .exec-info .row { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 2px }
 .exec-info .row button { padding: 4px 8px; font-size: 12px }
 .exec-stars { color: #e0a526; letter-spacing: 1px; font-size: 13px }
