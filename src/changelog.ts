@@ -4,6 +4,12 @@ export interface ChangeEntry { id: string; date: string; title: string; notes: s
 
 export const CHANGELOG: ChangeEntry[] = [
   {
+    id: 'mvp-plot-grid-layout-fix',
+    date: '2026-10-21',
+    title: 'Tidier plot grid',
+    notes: ['Plots no longer spill over the tabs; only one row of locked plots is shown.'],
+  },
+  {
     id: 'stage4-retail-saturation-mvp',
     date: '2026-10-21',
     title: 'Shops open: sell to the public',

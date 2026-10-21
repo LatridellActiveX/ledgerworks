@@ -46,3 +46,8 @@ main { display: grid; grid-template-columns: 1fr 360px; gap: 16px; padding: 16px
 @media (max-width: 800px) { main { grid-template-columns: 1fr } .plots { grid-template-columns: repeat(4, 1fr) } .wh { grid-template-columns: 1fr } }
 .demand { width: 100%; border-collapse: collapse; font-size: 14px }
 .demand td, .demand th { text-align: left; padding: 4px 8px; border-bottom: 1px solid var(--line) }
+/* Keep plot tiles square without spilling over the tabs below. */
+.plots { align-content: start }
+.plot { aspect-ratio: auto; height: 0; padding-bottom: 100%; overflow: hidden }
+.plot > svg { position: absolute; inset: 0 }
+.card > span, .card > div { display: block }

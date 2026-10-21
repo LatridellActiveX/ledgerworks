@@ -59,7 +59,8 @@ export default function App() {
 
       <main>
         <section className="plots">
-          {Array.from({ length: 24 }, (_, i) => {
+          {/* Show unlocked plots plus one row of locked ones as a teaser. */}
+          {Array.from({ length: Math.min(24, slots + 6) }, (_, i) => {
             const bd = s.plots[i], locked = i >= slots
             const j = bd?.job
             const pct = j && 'startH' in j ? (100 * (s.hour - j.startH)) / (j.endH - j.startH) : 0
@@ -124,9 +125,9 @@ function BuildingPanel({ s, plot, act }: { s: E.GameState; plot: number; act: Ac
       <div className="hero"><BuildingArt type={bd.type} level={bd.level} busy={!!bd.job} /></div>
       {bd.job ? (
         <div className="card">
-          {bd.job.kind === 'build' ? 'Under construction' : bd.job.kind === 'make'
+          <span>{bd.job.kind === 'build' ? 'Under construction' : bd.job.kind === 'make'
             ? <>Making {num(bd.job.qty)} <ResIcon id={bd.job.res} /> {RES[bd.job.res].name} Q{bd.job.q}</>
-            : <>Selling {num(bd.job.qty)} <ResIcon id={bd.job.res} /> {RES[bd.job.res].name} at {money(bd.job.price)}</>}
+            : <>Selling {num(bd.job.qty)} <ResIcon id={bd.job.res} /> {RES[bd.job.res].name} at {money(bd.job.price)}</>}</span>
           <div>Done in {dur(bd.job.endH - s.hour)} (game time)</div>
           <button onClick={() => act(st => E.rush(st, plot))}>Rush for {money(E.rushCost(s, bd))}</button>
         </div>
