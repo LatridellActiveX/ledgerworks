@@ -572,3 +572,36 @@ button.link { background: none; border: 0; box-shadow: none; color: #6b7280; tex
 .ch-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px }
 @media (max-width: 400px) { .ch-grid, .ch-used { grid-template-columns: 1fr 1fr } .ch-grid button { font-size: 13px; padding: 6px } }
 .chain .ch-open { min-height: 48px; border-radius: 12px; font-size: 15px; font-weight: 600; margin-top: 4px }
+
+/* ===== Market news (The Ledger Gazette) ===== */
+.nw { max-width: 640px; margin: 0 auto }
+.nw-mast { text-align: center; margin-bottom: 6px }
+.nw-mast small { letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-size: 11.5px }
+.nw-mast h2 { margin: 2px 0 4px; font-family: Georgia, 'Times New Roman', serif; font-size: 30px; font-weight: 800; letter-spacing: .01em }
+.nw-rule { height: 5px; border-top: 2px solid var(--ink); border-bottom: 1px solid var(--ink) }
+.nw-help { font-size: 13px; margin: 8px 0 10px }
+.nw-quiet { text-align: center; padding: 20px; font-style: italic }
+.nw-story { background: linear-gradient(#fffdf6, #f7f0df); border-radius: 14px; padding: 12px; margin: 10px 0; box-shadow: inset 0 0 0 1px #e8dcc3, 0 3px 10px #6b4a2a12; border-left: 5px solid #8a8296 }
+.nw-story.nw-up { border-left-color: #2f9e6a } .nw-story.nw-down { border-left-color: #d0573f }
+.nw-top { display: flex; gap: 10px; align-items: flex-start } .nw-top > div { flex: 1; min-width: 0 }
+.nw-pic { font-size: 30px; width: 46px; height: 46px; display: grid; place-items: center; border-radius: 12px; background: #fff; box-shadow: inset 0 0 0 1px #eadfca; flex: none }
+.nw-tag { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); font-weight: 700 }
+.nw-story h3 { margin: 2px 0; font-family: Georgia, 'Times New Roman', serif; font-size: 18px; line-height: 1.2 }
+.nw-lead h3 { font-size: 23px }
+.nw-story p { margin: 0; font-size: 13.5px; color: #4b4552 }
+.nw-eff { font-size: 18px; padding: 4px 8px; border-radius: 10px; flex: none }
+.nw-up .nw-eff { color: #1f7a50; background: #dff3e8 } .nw-down .nw-eff { color: #a83b28; background: #fbe2dc }
+.nw-rumor { opacity: .9; background: repeating-linear-gradient(135deg, #fffdf6 0 10px, #f8f2e3 10px 20px); border-left-style: dashed }
+.nw-past { opacity: .65; padding: 8px 12px } .nw-past .nw-pic { width: 34px; height: 34px; font-size: 20px }
+.nw-past h3 { font-size: 15px }
+.nw-goods { list-style: none; padding: 0; margin: 10px 0 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 6px }
+.nw-goods li { display: flex; flex-direction: column; align-items: center; gap: 2px; background: #fff; border-radius: 10px; padding: 6px 4px; font-size: 12px; text-align: center; box-shadow: inset 0 0 0 1px #efe5d2 }
+.nw-goods small { color: var(--muted) }
+.nw-sec { margin: 16px 0 4px; font-family: Georgia, serif }
+.news-strip { position: absolute; z-index: 5; top: calc(var(--sat) + 66px); left: calc(var(--sal) + 10px); right: calc(var(--sar) + 10px); max-width: 520px; margin: 0 auto; display: flex; align-items: center; gap: 8px; border: 0; border-radius: 12px; padding: 0 12px 0 0; min-height: 40px; background: #1f2430d0; color: #fff; font-size: 14px; backdrop-filter: blur(6px); overflow: hidden; text-align: left; box-shadow: 0 6px 16px #0003 }
+.news-strip > b { align-self: stretch; display: grid; place-items: center; padding: 0 10px; background: #d0573f; font-size: 12px; letter-spacing: .06em; flex: none }
+.news-strip.nw-up > b { background: #2f9e6a }
+.ns-text { flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; mask-image: linear-gradient(90deg, #000 85%, transparent) }
+.ns-text > span { display: inline-block; padding-left: 4px; animation: ns-scroll 16s linear infinite }
+@keyframes ns-scroll { 0%, 15% { transform: translateX(0) } 85%, 100% { transform: translateX(min(0px, calc(-100% + 60vw))) } }
+@media (prefers-reduced-motion: reduce) { .ns-text > span { animation: none } }

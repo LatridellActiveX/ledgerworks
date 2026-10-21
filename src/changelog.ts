@@ -4,6 +4,12 @@ export interface ChangeEntry { id: string; date: string; title: string; notes: s
 
 export const CHANGELOG: ChangeEntry[] = [
   {
+    id: 'market-news',
+    date: '2026-10-21',
+    title: 'Market news',
+    notes: ['A newspaper, The Ledger Gazette, now reports market news (menu → 📰 Market news). Most days a new story breaks, like a heatwave, a cold snap, a building boom or a dairy recall rumor, and lasts 2 or 3 days.', 'While a story runs, shops sell its goods faster (up to +50%) or slower (down to −25%). Playing offline, the Exchange price of those goods also drifts the same way, at half the strength.', 'The map shows the latest headline in a strip under the top bar; tap it to open the paper. Each story lists its goods with their icons and how many you hold, and a Rumor tells you tomorrow\'s story so you can stock up early.', 'New stories are announced in the event log with a short newspaper sound (also in Settings → Test sounds).', 'Inspired by the market-moving events in Offworld Trading Company and the news reports in Capitalism Lab.'],
+  },
+  {
     id: 'production-chains',
     date: '2026-10-21',
     title: 'Production chains explorer',

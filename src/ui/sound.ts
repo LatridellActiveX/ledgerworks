@@ -32,7 +32,7 @@
 /** Every sound the game can play. */
 export type Sfx =
   | 'tap' | 'collect' | 'coin' | 'produce' | 'done' | 'build'
-  | 'upgrade' | 'buy' | 'sell' | 'levelup' | 'error'
+  | 'upgrade' | 'buy' | 'sell' | 'levelup' | 'error' | 'news'
 /** Old names from the first sound helper, still accepted. */
 type Legacy = 'pop' | 'buzz'
 
@@ -41,7 +41,7 @@ export const SFX_LIST: { id: Sfx; label: string }[] = [
   { id: 'tap', label: 'Tap' }, { id: 'collect', label: 'Collect' }, { id: 'coin', label: 'Coins' },
   { id: 'produce', label: 'Start job' }, { id: 'done', label: 'Job done' }, { id: 'build', label: 'Build' },
   { id: 'upgrade', label: 'Upgrade' }, { id: 'buy', label: 'Buy' }, { id: 'sell', label: 'Sell' },
-  { id: 'levelup', label: 'Level up' }, { id: 'error', label: 'Error' },
+  { id: 'levelup', label: 'Level up' }, { id: 'error', label: 'Error' }, { id: 'news', label: 'News' },
 ]
 
 // ---------------------------------------------------------------------------
@@ -83,7 +83,7 @@ export const gainFor = (v: number) => Math.pow(clampVolume(v) / 100, 2) * 0.9
 // ---------------------------------------------------------------------------
 const GAP_MS: Record<Sfx, number> = {
   tap: 60, collect: 70, coin: 70, produce: 150, done: 300, build: 200,
-  upgrade: 250, buy: 120, sell: 120, levelup: 1200, error: 200,
+  upgrade: 250, buy: 120, sell: 120, levelup: 1200, error: 200, news: 1500,
 }
 const LEN_MS = 700 // rough upper bound of a voice's length, for the voice cap
 export const MAX_VOICES = 6
@@ -278,6 +278,14 @@ const VOICES: Record<Sfx, (a: AudioContext, t: number, step: number) => void> = 
     tone(a, t, 220, { type: 'square', dur: 0.08, peak: 0.06, to: 200 })
     tone(a, t + 0.1, 175, { type: 'square', dur: 0.12, peak: 0.06, to: 150 })
     noise(a, t, { dur: 0.05, freq: 300, q: 1, peak: 0.15, type: 'lowpass' })
+  },
+  // Market news: a newspaper page flick (a falling noise sweep), five quick
+  // teletype ticks, then a two-note "news desk" chime (G then high C).
+  news: (a, t) => {
+    noise(a, t, { dur: 0.18, freq: 6000, q: 0.8, peak: 0.1, sweepTo: 1500 })
+    for (let i = 0; i < 5; i++) noise(a, t + 0.16 + i * 0.045, { dur: 0.012, freq: 4200, q: 6, peak: 0.14 })
+    bell(a, t + 0.42, G5, 0.1, 0.2)
+    bell(a, t + 0.54, C6, 0.11, 0.4)
   },
 }
 

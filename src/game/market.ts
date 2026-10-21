@@ -19,6 +19,7 @@
 import { RES, RESOURCES } from './data'
 import { rand } from './rng'
 import { priceTrend } from './economy'
+import { newsPrice } from './news'
 import { addStock, setWhy, haveQty, key, takeStock, type GameState } from './engine'
 
 export const FEE = 0.03
@@ -171,7 +172,8 @@ export function marketDay(s: GameState) {
   // Online, the shared server market moves prices; we only restock NPCs.
   if (s.online) { s.exSold = {}; restockNpc(s); return }
   for (const r of RESOURCES) {
-    const base = r.basePrice * priceTrend(s.phase), ref = refPrice(s, r.id)
+    // Market news pulls the target price toward the story (e.g. heatwave: ice cream up).
+    const base = r.basePrice * priceTrend(s.phase) * newsPrice(r.id, s.hour), ref = refPrice(s, r.id)
     let next = ref + 0.1 * (base - ref) + ref * 0.06 * (rnd(s) - 0.5)
     next *= 1 - Math.min(0.08, ((s.exSold[r.id] ?? 0) / depth(r.id)) * 0.04)
     s.ref[r.id] = Math.min(base * 1.8, Math.max(base * 0.6, next))

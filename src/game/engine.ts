@@ -16,6 +16,7 @@
 import { BLD, REC, RES } from './data'
 import * as V from './value'
 import { marketDay, npcHour, restockNpc, seedHistory, type Order } from './market'
+import { newsRetail, storyStarting } from './news'
 import { ACCOUNTING_FREE, accountingFee, adminOverhead, isPhaseDay, nextPhase, PHASE_LABEL, productionMult, retailMult } from './economy'
 import { rand } from './rng'
 import * as X from './execs'
@@ -289,12 +290,15 @@ export const fairPrice = (res: string, q: number) => RES[res].basePrice * 1.5 * 
  * - Price above fair price slows sales sharply (power 2.2), cheaper speeds up.
  * - Higher quality sells faster (+12% per star).
  * - Saturation divides speed: a flooded market buys slowly.
+ * - Market news stories (news.ts) multiply it while they run.
  */
 export function sellRate(s: GameState, res: string, q: number, price: number) {
   const r = RES[res]
   const base = (r.dailyDemand ?? 0) / 24
   const sat = s.saturation[res] ?? 1
   return base * Math.pow(fairPrice(res, q) / price, 2.2) * (1 + 0.12 * q) / sat * retailMult(s.phase) * X.retailBoost(s) * SEA.seasonRetail(res, r.store, s.seasonPhase)
+    // Market news: a running story speeds up (or slows down) sales of its goods.
+    * newsRetail(res, s.hour)
 }
 export const sellHours = (s: GameState, res: string, q: number, price: number, qty: number, level: number) =>
   Math.max(MIN_JOB_H, qty / (sellRate(s, res, q, price) * level))
@@ -350,6 +354,9 @@ export function rollDay(s: GameState) {
     const was = s.phase ?? 'normal'; s.phase = nextPhase(was, r)
     if (s.phase !== was) say(s, `The economy is now: ${PHASE_LABEL[s.phase]}.`)
   }
+  // Market news: announce today's new story (if any) in the event log.
+  const story = storyStarting(day)
+  if (story) say(s, `📰 News: ${story.t.headline}. ${story.t.goods.map(g => RES[g].name).join(', ')} sell ${story.t.mult >= 1 ? 'faster' : 'slower'} for ${story.endDay - story.startDay} days.`)
   marketDay(s)
   // Record today's going prices for the Exchange chart.
   s.priceHist = s.priceHist ?? {}

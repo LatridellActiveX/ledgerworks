@@ -2,6 +2,7 @@
 // so the choice is unit-tested. App.tsx plays the result with sfx().
 import * as E from '../game/engine'
 import type { Sfx } from './sound'
+import { dayOf, storyStarting } from '../game/news'
 
 const stockTotal = (s: E.GameState) => Object.values(s.stock ?? {}).reduce((a, n) => a + (Number(n) || 0), 0)
 const leveledUp = (a: E.GameState, b: E.GameState) => E.companyLevel(b.xp) === E.companyLevel(a.xp) + 1
@@ -40,5 +41,7 @@ export function tickSfx(a: E.GameState, b: E.GameState): Sfx | null {
     if (p.job.kind === 'build') out = 'upgrade'
     else if (out !== 'upgrade') out = 'done'
   })
+  // A new market news story broke while the clock ran (only when nothing louder played).
+  if (!out && dayOf(b.hour) > dayOf(a.hour) && storyStarting(dayOf(b.hour))) return 'news'
   return out
 }
