@@ -4,6 +4,12 @@ export interface ChangeEntry { id: string; date: string; title: string; notes: s
 
 export const CHANGELOG: ChangeEntry[] = [
   {
+    id: 'stage4-retail-saturation-mvp',
+    date: '2026-10-21',
+    title: 'Shops open: sell to the public',
+    notes: ['Shops sell your goods; price and quality set how fast they sell.', 'Each game day, markets you flood sell slower and quiet ones recover.', 'Public demand tab, XP from work and sales, quality cap grows with level.'],
+  },
+  {
     id: 'stage3-company-build-produce',
     date: '2026-10-21',
     title: 'Run your own company',

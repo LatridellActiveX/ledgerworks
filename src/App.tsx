@@ -18,7 +18,7 @@ export default function App() {
   const [s, setS] = useState<E.GameState>(() => E.advanceReal(loadGame()))
   const [sel, setSel] = useState<number | null>(null)
   const [msg, setMsg] = useState('')
-  const [tab, setTab] = useState<'warehouse' | 'log' | 'changes'>('warehouse')
+  const [tab, setTab] = useState<'warehouse' | 'market' | 'log' | 'changes'>('warehouse')
 
   /** Run a mutating engine action on a copy, show its error if any. */
   const act = (f: (st: E.GameState) => string | null | void) => {
@@ -80,10 +80,11 @@ export default function App() {
       </main>
 
       <nav className="tabs">
-        {(['warehouse', 'log', 'changes'] as const).map(t => <button key={t} className={tab === t ? 'on' : ''} onClick={() => setTab(t)}>{t === 'warehouse' ? 'Warehouse' : t === 'log' ? 'Events' : 'Change log'}</button>)}
+        {(['warehouse', 'market', 'log', 'changes'] as const).map(t => <button key={t} className={tab === t ? 'on' : ''} onClick={() => setTab(t)}>{t === 'warehouse' ? 'Warehouse' : t === 'market' ? 'Public demand' : t === 'log' ? 'Events' : 'Change log'}</button>)}
       </nav>
       <section className="bottom">
         {tab === 'warehouse' && <Warehouse s={s} act={act} />}
+        {tab === 'market' && <Demand s={s} />}
         {tab === 'log' && <ul className="log">{s.log.map((l, i) => <li key={i}>{l}</li>)}</ul>}
         {tab === 'changes' && <ul className="log">{CHANGELOG.map(c => <li key={c.id}><b>{c.date} · {c.title}</b> — {c.notes.join(' ')}</li>)}</ul>}
       </section>
@@ -179,5 +180,18 @@ function Warehouse({ s, act }: { s: E.GameState; act: Act }) {
         <button onClick={() => act(st => E.buyWholesale(st, buy, n))}>Buy for {money(E.wholesalePrice(buy) * n)}</button>
       </div>
     </div>
+  )
+}
+
+/** Public demand table: every retail good, its fair price and saturation. */
+function Demand({ s }: { s: E.GameState }) {
+  return (
+    <table className="demand"><thead><tr><th>Good</th><th>Shop</th><th>Fair price Q0</th><th>Daily demand</th><th>Saturation</th></tr></thead>
+      <tbody>{RESOURCES.filter(r => r.store).map(r => {
+        const sat = s.saturation[r.id] ?? 1
+        return <tr key={r.id}><td><ResIcon id={r.id} size={16} /> {r.name}</td><td>{BUILDINGS.find(b => b.store === r.store)!.name}</td>
+          <td>{money(E.fairPrice(r.id, 0))}</td><td>{num(r.dailyDemand!)}</td>
+          <td style={{ color: sat > 1.15 ? '#b0413e' : sat < 0.9 ? '#3c7a4a' : undefined }}>{num(sat)}×</td></tr>
+      })}</tbody></table>
   )
 }

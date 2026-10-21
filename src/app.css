@@ -44,3 +44,5 @@ main { display: grid; grid-template-columns: 1fr 360px; gap: 16px; padding: 16px
 .puff { animation: puff 2s infinite }
 @keyframes puff { from { opacity: .9; transform: translateY(0) } to { opacity: 0; transform: translateY(-10px) } }
 @media (max-width: 800px) { main { grid-template-columns: 1fr } .plots { grid-template-columns: repeat(4, 1fr) } .wh { grid-template-columns: 1fr } }
+.demand { width: 100%; border-collapse: collapse; font-size: 14px }
+.demand td, .demand th { text-align: left; padding: 4px 8px; border-bottom: 1px solid var(--line) }
