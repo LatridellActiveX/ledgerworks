@@ -9,14 +9,12 @@
 // ============================================================================
 import { RESOURCES } from '../src/game/data'
 import { rand } from '../src/game/rng'
-import { GAME_SPEED } from '../src/game/engine'
 import { depth } from '../src/game/market'
 import * as P from '../src/game/p2p'
 import { isPhaseDay, nextPhase, priceTrend, type Phase } from '../src/game/economy'
 
-/** Real-world moment that counts as "game hour 0" of the shared world. */
-const EPOCH = Date.UTC(2026, 9, 21)
-export const worldHour = (now = Date.now()) => ((now - EPOCH) / 3600000) * GAME_SPEED
+// The shared world clock lives in src/game/seasons.ts (the client uses it too).
+import { worldHour } from '../src/game/seasons'
 
 interface World { phase?: Phase; day: number; seed: number; ref: Record<string, number>; sold: Record<string, number> }
 

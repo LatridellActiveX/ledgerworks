@@ -12,6 +12,7 @@
 //  - Research unlocks at company level 6.
 // ============================================================================
 import { RES } from './data'
+import { EXTRA_FIELD } from './data-expansion'
 import { rand } from './rng'
 import type { GameState } from './engine'
 
@@ -27,6 +28,8 @@ const GROUPS: Record<Field, string[]> = {
   build: ['sand', 'clay', 'boards', 'tiles', 'cement', 'glass'],
   tech: ['ore', 'metal', 'silica', 'chip', 'cell', 'phone', 'lamp', 'speaker'],
 }
+// Stage 12: expansion goods carry their own field.
+for (const [id, f] of Object.entries(EXTRA_FIELD)) GROUPS[f].push(id)
 /** Which field a good is researched in (undefined for the notes themselves). */
 export const fieldOf = (res: string) => (Object.keys(GROUPS) as Field[]).find(f => GROUPS[f].includes(res))
 export const notesFor = (f: Field) => `rn_${f}`

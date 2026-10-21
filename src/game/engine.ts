@@ -21,7 +21,9 @@ import * as F from './finance'
 import { qFromPatents } from './research'
 import { applyResearch, RESEARCH_LEVEL, researchable, researchedQ } from './research'
 
-export const GAME_SPEED = 4 // game hours per real hour
+export { GAME_SPEED } from './engine-constants'
+import { GAME_SPEED } from './engine-constants'
+import * as SEA from './seasons'
 export const MAX_QUALITY = 12
 export const START_CASH = 60000
 
@@ -74,6 +76,10 @@ export interface GameState {
   holdings?: F.Holding[] // bonds you bought
   bondOffers?: F.Holding[] // NPC bonds for sale this week
   gov?: F.GovOrder // current government order
+  // --- Seasons realm (stage 12) ---
+  realm?: SEA.Realm
+  season?: number // season number this company plays in (seasons realm only)
+  seasonPhase?: SEA.SeasonPhase // current phase, refreshed from the world clock
 }
 
 // --------------------------------------------------------------------------
@@ -195,7 +201,7 @@ export function scrap(s: GameState, plot: number): string | null {
 /** Hours a production run takes: qty / (rate * level). */
 /** Hours a production run takes; economy phase speeds up or slows the building. */
 export const makeHours = (res: string, qty: number, level: number, type?: string, s?: GameState, abund = 1) =>
-  qty / (REC[res].perHour * level * abund * (type && s ? productionMult(type, s.phase) : 1))
+  qty / (REC[res].perHour * level * abund * (type && s ? productionMult(type, s.phase) * SEA.seasonProd(type, s.seasonPhase) : 1))
 /** Company admin overhead fraction from all building levels. */
 export const overhead = (s?: GameState) => (s ? adminOverhead(s.plots.filter(Boolean).map(b => b!.level)) * (1 - X.overheadCut(s)) : 0)
 /** Wages for `hours` of work, including admin overhead when a state is given. */
@@ -238,7 +244,7 @@ export function sellRate(s: GameState, res: string, q: number, price: number) {
   const r = RES[res]
   const base = (r.dailyDemand ?? 0) / 24
   const sat = s.saturation[res] ?? 1
-  return base * Math.pow(fairPrice(res, q) / price, 2.2) * (1 + 0.12 * q) / sat * retailMult(s.phase) * X.retailBoost(s)
+  return base * Math.pow(fairPrice(res, q) / price, 2.2) * (1 + 0.12 * q) / sat * retailMult(s.phase) * X.retailBoost(s) * SEA.seasonRetail(res, r.store, s.seasonPhase)
 }
 export const sellHours = (s: GameState, res: string, q: number, price: number, qty: number, level: number) =>
   qty / (sellRate(s, res, q, price) * level)
@@ -343,6 +349,7 @@ export function advanceTo(s: GameState, toHour: number): GameState {
 export function advanceReal(s: GameState, now = Date.now()): GameState {
   const dh = ((now - s.lastReal) / 3600000) * GAME_SPEED
   s.lastReal = now
+  if (s.realm === 'seasons') s.seasonPhase = SEA.seasonAt(now).phase // shared season clock
   return dh > 0 ? advanceTo(s, s.hour + dh) : s
 }
 

@@ -9,6 +9,9 @@
 // ============================================================================
 import type { GameState } from './engine'
 import { migrate } from './save'
+import { realm } from './seasons'
+/** Cloud row id: the seasons realm gets its own row so it never overwrites a classic save. */
+const rowId = (id: string) => (realm() === 'seasons' ? id + '-s' : id)
 
 const ID_KEY = 'ledgerworks-cloud-id'
 const rid = () => [...crypto.getRandomValues(new Uint8Array(16))].map(b => b.toString(16).padStart(2, '0')).join('')
@@ -53,13 +56,13 @@ export const resetReported = () => { reported = {} }
 export async function cloudSave(s: GameState): Promise<string | null> {
   try {
     const { id, token } = identity()
-    const r = await fetch('/api/save', { method: 'POST', body: JSON.stringify({ id, token, state: { ...s, level: undefined } }) })
+    const r = await fetch('/api/save', { method: 'POST', body: JSON.stringify({ id: rowId(id), token, state: { ...s, level: undefined } }) })
     return r.ok ? null : (await r.json()).error
   } catch { return 'Offline' }
 }
 export async function cloudLoad(): Promise<GameState> {
   const { id, token } = identity()
-  const r = await fetch('/api/load', { method: 'POST', body: JSON.stringify({ id, token }) })
+  const r = await fetch('/api/load', { method: 'POST', body: JSON.stringify({ id: rowId(id), token }) })
   if (!r.ok) throw new Error((await r.json()).error)
   return migrate(await r.json())
 }

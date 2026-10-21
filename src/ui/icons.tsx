@@ -60,6 +60,7 @@ const G: Record<string, Glyph> = {
 }
 
 /** Which glyph each good uses. */
+import { EXTRA_GLYPH } from '../game/data-expansion'
 const GLYPH: Record<string, string> = {
   power: 'bolt', water: 'drop', crates: 'crate', seeds: 'seed', wheat: 'grain', apples: 'fruit', berries: 'berry', greens: 'leaf',
   feed: 'sack', hens: 'hen', eggs: 'egg', milk: 'bottle', flour: 'sack', bread: 'loaf', cheese: 'cheese', juice: 'bottle', jam: 'jar',
@@ -72,7 +73,7 @@ const GLYPH: Record<string, string> = {
 export function ResIcon({ id, size = 22 }: { id: string; size?: number }) {
   const r = RES[id]
   if (!r) return null
-  const g = G[GLYPH[id] ?? (id.startsWith('rn_') ? 'notes' : 'crate')]
+  const g = G[GLYPH[id] ?? EXTRA_GLYPH[id] ?? (id.startsWith('rn_') ? 'notes' : 'crate')]
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" className="ricon" aria-label={r.name}>
       <title>{r.name}</title>

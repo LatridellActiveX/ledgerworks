@@ -3,17 +3,28 @@
 import { newGame, type GameState } from './engine'
 import { seedHistory } from './market'
 
+import { realm, seasonAt, type Realm } from './seasons'
+
 export const SAVE_KEY = 'ledgerworks-save-v1'
+/** Each realm keeps its own save; the classic key is unchanged so old saves load. */
+export const saveKey = (r: Realm = realm()) => (r === 'seasons' ? SAVE_KEY + '-seasons' : SAVE_KEY)
+/** A fresh company for a realm (seasons companies remember their season number). */
+export function freshGame(company = 'My Company', r: Realm = realm(), now = Date.now()) {
+  const s = newGame(company, now)
+  if (r === 'seasons') { const se = seasonAt(now); s.realm = 'seasons'; s.season = se.no; s.seasonPhase = se.phase; s.log = [`Welcome to Season ${se.no}!`] }
+  return s
+}
 
 /** Minimal storage interface so tests can pass a fake. */
 export interface KV { getItem(k: string): string | null; setItem(k: string, v: string): void; removeItem(k: string): void }
 
-export function saveGame(s: GameState, store: KV = localStorage) { store.setItem(SAVE_KEY, JSON.stringify(s)) }
+export function saveGame(s: GameState, store: KV = localStorage) { store.setItem(saveKey(s.realm ?? 'classic'), JSON.stringify(s)) }
 
 export function loadGame(store: KV = localStorage): GameState {
-  const raw = store.getItem(SAVE_KEY)
-  if (!raw) return newGame()
-  try { return migrate(JSON.parse(raw)) } catch { return newGame() }
+  const r = realm()
+  const raw = store.getItem(saveKey(r))
+  if (!raw) return freshGame('My Company', r)
+  try { return migrate(JSON.parse(raw)) } catch { return freshGame('My Company', r) }
 }
 
 /** Fill in fields added after a save was written, so old saves keep loading. */

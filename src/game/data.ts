@@ -24,7 +24,7 @@ export interface Resource {
   ship?: number
 }
 
-export type StoreId = 'market' | 'outfitter' | 'fuelstop' | 'gadget' | 'buildmart'
+export type StoreId = 'market' | 'outfitter' | 'fuelstop' | 'gadget' | 'buildmart' | 'homegoods' | 'motors'
 
 /** A production recipe: what one unit needs. */
 export interface Recipe {
@@ -94,7 +94,7 @@ export const RESOURCES: Resource[] = [
   { id: 'glass', name: 'Glass pane', color: '#cdeef2', basePrice: 7 },
   // Electronics
   { id: 'ore', name: 'Ore', color: '#8a8f99', basePrice: 3 },
-  { id: 'metal', name: 'Metal bar', color: '#b9c0c9', basePrice: 9 },
+  { id: 'metal', name: 'Metal bar', color: '#b9c0c9', basePrice: 11 },
   { id: 'silica', name: 'Silica', color: '#e9e4f5', basePrice: 2 },
   { id: 'chip', name: 'Microchip', color: '#6dbf9e', basePrice: 30 },
   { id: 'cell', name: 'Battery cell', color: '#8fd16a', basePrice: 18 },
@@ -190,6 +190,12 @@ export const BUILDINGS: BuildingType[] = [
   { id: 'buildmart', name: 'Build mart', color: '#d7b48a', kind: 'retail', cost: 16000, wage: 60, store: 'buildmart', unlockLevel: 3 },
   { id: 'gadget', name: 'Gadget shop', color: '#5d6bd4', kind: 'retail', cost: 30000, wage: 90, store: 'gadget', unlockLevel: 8 },
 ]
+
+// Stage 12: merge the goods expansion (111 goods in total).
+import { EXTRA_RESOURCES, EXTRA_RECIPES, EXTRA_BUILDINGS } from './data-expansion'
+RESOURCES.push(...EXTRA_RESOURCES)
+RECIPES.push(...EXTRA_RECIPES)
+BUILDINGS.push(...EXTRA_BUILDINGS)
 
 // Fast lookups by id.
 export const RES = Object.fromEntries(RESOURCES.map(r => [r.id, r])) as Record<string, Resource>

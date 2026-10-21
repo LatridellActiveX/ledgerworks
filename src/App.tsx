@@ -7,7 +7,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import * as E from './game/engine'
 import { BLD, BUILDINGS, REC, RES, RESOURCES } from './game/data'
-import { loadGame, saveGame, exportCode, importCode } from './game/save'
+import { loadGame, saveGame, exportCode, importCode, freshGame } from './game/save'
+import * as SEA from './game/seasons'
+import { companyValue } from './game/trade'
 import { BuildingArt, Logo, ResIcon } from './ui/art'
 import { Campus3D } from './ui/Campus3D'
 import { Ticker } from './ui/Ticker'
@@ -79,14 +81,27 @@ export default function App() {
         <span className="pill">{clock(s.hour)}</span>
         <span className={`pill phase-${s.phase ?? 'normal'}`} title="Boom: shops sell faster, factories slower. Recession: the reverse.">Economy: {PHASE_LABEL[s.phase ?? 'normal']}</span>
         <span className="pill" title={`Admin overhead raises every wage bill. Accounting fee today: ${money(accountingFee(s.cash, 2_500_000 + cashLineBonus(s)))}`}>Overhead {(E.overhead(s) * 100).toFixed(1)}%</span>
+        {s.realm === 'seasons' && (() => { const se = SEA.seasonAt(); return <span className={`pill season-${se.phase}`} title={SEA.PHASE_NOTE[se.phase]}>Season {s.season} · {se.phase} · {se.daysLeft}d left</span> })()}
         <span className="grow" />
+        {/* Stage 12: pick a realm. Each realm has its own save, so switching never loses a company. */}
+        <select className="realm" value={SEA.realm()} title="Classic: play forever. Seasons: a timed season with weather phases, then a fresh start." onChange={e => { saveGame(s); SEA.setRealm(e.target.value as SEA.Realm); location.reload() }}>
+          <option value="classic">Classic realm</option><option value="seasons">Seasons realm</option></select>
         <button onClick={() => { navigator.clipboard?.writeText(exportCode(s)); setMsg('Save code copied to clipboard') }}>Copy save</button>
         <button onClick={() => { const c = prompt('Paste a save code'); if (c) try { const n = importCode(c.trim()); setS(n); saveGame(n) } catch (e: any) { setMsg(e.message) } }}>Load save</button>
         <span className="pill" title="Prices come from the shared server market when online">{s.online ? '● online' : '○ offline'}</span>
         <button onClick={async () => setMsg((await cloudSave(s)) || 'Saved to the cloud')}>Cloud save</button>
         <button onClick={async () => { const k = prompt('Cloud key (copy it from another device). Leave as-is to load this browser\'s cloud save.', cloudKey()); if (!k) return; try { useCloudKey(k); const n = await cloudLoad(); setS(n); saveGame(n); setMsg('Loaded from the cloud') } catch (e: any) { setMsg(e.message) } }}>Cloud load</button>
-        <button onClick={() => { if (confirm('Start over? Your current company is lost.')) { const n = E.newGame(prompt('Company name', 'My Company') || 'My Company'); setS(n); saveGame(n); setSel(null) } }}>New</button>
+        <button onClick={() => { if (confirm('Start over? Your current company is lost.')) { const n = freshGame(prompt('Company name', 'My Company') || 'My Company'); setS(n); saveGame(n); setSel(null) } }}>New</button>
       </header>
+      {s.realm === 'seasons' && (s.season ?? 0) < SEA.seasonAt().no && <div className="season-over">
+        <b>Season {s.season} is over!</b> Your company finished at {money(companyValue(s))}.
+        <button className="primary" onClick={() => {
+          // Keep a record of past seasons, then start fresh in the new one.
+          const past = JSON.parse(localStorage.getItem('ledgerworks-season-results') || '[]')
+          past.unshift({ season: s.season, company: s.company, value: companyValue(s) })
+          localStorage.setItem('ledgerworks-season-results', JSON.stringify(past.slice(0, 20)))
+          const n = freshGame(s.company, 'seasons'); setS(n); saveGame(n); setSel(null)
+        }}>Start Season {SEA.seasonAt().no}</button></div>}
       {msg && <div key={msg} className="toast" onClick={() => setMsg('')}>{msg}</div>}
 
       <main>

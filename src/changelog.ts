@@ -4,6 +4,12 @@ export interface ChangeEntry { id: string; date: string; title: string; notes: s
 
 export const CHANGELOG: ChangeEntry[] = [
   {
+    id: 'stage12-111-goods-seasons-realm',
+    date: '2026-10-21',
+    title: '111 goods and the Seasons realm',
+    notes: ['64 new goods (111 in total): plantation crops, sweets, dairy, deli food, fashion, gas and plastics, solar panels, bricks and furniture, laptops, drones, game consoles, e-bikes, city cars and delivery vans.', '17 new buildings and 2 new stores: the Home store and the Car lot.', 'Metal bars now sell for $11, so smelting turns a profit.', 'New Seasons realm, picked from the header. Everyone shares 28-day seasons with spring, summer, autumn and winter phases that change farm speed and what sells. When a season ends you see your final value and start fresh.', 'Each realm keeps its own save, both locally and in the cloud.'],
+  },
+  {
     id: 'stage11-accounts-p2p-trading',
     date: '2026-10-21',
     title: 'Trade with other players',
