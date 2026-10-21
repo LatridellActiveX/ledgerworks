@@ -7,6 +7,7 @@
 import { REC, RES } from './data'
 import * as E from './engine'
 import * as M from './market'
+import { BAY_WAGE_MULT, maxSellHours } from './shop'
 import { productionMult } from './economy'
 
 export interface Limit { max: number; why: string }
@@ -36,11 +37,13 @@ export function maxMake(s: E.GameState, plot: number, res: string): Limit {
 export function maxSell(s: E.GameState, plot: number, res: string, q: number, price: number): Limit {
   const bd = s.plots[plot]
   if (!bd || !(price > 0)) return { max: 0, why: 'Set a price' }
-  const rate = E.sellRate(s, res, q, price) * bd.level
-  const wagePerH = E.makeWages(bd.type, bd.level, 1, s)
+  const rate = E.sellRate(s, res, q, price, bd) * E.shopSpeed(bd)
+  // Wages here leave out a clerk's shift pay; startSell checks that exactly.
+  const wagePerH = E.makeWages(bd.type, bd.level, 1, s) * (bd.mods?.includes('bay') ? BAY_WAGE_MULT : 1)
+  const days = maxSellHours(bd.mods) / 24
   return tight(
     { max: floor(s.stock[E.key(res, q)] ?? 0), why: 'All of this lot' },
-    { max: floor(rate * 72), why: '3 days of sales at this price' },
+    { max: floor(E.unitsIn(s, bd, res, q, price, maxSellHours(bd.mods))), why: `${days} days of sales at this price` },
     { max: s.cash >= wagePerH * E.MIN_JOB_H ? floor((s.cash / wagePerH) * rate) : 0, why: 'Cash for wages' },
   )
 }

@@ -4,6 +4,12 @@ export interface ChangeEntry { id: string; date: string; title: string; notes: s
 
 export const CHANGELOG: ChangeEntry[] = [
   {
+    id: 'shop-fittings-tills-clerks',
+    date: '2026-10-21',
+    title: 'Shop fittings, tills and clerks',
+    notes: ["Shops can be fitted, one of each: a display case and an advertising board draw more customers, an extra register lane speeds sales, a price board lets customers put up with higher prices, cold storage allows sales to run up to 5 days, a delivery bay trims sale wages, and a loyalty counter brings regulars who count extra toward a market's recovery.", "Add tills to a shop, up to 5, each adding 10% to sales speed. Each costs more than the last.", "Hire a shift clerk: between 9am and 5pm they double the shop's sales speed, and you pay them per hour they work on a sale.", "The sell form has a live demand curve: units an hour at each price, with your price and the price that takes the most money marked."],
+  },
+  {
     id: 'company-value-breakdown',
     date: '2026-10-21',
     title: 'Company value breakdown',

@@ -30,6 +30,7 @@ import * as SEA from './seasons'
 import * as R from './routes'
 import * as B from './bids'
 import * as FM from './farm'
+import { fittingOf, TILL_MAX, TILL_SPEED, tillShare, CLERK_WAGE, CLERK_SPEED, BAY_WAGE_MULT, LOYAL_SOLD_WEIGHT, PRICE_ELASTICITY, PRICE_BOARD_ELASTICITY, DEMAND_FIT, REGISTER_SPEED, maxSellHours, onShift } from './shop'
 export const MAX_QUALITY = 12
 export const START_CASH = 60000
 
@@ -44,7 +45,7 @@ export type Job =
 // over (made goods, or sold units already paid), `gotC` = cents already paid
 // for a sale, `lastH` = game hour of the last collection.
 
-export interface Building { uid: number; type: string; level: number; job?: Job; abund?: Record<string, number>; soil?: number; irrigated?: boolean; graft?: boolean }
+export interface Building { uid: number; type: string; level: number; job?: Job; abund?: Record<string, number>; soil?: number; irrigated?: boolean; graft?: boolean; mods?: string[] /* shop fittings bought (shop.ts) */; till?: number /* registers added */; clerk?: boolean /* shift clerk on */ }
 
 export interface GameState {
   version: 1
@@ -315,16 +316,49 @@ export const fairPrice = (res: string, q: number) => RES[res].basePrice * 1.5 * 
  * - Saturation divides speed: a flooded market buys slowly.
  * - Market news stories (news.ts) multiply it while they run.
  */
-export function sellRate(s: GameState, res: string, q: number, price: number) {
+export function sellRate(s: GameState, res: string, q: number, price: number, bd?: Building) {
   const r = RES[res]
   const base = (r.dailyDemand ?? 0) / 24
   const sat = s.saturation[res] ?? 1
-  return base * Math.pow(fairPrice(res, q) / price, 2.2) * (1 + 0.12 * q) / sat * retailMult(s.phase) * X.retailBoost(s) * SEA.seasonRetail(res, r.store, s.seasonPhase)
+  // A shop's fittings change how many customers come in and how price-sensitive they are.
+  const elast = bd?.mods?.includes('pricebd') ? PRICE_BOARD_ELASTICITY : PRICE_ELASTICITY
+  const draw = bd?.mods ? bd.mods.reduce((m, f) => m * (DEMAND_FIT[f] ?? 1), 1) : 1
+  return base * Math.pow(fairPrice(res, q) / price, elast) * (1 + 0.12 * q) / sat * retailMult(s.phase) * X.retailBoost(s) * SEA.seasonRetail(res, r.store, s.seasonPhase)
     // Market news: a running story speeds up (or slows down) sales of its goods.
-    * newsRetail(res, s.hour)
+    * newsRetail(res, s.hour) * draw
 }
-export const sellHours = (s: GameState, res: string, q: number, price: number, qty: number, level: number) =>
-  Math.max(MIN_JOB_H, qty / (sellRate(s, res, q, price) * level))
+
+/** A shop's sales speed: level, tills and the extra register lane. Clerks are added by the hour. */
+export function shopSpeed(bd: Building) {
+  return bd.level * (1 + TILL_SPEED * (bd.till ?? 0)) * (bd.mods?.includes('register') ? REGISTER_SPEED : 1)
+}
+/** Clerk doubles speed while on shift. */
+const clerkMult = (bd: Building, hour: number) => (bd.clerk && onShift(hour) ? CLERK_SPEED : 1)
+const SALE_STEP = 0.05
+
+/** Units a shop sells within `hours` from now, at this price. */
+export function unitsIn(s: GameState, bd: Building, res: string, q: number, price: number, hours: number) {
+  const rate = sellRate(s, res, q, price, bd) * shopSpeed(bd)
+  let u = 0
+  for (let t = 0; t < hours; t += SALE_STEP) u += rate * clerkMult(bd, s.hour + t) * Math.min(SALE_STEP, hours - t)
+  return u
+}
+/** Game hours on shift (clerk time) inside a sale that starts now and lasts `hours`. */
+export function shiftHoursIn(startH: number, hours: number) {
+  let h = 0
+  for (let t = 0; t < hours; t += SALE_STEP) if (onShift(startH + t)) h += Math.min(SALE_STEP, hours - t)
+  return h
+}
+
+export function sellHours(s: GameState, res: string, q: number, price: number, qty: number, level: number, bd?: Building) {
+  if (!bd) return Math.max(MIN_JOB_H, qty / (sellRate(s, res, q, price) * level))
+  // Step forward until the shop has sold the lot (clerk shifts change the speed as the hours pass).
+  const rate = sellRate(s, res, q, price, bd) * shopSpeed(bd)
+  if (!(rate > 0)) return Infinity
+  let t = 0, u = 0
+  while (u < qty && t < 240) { u += rate * clerkMult(bd, s.hour + t) * SALE_STEP; t += SALE_STEP }
+  return Math.max(MIN_JOB_H, t)
+}
 
 export function startSell(s: GameState, plot: number, res: string, q: number, qty: number, price: number): string | null {
   const bd = s.plots[plot]
@@ -333,14 +367,65 @@ export function startSell(s: GameState, plot: number, res: string, q: number, qt
   const bq = badQty(qty); if (bq) return bq
   if ((s.stock[key(res, q)] ?? 0) + 1e-9 < qty) return 'Not enough in the warehouse'
   if (!(price > 0)) return 'Set a price'
-  const hours = sellHours(s, res, q, price, qty, bd.level)
-  if (hours > 72) return 'Too slow (over 3 days). Lower the price or the amount.'
-  const wages = makeWages(bd.type, bd.level, hours, s)
+  const hours = sellHours(s, res, q, price, qty, bd.level, bd)
+  const cap = maxSellHours(bd.mods)
+  if (hours > cap) return `Too slow (over ${cap / 24} days). Lower the price or the amount.`
+  // Delivery bay trims sale wages; a clerk is paid per hour they work on shift.
+  const wages = makeWages(bd.type, bd.level, hours, s) * (bd.mods?.includes('bay') ? BAY_WAGE_MULT : 1)
+    + (bd.clerk ? shiftHoursIn(s.hour, hours) * CLERK_WAGE : 0)
   if (s.cash < wages) return 'Not enough cash for wages'
   setWhy('sent to store')
   addStock(s, res, q, -qty)
   s.cash -= wages
   bd.job = { kind: 'sell', res, qty, q, price, startH: s.hour, endH: s.hour + hours }
+  return null
+}
+
+/** Regulars at a loyalty-counter shop count a little extra toward market recovery. */
+const soldWeight = (bd: Building) => (bd.mods?.includes('loyalty') ? LOYAL_SOLD_WEIGHT : 1)
+
+/** Quick check that a plot is a shop that can take fittings, tills or staff. */
+function shopPlot(s: GameState, plot: number): Building | string {
+  const bd = s.plots[plot]
+  if (!bd) return 'Empty plot'
+  if (BLD[bd.type].kind !== 'retail') return 'Only shops take this'
+  return bd
+}
+
+/** Buy a fitting for a shop. One of each per shop, bought for cash. */
+export function buyFitting(s: GameState, plot: number, id: string): string | null {
+  const bd = shopPlot(s, plot); if (typeof bd === 'string') return bd
+  const f = fittingOf(id); if (!f) return 'No such fitting'
+  if (bd.mods?.includes(id)) return `${f.name} is already fitted`
+  const cost = Math.round(BLD[bd.type].cost * f.share)
+  if (s.cash < cost) return 'Not enough cash'
+  s.cash -= cost
+  bd.mods = [...(bd.mods ?? []), id]
+  s.xp += cost / 200
+  say(s, `${BLD[bd.type].name}: fitted ${f.name}.`)
+  return null
+}
+
+/** Add one more till (register) to a shop: each adds 10% sales speed, up to 5. */
+export function buyTill(s: GameState, plot: number): string | null {
+  const bd = shopPlot(s, plot); if (typeof bd === 'string') return bd
+  const have = bd.till ?? 0
+  if (have >= TILL_MAX) return 'Tills are full'
+  const cost = Math.round(BLD[bd.type].cost * tillShare(have))
+  if (s.cash < cost) return 'Not enough cash'
+  s.cash -= cost
+  bd.till = have + 1
+  s.xp += cost / 200
+  say(s, `${BLD[bd.type].name}: till ${have + 1} installed.`)
+  return null
+}
+
+/** Put a clerk on shift at a shop (or take them off). Wages are paid per shift hour on each sale. */
+export function setClerk(s: GameState, plot: number, on: boolean): string | null {
+  const bd = shopPlot(s, plot); if (typeof bd === 'string') return bd
+  if (!!bd.clerk === on) return null
+  bd.clerk = on || undefined
+  say(s, on ? `${BLD[bd.type].name}: clerk hired for the 9am to 5pm shift.` : `${BLD[bd.type].name}: clerk let go.`)
   return null
 }
 
@@ -512,7 +597,7 @@ export function cancelJob(s: GameState, plot: number): string | null {
     s.cash += p.cents / 100
     setWhy('back from store')
     addStock(s, j.res, j.q, j.qty - done)
-    s.soldToday[j.res] = (s.soldToday[j.res] ?? 0) + done
+    s.soldToday[j.res] = (s.soldToday[j.res] ?? 0) + done * soldWeight(bd)
     s.stats.retailRev += ((j.gotC ?? 0) + p.cents) / 100
     say(s, `${BLD[bd.type].name} stopped after selling ${done} of ${j.qty} ${RES[j.res].name}.`)
   }
@@ -532,7 +617,7 @@ function finishJob(s: GameState, bd: Building) {
     const rev = saleCents(j) / 100
     s.cash += (saleCents(j) - (j.gotC ?? 0)) / 100 // the rest not yet collected
     s.stats.retailRev += rev
-    s.soldToday[j.res] = (s.soldToday[j.res] ?? 0) + j.qty
+    s.soldToday[j.res] = (s.soldToday[j.res] ?? 0) + j.qty * soldWeight(bd)
     s.xp += rev / 50
     say(s, `${name} sold ${Math.round(j.qty)} ${RES[j.res].name} for $${Math.round(rev).toLocaleString()}.`)
   } else {
