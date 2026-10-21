@@ -4,6 +4,12 @@ export interface ChangeEntry { id: string; date: string; title: string; notes: s
 
 export const CHANGELOG: ChangeEntry[] = [
   {
+    id: 'polish-rough-edges-after-stage10',
+    date: '2026-10-21',
+    title: 'Polish',
+    notes: ['Zero amounts show as $0.', 'Exchange charts start with two weeks of price history.', 'The page background now reaches the bottom of long tabs.', 'Executive salaries are lower, so a first hire is affordable.'],
+  },
+  {
     id: 'stage10-bonds-gov-abundance',
     date: '2026-10-21',
     title: 'Bonds, government orders and running-out mines',

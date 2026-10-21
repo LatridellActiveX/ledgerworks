@@ -13,7 +13,7 @@
 //  - Shop revenue is paid when the sale job finishes.
 // ============================================================================
 import { BLD, REC, RES } from './data'
-import { marketDay, npcHour, restockNpc, type Order } from './market'
+import { marketDay, npcHour, restockNpc, seedHistory, type Order } from './market'
 import { ACCOUNTING_FREE, accountingFee, adminOverhead, isPhaseDay, nextPhase, PHASE_LABEL, productionMult, retailMult } from './economy'
 import { rand } from './rng'
 import * as X from './execs'
@@ -131,6 +131,7 @@ export function newGame(company = 'My Company', now = Date.now()): GameState {
   restockNpc(s)
   X.newCandidates(s)
   F.newBondOffers(s)
+  seedHistory(s)
   return s
 }
 

@@ -1,6 +1,7 @@
 // Browser saves: the whole GameState is JSON in localStorage, plus a
 // copy/paste save code (base64 of the JSON) for moving between browsers.
 import { newGame, type GameState } from './engine'
+import { seedHistory } from './market'
 
 export const SAVE_KEY = 'ledgerworks-save-v1'
 
@@ -18,7 +19,9 @@ export function loadGame(store: KV = localStorage): GameState {
 /** Fill in fields added after a save was written, so old saves keep loading. */
 export function migrate(s: any): GameState {
   const fresh = newGame(s.company ?? 'My Company')
-  return { ...fresh, ...s, version: 1 }
+  const out = { ...fresh, ...s, version: 1 } as GameState
+  seedHistory(out) // older saves get a chart history too
+  return out
 }
 
 export const exportCode = (s: GameState) => 'LW1:' + btoa(unescape(encodeURIComponent(JSON.stringify(s))))

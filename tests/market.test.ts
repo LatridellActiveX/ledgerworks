@@ -61,3 +61,9 @@ describe('online mode', () => {
     expect(s.ref.apples).toBe(2)
   })
 })
+describe('price history', () => {
+  it('a new game already has 14 days of history per good', () => {
+    const s = fresh()
+    expect(s.priceHist!.apples.length).toBe(14)
+  })
+})

@@ -174,3 +174,18 @@ export function marketDay(s: GameState) {
   s.exSold = {}
   restockNpc(s)
 }
+
+/**
+ * Give every good 14 days of believable past prices (a gentle random walk
+ * ending at today's price) so the Exchange chart is never empty.
+ */
+export function seedHistory(s: GameState) {
+  s.priceHist = s.priceHist ?? {}
+  for (const r of RESOURCES) {
+    if ((s.priceHist[r.id]?.length ?? 0) >= 2) continue
+    const out: number[] = []
+    let p = refPrice(s, r.id)
+    for (let i = 0; i < 14; i++) { out.unshift(p); p = Math.max(r.basePrice * 0.6, p * (1 + 0.05 * (rnd(s) - 0.5))) }
+    s.priceHist[r.id] = out
+  }
+}

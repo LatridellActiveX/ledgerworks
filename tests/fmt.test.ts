@@ -12,3 +12,4 @@ it('durations never show 60 minutes', () => {
   expect(dur(0.5)).toBe('30m')
   expect(dur(49)).toBe('2d 1h')
 })
+it('zero shows as $0', () => { expect(money(0)).toBe('$0') })

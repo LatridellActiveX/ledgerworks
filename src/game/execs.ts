@@ -32,8 +32,9 @@ const LAST = ['Arbor', 'Brook', 'Copperfield', 'Dale', 'Ember', 'Frost', 'Gale',
 
 function rnd(s: GameState) { const [r, n] = rand(s.seed); s.seed = n; return r }
 
-/** Daily salary: $300 base + $90 per total skill point, growing faster at the top. */
-export const salary = (e: Exec) => { const t = Object.values(e.skills).reduce((a, b) => a + b, 0); return Math.round(300 + 90 * t + 2 * t * t) }
+/** Daily salary: $150 base + $40 per total skill point, growing faster at the
+ *  top (tuned down so a first hire around level 12 is affordable). */
+export const salary = (e: Exec) => { const t = Object.values(e.skills).reduce((a, b) => a + b, 0); return Math.round(150 + 40 * t + 0.8 * t * t) }
 export const hireCost = (e: Exec) => salary(e) * 7
 export const trainCost = (e: Exec, sk: Skill) => 4000 * (e.skills[sk] + 1)
 
