@@ -32,8 +32,11 @@ export const START_CASH = 60000
 // --------------------------------------------------------------------------
 export type Job =
   | { kind: 'build'; endH: number } // construction or upgrade in progress
-  | { kind: 'make'; res: string; qty: number; q: number; startH: number; endH: number }
-  | { kind: 'sell'; res: string; qty: number; q: number; price: number; startH: number; endH: number }
+  | { kind: 'make'; res: string; qty: number; q: number; startH: number; endH: number; got?: number; lastH?: number }
+  | { kind: 'sell'; res: string; qty: number; q: number; price: number; startH: number; endH: number; got?: number; gotC?: number; lastH?: number }
+// Partial collection (see collect()): `got` = whole units already handed
+// over (made goods, or sold units already paid), `gotC` = cents already paid
+// for a sale, `lastH` = game hour of the last collection.
 
 export interface Building { uid: number; type: string; level: number; job?: Job; abund?: Record<string, number> }
 
@@ -312,16 +315,78 @@ export function rollDay(s: GameState) {
   for (const [k, v] of Object.entries(s.ref)) { const h = (s.priceHist[k] = s.priceHist[k] ?? []); h.push(v); if (h.length > 30) h.shift() }
 }
 
+// --------------------------------------------------------------------------
+// Partial collection: output and sales accrue linearly over a job. You can
+// collect what has accrued at any time; the rest is paid at the end. Units
+// are whole numbers and money is counted in cents, so all the partial
+// collections plus the final payout add up to exactly the full job.
+// --------------------------------------------------------------------------
+/** Game hours between collect bubbles: 2 real minutes. */
+export const BUBBLE_H = (2 / 60) * GAME_SPEED
+const jobFrac = (j: { startH: number; endH: number }, hour: number) => (j.endH <= j.startH ? 1 : Math.min(1, Math.max(0, (hour - j.startH) / (j.endH - j.startH))))
+/** Total cents a sale earns (the job's full revenue, rounded to a cent). */
+export const saleCents = (j: { qty: number; price: number }) => Math.round(j.qty * j.price * 100)
+/** Whole units made / sold so far. */
+export const unitsDone = (j: { qty: number; startH: number; endH: number }, hour: number) => Math.min(j.qty, Math.floor(j.qty * jobFrac(j, hour) + 1e-9))
+/** What can be collected now: units of goods (make) or cents (sell). */
+export function pending(s: GameState, bd: Building): { kind: 'goods' | 'cash'; res: string; q: number; units: number; cents: number } | null {
+  const j = bd.job
+  if (!j || j.kind === 'build') return null
+  const u = unitsDone(j, s.hour)
+  if (j.kind === 'make') return { kind: 'goods', res: j.res, q: j.q, units: u - (j.got ?? 0), cents: 0 }
+  const cents = Math.floor((saleCents(j) * u) / j.qty)
+  return { kind: 'cash', res: j.res, q: j.q, units: u - (j.got ?? 0), cents: cents - (j.gotC ?? 0) }
+}
+/** A bubble shows once 2 real minutes have passed since the job start or last collection, with at least 1 whole unit waiting. */
+export function bubbleReady(s: GameState, bd: Building | null) {
+  if (!bd) return null
+  const p = pending(s, bd), j = bd.job
+  if (!p || !j || j.kind === 'build' || p.units < 1) return null
+  return s.hour - (j.lastH ?? j.startH) >= BUBBLE_H - 1e-9 ? p : null
+}
+/** Collect what has accrued so far. Goods go to the warehouse at the job's quality; money to cash. */
+export function collect(s: GameState, plot: number): string | null {
+  const bd = s.plots[plot], j = bd?.job
+  if (!bd || !j || j.kind === 'build') return 'Nothing to collect'
+  const p = pending(s, bd)!
+  if (p.units < 1) return 'Nothing ready yet'
+  if (j.kind === 'make') { addStock(s, j.res, j.q, p.units); j.got = (j.got ?? 0) + p.units }
+  else { s.cash += p.cents / 100; j.got = (j.got ?? 0) + p.units; j.gotC = (j.gotC ?? 0) + p.cents }
+  j.lastH = s.hour
+  return null
+}
+/**
+ * Stop a running job early. You keep everything made or sold so far (it is
+ * collected now). Unsold shop goods go back to the warehouse. Wages and the
+ * inputs already used up are not refunded.
+ */
+export function cancelJob(s: GameState, plot: number): string | null {
+  const bd = s.plots[plot], j = bd?.job
+  if (!bd || !j || j.kind === 'build') return 'Nothing to stop'
+  const p = pending(s, bd)!
+  const done = unitsDone(j, s.hour)
+  if (j.kind === 'make') { addStock(s, j.res, j.q, p.units); say(s, `${BLD[bd.type].name} stopped after ${done} of ${j.qty} ${RES[j.res].name}.`) }
+  else {
+    s.cash += p.cents / 100
+    addStock(s, j.res, j.q, j.qty - done)
+    s.soldToday[j.res] = (s.soldToday[j.res] ?? 0) + done
+    s.stats.retailRev += ((j.gotC ?? 0) + p.cents) / 100
+    say(s, `${BLD[bd.type].name} stopped after selling ${done} of ${j.qty} ${RES[j.res].name}.`)
+  }
+  bd.job = undefined
+  return null
+}
+
 function finishJob(s: GameState, bd: Building) {
   const j = bd.job!
   const name = BLD[bd.type].name
   if (j.kind === 'make') {
-    addStock(s, j.res, j.q, j.qty)
+    addStock(s, j.res, j.q, j.qty - (j.got ?? 0)) // the rest not yet collected
     s.xp += (makeWages(bd.type, bd.level, j.endH - j.startH)) / 50
     say(s, `${name} made ${Math.round(j.qty)} ${RES[j.res].name} (Q${j.q}).`)
   } else if (j.kind === 'sell') {
-    const rev = j.qty * j.price
-    s.cash += rev
+    const rev = saleCents(j) / 100
+    s.cash += (saleCents(j) - (j.gotC ?? 0)) / 100 // the rest not yet collected
     s.stats.retailRev += rev
     s.soldToday[j.res] = (s.soldToday[j.res] ?? 0) + j.qty
     s.xp += rev / 50

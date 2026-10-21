@@ -32,7 +32,7 @@ import { buildModel, plotGround, type Emitter } from './models'
 // --------------------------------------------------------------------------
 export interface PlotSnap { type: string; level: number; busy: boolean; building: boolean }
 export interface Snapshot { plots: (PlotSnap | null)[]; slots: number; hour: number; sel: number | null }
-export interface SceneHandle { update(s: Snapshot): void; dispose(): void; snapshot(): string; rotate(dir: 1 | -1): void }
+export interface SceneHandle { update(s: Snapshot): void; dispose(): void; snapshot(): string; rotate(dir: 1 | -1): void; screenPos(i: number): { x: number; y: number } | null }
 
 const COLS = 6, ROWS = 4, TILE = 12 // plot spacing in world units
 const GW = COLS * TILE, GD = ROWS * TILE
@@ -247,11 +247,13 @@ export function mount(el: HTMLElement, opts: { onPick: (i: number) => void }): S
     m.g.traverse(o => (o.userData.plot = i))
     // Collect LOD detail groups so zooming out can hide them.
     const lod: THREE.Object3D[] = []; m.g.traverse(o => { if (o.userData.lod) lod.push(o) })
-    return { ...m, lod }
+    // Height of the model, so collect bubbles can float just above the roof.
+    const top = Math.min(18, new THREE.Box3().setFromObject(m.g).max.y)
+    return { ...m, lod, top }
   }
 
   // ---- Building bookkeeping: rebuild a plot only when its look changes.
-  const built: ({ key: string; g: THREE.Group; emit: Emitter[]; spin?: THREE.Object3D; nod?: THREE.Object3D; swing?: THREE.Object3D; lod: THREE.Object3D[] } | null)[] = Array(COLS * ROWS).fill(null)
+  const built: ({ key: string; g: THREE.Group; emit: Emitter[]; spin?: THREE.Object3D; nod?: THREE.Object3D; swing?: THREE.Object3D; lod: THREE.Object3D[]; top: number } | null)[] = Array(COLS * ROWS).fill(null)
 
   // ---- Smoke / steam particles: one Points cloud shared by all emitters.
   const PN = mobile ? 160 : 360
@@ -466,6 +468,12 @@ export function mount(el: HTMLElement, opts: { onPick: (i: number) => void }): S
   return {
     update,
     rotate(dir: 1 | -1) { azGoal += (dir * Math.PI) / 2 },
+    /** Screen position (CSS px inside the container) just above a plot's building, for HTML overlays. */
+    screenPos(i: number) {
+      const { x, z } = plotXZ(i), v = new THREE.Vector3(x, (built[i]?.top ?? 2) + 1.2, z).project(camera)
+      if (v.x < -1.1 || v.x > 1.1 || v.y < -1.1 || v.y > 1.1) return null
+      return { x: ((v.x + 1) / 2) * el.clientWidth, y: ((1 - v.y) / 2) * el.clientHeight }
+    },
     snapshot: () => renderer.domElement.toDataURL('image/png'),
     dispose() {
       renderer.setAnimationLoop(null); ro.disconnect(); controls.dispose(); removeEventListener('keydown', onKey); pmrem.dispose()

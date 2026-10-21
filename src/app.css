@@ -216,3 +216,25 @@ select.realm { border-radius: 999px; padding: 4px 10px; font: inherit; font-size
 .preview { display: flex !important; flex-direction: column; gap: 2px; font-size: 13px }
 .preview > div { display: flex; justify-content: space-between; gap: 10px }
 .preview b { font-weight: 700 }
+
+/* Collect bubbles: the overlay lets drags through; only the bubbles take taps. */
+.flat-wrap { position: relative; width: 100%; height: 100% }
+.bubbles { position: absolute; inset: 0; pointer-events: none; z-index: 4; overflow: hidden }
+.bubble { position: absolute; left: 0; top: 0; pointer-events: auto; min-width: 54px; min-height: 48px; padding: 6px 12px 8px; border-radius: 18px;
+  display: flex; align-items: center; gap: 6px; background: rgba(255,255,255,0.92); backdrop-filter: blur(6px);
+  box-shadow: 0 6px 18px rgba(40,30,10,0.25), inset 0 0 0 2px rgba(255,255,255,0.9); border: 0; font-weight: 700; cursor: pointer;
+  animation: bob 1.6s ease-in-out infinite, bubble-in .35s cubic-bezier(.3,1.6,.5,1) }
+.bubble::after { content: ''; position: absolute; left: 50%; bottom: -7px; width: 14px; height: 14px; background: inherit; transform: translateX(-50%) rotate(45deg); border-radius: 3px }
+.bubble.cash b { color: #2e8b57 } .bubble.goods b { color: #b25a1c }
+.bubble:hover { filter: brightness(1.05) } .bubble:active { scale: 0.92 }
+.coin { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #fff3b0, #f4c430 55%, #c8901a); color: #7a5200; font-weight: 800; font-size: 13px; box-shadow: 0 1px 0 #a06d10 }
+.coin.goods { background: radial-gradient(circle at 35% 30%, #ffe2c4, #f39a4a 55%, #c8601a); color: #fff }
+@keyframes bob { 0%, 100% { margin-top: 0 } 50% { margin-top: -5px } }
+@keyframes bubble-in { from { scale: 0.3; opacity: 0 } to { scale: 1; opacity: 1 } }
+.fly { position: fixed; z-index: 50; pointer-events: none; width: 26px; height: 26px; display: grid; place-items: center }
+.num-pop { position: fixed; z-index: 51; pointer-events: none; transform: translate(-50%, -50%); font-weight: 800; font-size: 18px; text-shadow: 0 2px 0 #fff, 0 0 8px #fff; animation: numpop 1.1s ease-out forwards }
+.num-pop.cash { color: #2e8b57 } .num-pop.goods { color: #c0601a }
+@keyframes numpop { 0% { opacity: 0; margin-top: 0; scale: .6 } 15% { opacity: 1; scale: 1.2 } 100% { opacity: 0; margin-top: -60px; scale: 1 } }
+.jobprog { display: flex; flex-direction: column; gap: 4px }
+.bar.wide { display: block; width: 100%; height: 8px; border-radius: 6px; background: #0001; overflow: hidden }
+.bar.wide i { display: block; height: 100%; background: linear-gradient(90deg, #7bd389, #3c9a5f) }

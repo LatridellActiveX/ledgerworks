@@ -23,6 +23,7 @@ import { Board } from './ui/Board'
 import { Finance } from './ui/Finance'
 import { TradeFloor } from './ui/TradeFloor'
 import { QtyPicker, clampQty } from './ui/QtyPicker'
+import { flyTo } from './ui/fly'
 import * as Q from './game/qty'
 import { cashLineBonus, checkAchievements } from './game/execs'
 import { PHASE_LABEL, accountingFee } from './game/economy'
@@ -67,6 +68,15 @@ export default function App() {
     return () => { clearInterval(a); clearInterval(b) }
   }, [])
 
+  /** Tap a bubble (or the panel button): collect what has accrued, then animate it to the HUD. */
+  const collectAt = (i: number, r: DOMRect) => {
+    const p = s.plots[i] && E.pending(s, s.plots[i]!)
+    if (!p || p.units < 1) return
+    const icon = (document.querySelector(`.bubble.${p.kind} svg, .bubble.${p.kind} .coin`) as HTMLElement | null)?.outerHTML ?? '<span class="coin">$</span>'
+    act(st => E.collect(st, i))
+    flyTo(r, p.kind, p.kind === 'goods' ? `+${num(p.units)} ${RES[p.res].name}` : `+${money(p.cents / 100)}`, p.kind === 'cash' ? '<span class="coin">$</span>' : icon)
+  }
+
   const lvl = E.companyLevel(s.xp)
   const slots = E.plotCount(lvl)
   const xpLo = E.xpForLevel(lvl), xpHi = E.xpForLevel(lvl + 1)
@@ -108,7 +118,7 @@ export default function App() {
 
       <main>
         <section className="campus-wrap">
-          <Campus3D s={s} slots={slots} sel={sel} onPick={setSel} mode={view} />
+          <Campus3D s={s} slots={slots} sel={sel} onPick={setSel} mode={view} onCollect={collectAt} />
           <div className="view-tools">
             <button title="Switch between the 3D and 2D campus" onClick={() => { const v = view === '3d' ? '2d' : '3d'; setView(v); localStorage.setItem('ledgerworks-view', v) }}>{view === '3d' ? '2D view' : '3D view'}</button>
             <button title="Sound effects" onClick={() => { setSound(!sound); setSnd(!sound); if (!sound) setTimeout(() => sfx('pop'), 50) }}>{sound ? '🔊' : '🔇'}</button>
@@ -177,6 +187,7 @@ function BuildingPanel({ s, plot, act }: { s: E.GameState; plot: number; act: Ac
             ? <>Making {num(bd.job.qty)} <ResIcon id={bd.job.res} /> {RES[bd.job.res].name} Q{bd.job.q}</>
             : <>Selling {num(bd.job.qty)} <ResIcon id={bd.job.res} /> {RES[bd.job.res].name} at {money(bd.job.price)}</>}</span>
           <div>Done in {dur(bd.job.endH - s.hour)} (game time)</div>
+          {bd.job.kind !== 'build' && <JobProgress s={s} plot={plot} act={act} />}
           <button onClick={() => act(st => E.rush(st, plot))}>Rush for {money(E.rushCost(s, bd))}</button>
         </div>
       ) : bt.kind === 'production' ? <MakeForm s={s} plot={plot} act={act} /> : <RetailPanel s={s} plot={plot} act={act} />}
@@ -187,6 +198,25 @@ function BuildingPanel({ s, plot, act }: { s: E.GameState; plot: number; act: Ac
       <p className="muted">Wages {money(bt.wage * bd.level * (1 + E.overhead(s)))}/game hour while working (incl. {(E.overhead(s) * 100).toFixed(1)}% admin overhead).</p>
     </div>
   )
+}
+
+/** Progress of a running job, with collect-now and stop buttons. */
+function JobProgress({ s, plot, act }: { s: E.GameState; plot: number; act: Act }) {
+  const bd = s.plots[plot]!, j = bd.job!
+  if (j.kind === 'build') return null
+  const p = E.pending(s, bd)!, done = E.unitsDone(j, s.hour)
+  return <div className="jobprog">
+    <div className="bar wide"><i style={{ width: `${(100 * done) / j.qty}%` }} /></div>
+    <small>{num(done)} of {num(j.qty)} {j.kind === 'make' ? 'made' : 'sold'} · {num(j.got ?? 0)} collected</small>
+    <div className="row">
+      <button className="primary" disabled={p.units < 1} onClick={e => {
+        const r = e.currentTarget.getBoundingClientRect()
+        act(st => E.collect(st, plot))
+        flyTo(r, p.kind, p.kind === 'goods' ? `+${num(p.units)} ${RES[p.res].name}` : `+${money(p.cents / 100)}`, p.kind === 'cash' ? '<span class="coin">$</span>' : '<span class="coin goods">+</span>')
+      }}>{p.units < 1 ? 'Nothing ready yet' : p.kind === 'goods' ? `Collect ${num(p.units)} ${RES[p.res].name}` : `Collect ${money(p.cents / 100)}`}</button>
+      <button className="danger" onClick={() => confirm(j.kind === 'make' ? 'Stop now? You keep what is made so far. Wages and used inputs are not refunded.' : 'Stop selling? You keep the money so far and unsold goods go back to the warehouse.') && act(st => E.cancelJob(st, plot))}>Stop</button>
+    </div>
+  </div>
 }
 
 /** Choose a recipe and an exact amount (1..max); live preview of time, wages and inputs. */

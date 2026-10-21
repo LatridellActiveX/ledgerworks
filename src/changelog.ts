@@ -4,6 +4,12 @@ export interface ChangeEntry { id: string; date: string; title: string; notes: s
 
 export const CHANGELOG: ChangeEntry[] = [
   {
+    id: 'collect-bubbles-partial-collection',
+    date: '2026-10-21',
+    title: 'Tap to collect',
+    notes: ['Production and shop sales now build up as the job runs. Every 2 real minutes a bubble pops up over the building with the goods icon (or a coin) and how much is ready. Tap it to collect: goods go to your warehouse at the job quality and money goes to your cash, with a fly-to-counter animation.', 'Bubbles keep counting up until you tap them. Anything left over is paid automatically when the job ends, including progress made while you were away.', 'The building panel shows job progress with Collect and Stop buttons. Stopping keeps everything made or sold so far and puts unsold shop goods back in the warehouse.', 'Partial collections always add up to exactly the full job (whole units, money to the cent). Wages and inputs are unchanged.'],
+  },
+  {
     id: 'qty-picker-fine-grained-amounts',
     date: '2026-10-21',
     title: 'Pick exact amounts',
