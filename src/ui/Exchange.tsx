@@ -23,9 +23,9 @@ export function Exchange({ s, act }: { s: E.GameState; act: Act }) {
   const [sq, setSq] = useState(0)
   const [price, setPrice] = useState(0)
   const ref = M.refPrice(s, res)
-  const lim = lot ? Q.maxList(s, res, lot.q) : { max: 0, why: '' }
+  const lim = lot ? Q.maxList(s, res, lot.q, true) : { max: 0, why: '' }
   const qty = clampQty(sq || lim.max, lim.max)
-  const qlim = lot ? Q.maxQuick(s, res, lot.q) : { max: 0, why: '' }
+  const qlim = lot ? Q.maxQuick(s, res, lot.q, true) : { max: 0, why: '' }
   const blim = Q.maxBuy(s, res, minQ)
   const bqty = clampQty(bq, blim.max)
   const p = price || Math.round(ref * 1.05 * 100) / 100
@@ -77,9 +77,11 @@ export function Exchange({ s, act }: { s: E.GameState; act: Act }) {
           <label>Lot <select value={lot.q} onChange={e => { setSellQ(Number(e.target.value)); setSq(0) }}>{lots.map(l => <option key={l.q} value={l.q}>Q{l.q} ({num(l.v)})</option>)}</select></label>
           <QtyPicker value={qty} max={lim.max} why={lim.why} onChange={setSq} />
           <label>Price $<input type="number" step="0.01" value={p} onChange={e => setPrice(Number(e.target.value))} /></label>
-          <small>Needs {M.cratesFor(res, qty)} crates (have {num(E.haveQty(s, 'crates'))}) · 3% fee → you get {money(qty * p * (1 - M.FEE))}</small>
-          <button className="primary" disabled={lim.max < 1} onClick={() => act(st => M.placeAsk(st, res, lot.q, qty, p))}>List {num(qty)} on exchange</button>
-          <button disabled={qlim.max < 1} title={qlim.why} onClick={() => act(st => M.quickSell(st, res, lot.q, Math.min(qty, qlim.max)))}>Quick sell {num(Math.min(qty, qlim.max))} to traders at {money(M.bidPrice(s, res, lot.q))} → {money(Math.min(qty, qlim.max) * M.bidPrice(s, res, lot.q) * (1 - M.FEE))} ({num(s.bidLeft[res] ?? 0)} wanted today)</button>
+          {/* Crates: needed vs owned; if short, the buttons buy the shortfall in the same step. */}
+          <CrateLine s={s} res={res} qty={qty} />
+          <small>3% fee → you get {money(qty * p * (1 - M.FEE))}</small>
+          <button className="primary" disabled={lim.max < 1} onClick={() => withCrateConfirm(s, res, qty) && act(st => M.withCrates(st, res, qty, () => M.placeAsk(st, res, lot.q, qty, p)))}>{M.crateShort(s, res, qty) ? `Add ${num(M.crateShort(s, res, qty))} crates + list ${num(qty)}` : `List ${num(qty)} on exchange`}</button>
+          <button disabled={qlim.max < 1} title={qlim.why} onClick={() => { const n = Math.min(qty, qlim.max); if (withCrateConfirm(s, res, n)) act(st => M.withCrates(st, res, n, () => M.quickSell(st, res, lot.q, n))) }}>{M.crateShort(s, res, Math.min(qty, qlim.max)) ? `+${num(M.crateShort(s, res, Math.min(qty, qlim.max)))} crates · ` : ''}Quick sell {num(Math.min(qty, qlim.max))} to traders at {money(M.bidPrice(s, res, lot.q))} → {money(Math.min(qty, qlim.max) * M.bidPrice(s, res, lot.q) * (1 - M.FEE))} ({num(s.bidLeft[res] ?? 0)} wanted today)</button>
         </>}
       </div>
       <div className="card">
@@ -146,4 +148,16 @@ function PriceChart({ data }: { data: number[] }) {
       <text x={W} y={H + 12} fontSize="10" fill="#8a8296" textAnchor="end">today {money(data[data.length - 1])}</text>
     </svg>
   )
+}
+
+/** "Crates: 12 needed · 5 owned · short 7 ($3.10)" line under the sell form. */
+function CrateLine({ s, res, qty }: { s: E.GameState; res: string; qty: number }) {
+  const need = res === 'crates' ? 0 : M.cratesFor(res, qty), have = Math.floor(E.haveQty(s, 'crates')), short = M.crateShort(s, res, qty)
+  return <div className={`crate-line ${short ? 'short' : ''}`}><ResIcon id="crates" size={18} />
+    <span>Crates: <b>{num(need)}</b> needed · <b>{num(have)}</b> owned{short ? <> · short <b>{num(short)}</b> ({money(M.crateShortCost(s, res, qty))}, bought automatically)</> : need ? ' ✓' : ''}</span></div>
+}
+/** One confirm when crates will be bought as part of the step. */
+export function withCrateConfirm(s: E.GameState, res: string, qty: number) {
+  const n = M.crateShort(s, res, qty)
+  return !n || confirm(`You're ${n} shipping crates short. Buy ${n} crates for ${money(M.crateShortCost(s, res, qty))} and continue?`)
 }

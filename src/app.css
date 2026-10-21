@@ -672,3 +672,8 @@ tr.bidrow td { color: #3c9a5f; font-weight: 600 }
 .login-card .or { display: flex; align-items: center; gap: 8px; color: #8a8f9a; font-size: 13px } .login-card .or::before, .login-card .or::after { content: ''; flex: 1; height: 1px; background: #0002 }
 .login-card button.guest { display: flex; flex-direction: column; align-items: center; gap: 2px; min-height: 58px; font-weight: 800; font-size: 17px; background: linear-gradient(#3f8f5e, #2f7a4c); color: #fff; border-color: #2f7a4c; border-radius: 12px }
 .login-card button.guest small { font-weight: 500; font-size: 12px; opacity: .9 }
+
+/* Crates: HUD counter, sell-form line, Warehouse quick-buy card. */
+.pill.crates { display: inline-flex; align-items: center; gap: 4px; font: 700 12px system-ui; padding: 3px 8px; border-radius: 999px; background: #f5ead6; border: 1px solid #d8c09a; color: #6a4a1a; min-height: 0 }
+.crate-line { display: flex; gap: 6px; align-items: center; font-size: 13px; padding: 6px 8px; border-radius: 8px; background: #eef7ee } .crate-line.short { background: #fff3dc; color: #7a4a00 }
+.crate-card .cc-head { display: flex; gap: 10px; align-items: center; margin-bottom: 6px }

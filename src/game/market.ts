@@ -87,6 +87,23 @@ export function quoteBuy(s: GameState, res: string, qty: number, minQ = 0) {
   return Infinity
 }
 
+// ---- Shipping crates in the same step ------------------------------------
+/** Crates still missing to ship `qty` of `res` (0 when you have enough). */
+export const crateShort = (s: GameState, res: string, qty: number) =>
+  res === 'crates' ? 0 : Math.max(0, cratesFor(res, qty) - Math.floor(haveQty(s, 'crates') + 1e-9))
+/** What buying the missing crates costs now (Infinity if traders don't have enough). */
+export const crateShortCost = (s: GameState, res: string, qty: number) => { const n = crateShort(s, res, qty); return n ? quoteBuy(s, 'crates', n) : 0 }
+/**
+ * Buy the missing crates, then run `then` (list or quick-sell). The UI runs
+ * this on a cloned state and drops the clone on any error, so it's all or
+ * nothing: you never end up with crates bought but the sale not made.
+ */
+export function withCrates(s: GameState, res: string, qty: number, then: () => string | null): string | null {
+  const n = crateShort(s, res, qty)
+  if (n) { setWhy('bought'); const e = buy(s, 'crates', n); if (e) return `Couldn't buy ${n} crates: ${e}` }
+  return then()
+}
+
 /** List goods for sale. Goods and crates leave the warehouse into the order. */
 export function placeAsk(s: GameState, res: string, q: number, qty: number, price: number): string | null {
   if (!Number.isInteger(qty) || qty < 1) return 'Pick a whole amount of at least 1'

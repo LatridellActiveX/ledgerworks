@@ -5,7 +5,7 @@
 //   warehouse + exchange | event log | change log
 // ============================================================================
 import { Boot } from './ui/Boot'
-import { Warehouse } from './ui/Warehouse'
+import { Warehouse, compact as compactNum } from './ui/Warehouse'
 import { Chains } from './ui/Chains'
 import { News, NewsStrip } from './ui/News'
 import { Routes, RouteLane } from './ui/Routes'
@@ -154,6 +154,8 @@ export default function App() {
         <button className="hud-btn bell" aria-label="Notifications" onClick={() => open('log')}>🔔{unseen > 0 && <i>{unseen > 99 ? '99+' : unseen}</i>}</button>
         <div className="hud-stats">
           <span className="pill cash"><Ticker value={s.cash} /></span>
+          {/* Shipping crate counter: tap to buy more in the Warehouse. */}
+          <button className="pill crates" aria-label="Shipping crates" title="Shipping crates (tap to buy more)" onClick={() => open('warehouse')}><ResIcon id="crates" size={16} />{compactNum(E.haveQty(s, 'crates'))}</button>
           <span className="hud-xp" title={`Company level ${lvl}, ${xpPct}% to the next`}><b>★ {lvl}</b><span className="bar"><i style={{ width: `${xpPct}%` }} /></span><small>{xpPct}%</small></span>
           <span className="hud-info">{clock(s.hour)} · <span className={`phase-${s.phase ?? 'normal'}`}>{PHASE_LABEL[s.phase ?? 'normal']}</span>{s.realm === 'seasons' ? ` · S${s.season}` : ''}</span>
         </div>

@@ -19,6 +19,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import * as E from '../game/engine'
 import * as M from '../game/market'
 import * as F from '../game/finance'
+import * as Q from '../game/qty'
 import { RES, RESOURCES, BUILDINGS, RECIPES, BLD } from '../game/data'
 import { fieldOf } from '../game/research'
 import { GoodArt } from './goodart'
@@ -120,6 +121,7 @@ export function Warehouse({ s, act, openPlot, openChain, initialOpen }: { s: E.G
           <select value={cat} onChange={e => setCat(e.target.value as Cat | 'all')} aria-label="Category"><option value="all">All categories</option>{CATS.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select>
           <select value={sort} onChange={e => setSort(e.target.value as Sort)} aria-label="Sort">{SORTS.map(([k, l]) => <option key={k} value={k}>Sort: {l}</option>)}</select>
         </div>
+        <CrateCard s={s} act={act} />
         {shown.length === 0 && <p className="muted">{rows.length ? 'No goods match.' : 'Your warehouse is empty. Buy starter goods on the Market tab or start production.'}</p>}
         {CATS.map(([k, label]) => {
           const list = shown.filter(r => catOf(r.res) === k)
@@ -272,3 +274,16 @@ function PriceChart({ pts, avg }: { pts: number[]; avg?: number }) {
 }
 // Keep RESOURCES referenced for tree-shaking clarity (used by tests).
 export const ALL_GOODS = RESOURCES.map(r => r.id)
+
+/** Quick-buy card for shipping crates (needed to sell on the Exchange). */
+function CrateCard({ s, act }: { s: E.GameState; act: Act }) {
+  const [n, setN] = useState(100)
+  const lim = Q.maxBuy(s, 'crates', 0), qty = clampQty(n, Math.max(1, lim.max)), cost = M.quoteBuy(s, 'crates', qty)
+  return <div className="card crate-card">
+    <div className="cc-head"><GoodArt id="crates" size={40} /><span><b>Shipping crates</b><br /><small>You have {num(E.haveQty(s, 'crates'))}. Selling on the Exchange uses crates.</small></span></div>
+    {lim.max >= 1 ? <>
+      <QtyPicker value={qty} max={lim.max} why={lim.why} onChange={setN} />
+      <button className="primary" onClick={() => act(st => { E.setWhy('bought'); return M.buy(st, 'crates', qty) })}>Buy {num(qty)} crates · {money(cost)}</button>
+    </> : <small className="muted">{lim.why || 'No crates for sale right now.'}</small>}
+  </div>
+}

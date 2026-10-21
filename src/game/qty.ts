@@ -58,16 +58,21 @@ export function maxBuy(s: E.GameState, res: string, minQ: number): Limit {
 }
 
 /** Listing on the exchange: the lot, and shipping crates. */
-export function maxList(s: E.GameState, res: string, q: number): Limit {
+/**
+ * `buyCrates`: the form can buy missing crates in the same step, so crates
+ * you could still buy (cash + traders' stock) count toward the limit too.
+ */
+export function maxList(s: E.GameState, res: string, q: number, buyCrates = false): Limit {
   const have = floor(s.stock[E.key(res, q)] ?? 0)
   if (res === 'crates') return { max: floor(have / 2), why: 'Crates also ship themselves' }
   const ship = RES[res].ship ?? 1
-  return tight({ max: have, why: 'All of this lot' }, { max: ship > 0 ? floor(E.haveQty(s, 'crates') / ship) : 1e9, why: `Only ${floor(E.haveQty(s, 'crates'))} shipping crates` })
+  const crates = E.haveQty(s, 'crates') + (buyCrates ? maxBuy(s, 'crates', 0).max : 0)
+  return tight({ max: have, why: 'All of this lot' }, { max: ship > 0 ? floor(crates / ship) : 1e9, why: buyCrates ? `Only ${floor(crates)} crates owned or affordable` : `Only ${floor(E.haveQty(s, 'crates'))} shipping crates` })
 }
 
 /** Quick-sell to traders: also limited by what they still want today. */
-export function maxQuick(s: E.GameState, res: string, q: number): Limit {
-  return tight(maxList(s, res, q), { max: floor(s.bidLeft[res] ?? 0), why: 'Traders want no more today' })
+export function maxQuick(s: E.GameState, res: string, q: number, buyCrates = false): Limit {
+  return tight(maxList(s, res, q, buyCrates), { max: floor(s.bidLeft[res] ?? 0), why: 'Traders want no more today' })
 }
 
 /** Government order delivery: remaining amount and eligible stock (quality at or above the ask). */

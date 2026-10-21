@@ -4,6 +4,12 @@ export interface ChangeEntry { id: string; date: string; title: string; notes: s
 
 export const CHANGELOG: ChangeEntry[] = [
   {
+    id: 'crates-one-step',
+    date: '2026-10-21',
+    title: "Easier shipping crates",
+    notes: ["When you sell on the Exchange, the form shows crates needed and crates owned. If you're short, one button buys the missing crates and lists (or quick-sells) in the same step, after a single confirm.", "A crate counter next to your cash shows how many you have. Tap it to buy more.", "The Warehouse has a quick-buy card for crates with the amount picker."],
+  },
+  {
     id: 'exchange-buy-orders',
     date: '2026-10-21',
     title: 'Buy orders on the Exchange',
