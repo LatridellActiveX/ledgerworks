@@ -87,7 +87,7 @@ export function Exchange({ s, act, user }: { s: E.GameState; act: Act; user?: st
           <button disabled={qlim.max < 1} title={qlim.why} onClick={() => { const n = Math.min(qty, qlim.max); if (withCrateConfirm(s, res, n)) act(st => M.withCrates(st, res, n, () => M.quickSell(st, res, lot.q, n))) }}>{M.crateShort(s, res, Math.min(qty, qlim.max)) ? `+${num(M.crateShort(s, res, Math.min(qty, qlim.max)))} crates · ` : ''}Quick sell {num(Math.min(qty, qlim.max))} to traders at {money(M.bidPrice(s, res, lot.q))} → {money(Math.min(qty, qlim.max) * M.bidPrice(s, res, lot.q) * (1 - M.feeRate(s)))} ({num(s.bidLeft[res] ?? 0)} wanted today)</button>
         </>}
       </div>
-      <PlayerOrders s={s} act={act} user={user} res={res} minQ={minQ} />
+      <PlayerOrders act={act} user={user} res={res} minQ={minQ} />
       <div className="card">
         <b>Your orders</b>
         {mine.length === 0 && <span className="muted">None.</span>}
@@ -170,7 +170,7 @@ export function withCrateConfirm(s: E.GameState, res: string, qty: number) {
  * Individual orders that players have listed on the goods board, for this good.
  * Tap a seller to see their profile. Buy takes the goods home in one step.
  */
-function PlayerOrders({ s, act, user, res, minQ }: { s: E.GameState; act: Act; user?: string | null; res: string; minQ: number }) {
+function PlayerOrders({ act, user, res, minQ }: { act: Act; user?: string | null; res: string; minQ: number }) {
   const t = useTrader(user)
   const [orders, setOrders] = useState<any[] | null>(null)
   const [qty, setQty] = useState<Record<number, number>>({})

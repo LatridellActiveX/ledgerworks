@@ -430,7 +430,7 @@ export function collect(s: GameState, plot: number): string | null {
   return null
 }
 /** When a crop ripened, if it has (only crop jobs have this). */
-const ripeOf = (j: Job | undefined) => (j && j.kind === 'make' ? j.ripeH : undefined)
+export const ripeOf = (j: Job | undefined) => (j && j.kind === 'make' ? j.ripeH : undefined)
 
 /** A farm crop's timer has run out: it ripens and waits on the plot for harvest. */
 function ripen(s: GameState, bd: Building) {
