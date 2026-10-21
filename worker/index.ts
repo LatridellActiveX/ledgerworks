@@ -17,6 +17,7 @@
 //    shared economy. Being one object means every price update is applied in
 //    order, with no races between players or the cron.
 // ============================================================================
+import { handlePlayers } from './players'
 import { cleanupGuestSaves, isCleanupSlot } from './cleanup'
 import { privacyHtml } from '../src/legal/privacy'
 import { MarketDO } from './market-do'
@@ -72,6 +73,12 @@ export default {
 
     // Stage 11: player accounts and trading all live in the market object.
     if (url.pathname.startsWith('/api/p2p/') && req.method === 'POST') return world(env).fetch('https://do/p2p/' + url.pathname.slice(9), { method: 'POST', body: await req.text() })
+    // Player search + public profiles (worker/players.ts). Rate-limited per hashed IP, in memory only.
+    if (url.pathname.startsWith('/api/players/')) {
+      await ensureAuthSchema(env)
+      const ledger = (op: string, body: unknown) => world(env).fetch('https://do/p2p/' + op, { method: 'POST', body: JSON.stringify(body) }).then(r => r.json<any>())
+      return (await handlePlayers(req, env, url, ledger, await sha(req.headers.get('cf-connecting-ip') ?? 'local')))!
+    }
     const auth = await handleAuth(req, env, url.pathname)
     if (auth) return auth
     if (url.pathname === '/api/save' && req.method === 'POST') {

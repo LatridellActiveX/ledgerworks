@@ -31,6 +31,8 @@ export interface Account {
   traded: number  // lifetime cash volume through the board and contracts
   trades: number
   joined: number
+  /** Game account (username) this trade-floor account belongs to, once linked via the game session. */
+  owner?: string
 }
 export interface Order { id: number; seller: string; res: string; q: number; qty: number; price: number; ts: number }
 export interface Contract { id: number; from: string; to: string; res: string; q: number; qty: number; price: number; ts: number }
@@ -160,6 +162,24 @@ export function leaderboard(L: Ledger, n = 20) {
   return Object.values(L.accounts).map(a => ({ name: a.name, company: a.company, value: a.value, score: Math.round(score(a)), grade: grade(score(a)) }))
     .sort((x, y) => y.score - x.score).slice(0, n)
 }
+// ---- Player search and public profiles (only public fields) ---------------
+/** Public card for search results: trader name, game username if linked, company, value, grade. */
+export const publicCard = (a: Account) => ({ name: a.name, owner: a.owner, company: a.company, value: a.value, grade: grade(score(a)) })
+/** Case-insensitive match on trader name, linked username or company name. */
+export function searchAccounts(L: Ledger, q: string, n = 10) {
+  const t = q.trim().toLowerCase(); if (t.length < 2) return []
+  return Object.values(L.accounts).filter(a => a.name.includes(t) || (a.owner ?? '').includes(t) || a.company.toLowerCase().includes(t))
+    .sort((x, y) => Number(y.name.startsWith(t)) - Number(x.name.startsWith(t)) || y.value - x.value).slice(0, n).map(publicCard)
+}
+/** Account for a trader name or a linked game username. */
+export const findAccount = (L: Ledger, who: string) => L.accounts[who] ?? Object.values(L.accounts).find(a => a.owner === who)
+/** Public profile: rank among all traders by score, plus their active board listings. */
+export function publicProfile(L: Ledger, who: string) {
+  const a = findAccount(L, who.toLowerCase()); if (!a) return null
+  const all = Object.values(L.accounts).sort((x, y) => score(y) - score(x))
+  return { ...publicCard(a), rank: all.indexOf(a) + 1, of: all.length, trades: a.trades, joined: a.joined, listings: L.orders.filter(o => o.seller === a.name).slice(0, 30) }
+}
+
 /** Public, secret-free view of one account (for the client). */
 export const view = (L: Ledger, a: Account) => ({
   name: a.name, company: a.company, wallet: a.wallet, depot: a.depot, grade: grade(score(a)), score: Math.round(score(a)),

@@ -22,6 +22,10 @@ export const PRIVACY: PolicySection[] = [
     'Trade floor (optional): if you register on the player trade floor, we store your trader name, a hash of your trader key, your company name and value (shown on the leaderboard), and your wallet, stock, listings and offers. Other players can see your trader name, company name, company value, and your public listings and offers.',
     'Shared market: the game reports the amount of each good sold on the exchange so that prices react. These reports are added to shared totals and don\'t include your name.',
   ] },
+  { h: 'Player search', p: [
+    'Usernames and company names are searchable by other players. A public profile shows your username, company name, company level, company value (from your latest cloud save or trade floor report), the date you joined, and, if you trade, your trade floor grade, rank, number of trades and active listings. Nothing else is shown: no cash, stock, passwords or keys.',
+    'To stop abuse, searches are limited per visitor. The limit uses a hash of your IP address that is held only in the server\'s short-term memory for about a minute and is never stored.',
+  ] },
   { h: 'What we store in your browser', p: [
     'The game uses localStorage on your device for: your save (ledgerworks-save-v1), your guest cloud ID and key (ledgerworks-cloud-id), guest mode (ledgerworks-guest), your trade floor name and key (ledgerworks-account), and settings and progress (ledgerworks-view, ledgerworks-gfx, ledgerworks-gfx-auto, ledgerworks-sound, ledgerworks-volume, ledgerworks-tutorial, ledgerworks-realm, ledgerworks-seen-log, ledgerworks-season-results). It is not sent anywhere except as described above. You can delete it by clearing site data in your browser.',
     'The only cookie is the lw_session sign-in cookie. We don\'t use any tracking or advertising cookies.',

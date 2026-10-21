@@ -5,6 +5,7 @@
 //   warehouse + exchange | event log | change log
 // ============================================================================
 import { Boot } from './ui/Boot'
+import { PlayerSearch, PlayerProfile } from './ui/Players'
 import * as GFX from './game/gfx'
 import { Warehouse, compact as compactNum } from './ui/Warehouse'
 import { Chains } from './ui/Chains'
@@ -48,6 +49,7 @@ import { cloudKey, cloudLoad, cloudSave, syncWorld, useCloudKey } from './game/c
 import './app.css'
 
 export default function App() {
+  const [player, setPlayer] = useState<string | null>(null) // open player profile
   const [gfx, setGfx] = useState(GFX.getSetting)
   const [booting, setBooting] = useState(() => !(globalThis as any).__lwNoBoot)
   const [s, setS] = useState<E.GameState>(() => E.advanceReal(loadGame()))
@@ -207,7 +209,11 @@ export default function App() {
           {screen === 'board' && <Board s={s} onExecs={() => open('execs')} />}
           {screen === 'execs' && <Executives s={s} act={act} />}
           {screen === 'finance' && <Finance s={s} act={act} />}
-          {screen === 'value' && <CompanyValue s={s} />}
+          {screen === 'value' && <CompanyValue s={s} onPlayer={n => { setPlayer(n); setScreen('players') }} />}
+          {/* Player search + public profiles (ui/Players.tsx). Trade opens the trade floor offer form for that trader. */}
+          {screen === 'players' && (player
+            ? <PlayerProfile name={player} onBack={() => setPlayer(null)} onTrade={t => { sessionStorage.setItem('lw-trade-to', t); setPlayer(null); setScreen('trade') }} />
+            : <PlayerSearch onOpen={setPlayer} />)}
           {screen === 'building' && sel !== null && (s.plots[sel] ? <BuildingPanel s={s} plot={sel} act={act} /> : <BuildMenu s={s} plot={sel} act={act} />)}
           {screen === 'market' && <Demand s={s} />}
           {screen === 'log' && <ul className="log">{s.log.map((l, i) => <li key={i}>{l}</li>)}</ul>}
@@ -261,7 +267,7 @@ export default function App() {
       {/* Hamburger drawer: the less-used screens and settings. */}
       {menu && <div className="drawer-bg" onClick={() => setMenu(false)}><nav className="drawer" onClick={e => e.stopPropagation()}>
         <div className="drawer-head"><Logo /><b>{s.company}</b></div>
-        {(['value', 'execs', 'news', 'routes', 'chains', 'market', 'log', 'changes', 'account', 'settings', 'privacy'] as const).map(t => <button key={t} onClick={() => open(t)}>{SCREEN_ICON[t]} {SCREEN_TITLE[t]}</button>)}
+        {(['value', 'players', 'execs', 'news', 'routes', 'chains', 'market', 'log', 'changes', 'account', 'settings', 'privacy'] as const).map(t => <button key={t} onClick={() => open(t)}>{SCREEN_ICON[t]} {SCREEN_TITLE[t]}</button>)}
         <button onClick={() => { toggleView(); setMenu(false) }}>{view === '3d' ? '▦ Switch to 2D map' : '◈ Switch to 3D map'}</button>
       </nav></div>}
 
@@ -283,9 +289,9 @@ export default function App() {
 }
 
 /** Every screen the HUD can open. 'map' is the plain map. */
-type Screen = 'map' | 'value' | 'building' | 'warehouse' | 'exchange' | 'trade' | 'research' | 'board' | 'finance' | 'market' | 'log' | 'changes' | 'account' | 'settings' | 'privacy' | 'chains' | 'news' | 'routes' | 'execs'
-const SCREEN_TITLE: Record<Screen, string> = { map: 'Map', value: 'Company value', building: 'Building', warehouse: 'Warehouse', exchange: 'Market', trade: 'Market', research: 'Research', board: 'Research', finance: 'Finance', market: 'Public demand', log: 'Events', changes: 'Change log', account: 'Saves & account', settings: 'Settings', privacy: 'Privacy policy', chains: 'Production chains', news: 'Market news', routes: 'Trade routes', execs: 'Executives' }
-const SCREEN_ICON: Partial<Record<Screen, string>> = { value: '💹', market: '📈', log: '🔔', changes: '📝', account: '💾', settings: '⚙', privacy: '🔒', chains: '🔗', news: '📰', routes: '🛒', execs: '👔' }
+type Screen = 'map' | 'value' | 'building' | 'warehouse' | 'exchange' | 'trade' | 'research' | 'board' | 'finance' | 'market' | 'log' | 'changes' | 'account' | 'settings' | 'privacy' | 'chains' | 'news' | 'routes' | 'execs' | 'players'
+const SCREEN_TITLE: Record<Screen, string> = { map: 'Map', value: 'Company value', building: 'Building', warehouse: 'Warehouse', exchange: 'Market', trade: 'Market', research: 'Research', board: 'Research', finance: 'Finance', market: 'Public demand', log: 'Events', changes: 'Change log', account: 'Saves & account', settings: 'Settings', privacy: 'Privacy policy', chains: 'Production chains', news: 'Market news', routes: 'Trade routes', execs: 'Executives', players: 'Players' }
+const SCREEN_ICON: Partial<Record<Screen, string>> = { value: '💹', market: '📈', log: '🔔', changes: '📝', account: '💾', settings: '⚙', privacy: '🔒', chains: '🔗', news: '📰', routes: '🛒', execs: '👔', players: '🔎' }
 /** The bottom tab bar (original simple glyphs). */
 const TABS: [Screen, string, string][] = [['map', 'Map', '🗺'], ['warehouse', 'Warehouse', '📦'], ['exchange', 'Market', '⇄'], ['research', 'Research', '🔬'], ['finance', 'Finance', '🏦']]
 

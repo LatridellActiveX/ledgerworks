@@ -18,7 +18,8 @@ export function TradeFloor({ s, act }: { s: E.GameState; act: Act }) {
   const [boardData, setBoard] = useState<any>({ orders: [], leaders: [] })
   const [msg, setMsg] = useState('')
   const [res, setRes] = useState('apples')
-  const [f, setF] = useState({ name: '', paste: '', cash: 1000, q: 0, qty: 10, price: 1, to: '' })
+  // A profile's Trade button leaves the trader name in sessionStorage to prefill "To player".
+  const [f, setF] = useState(() => { const to = sessionStorage.getItem('lw-trade-to') ?? ''; sessionStorage.removeItem('lw-trade-to'); return { name: '', paste: '', cash: 1000, q: 0, qty: 10, price: 1, to } })
   const set = (p: Partial<typeof f>) => setF({ ...f, ...p })
   const run = async (op: string, body: any = {}) => {
     try { const j = await T.p2p(op, body); if (j.me) setMe(j.me); setMsg(''); refresh(); return j } catch (e: any) { setMsg(e.message); return null }

@@ -697,3 +697,11 @@ tr.bidrow td { color: #3c9a5f; font-weight: 600 }
 .exec-stars i { color: #d8d2c8; font-style: normal }
 .exec-note { font-size: 11px; color: #3d9970 }
 @media (max-width: 420px) { .exec-seats { grid-template-columns: 1fr } }
+
+/* Player search + profiles */
+.psearch { display: flex; flex-direction: column; gap: 8px; margin: 6px 0 } .psearch input { min-height: 44px; border-radius: 12px; padding: 0 14px; width: 100% }
+.phits { display: flex; flex-direction: column; gap: 6px } .phits button { display: flex; gap: 10px; align-items: center; text-align: left; padding: 8px 10px; border-radius: 12px; min-width: 0 } .phits button > span:nth-child(2) { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis }
+.pav { flex: 0 0 auto; width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; font-weight: 800; color: #fff; background: linear-gradient(135deg, #5d6bd4, #3c9a5f) } .pav.big { width: 56px; height: 56px; font-size: 24px }
+.pv { color: #2c7a41; white-space: nowrap }
+.pprof { display: flex; flex-direction: column; gap: 12px } .pp-head { display: flex; align-items: center; gap: 12px } .pp-head h3 { margin: 0 }
+.cv-rank li { cursor: pointer }

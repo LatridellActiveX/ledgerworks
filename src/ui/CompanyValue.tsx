@@ -9,6 +9,7 @@
 //  - Rank: the trade-floor leaderboard from the server (other companies that
 //    publish their value). Offline or with no data, the rank card says so.
 // ============================================================================
+import { PlayerSearch } from './Players'
 import { useEffect, useState } from 'react'
 import type { GameState } from '../game/engine'
 import { valueBreakdown } from '../game/value'
@@ -34,7 +35,7 @@ function ValueChart({ pts }: { pts: { h: number; v: number }[] }) {
   )
 }
 
-export function CompanyValue({ s }: { s: GameState }) {
+export function CompanyValue({ s, onPlayer }: { s: GameState; onPlayer?: (name: string) => void }) {
   const b = valueBreakdown(s)
   const [leaders, setLeaders] = useState<{ name: string; company: string; value: number }[] | null>(null)
   useEffect(() => { T.p2p('board', { res: 'apples' }).then(j => setLeaders(j.leaders ?? [])).catch(() => setLeaders(null)) }, [])
@@ -64,10 +65,12 @@ export function CompanyValue({ s }: { s: GameState }) {
       <div className="card"><b>Value history</b><ValueChart pts={pts} /></div>
       <div className="card">
         <b>Rank</b>
+        {/* Find any player; tapping a leaderboard row opens their profile too. */}
+        {onPlayer && <PlayerSearch onOpen={onPlayer} compact />}
         {leaders === null ? <p className="muted">Rank needs the online leaderboard (offline right now).</p>
           : others.length === 0 ? <p className="muted">No other companies have published a value yet.</p>
           : <><p>You'd be <b>#{rank}</b> of {others.length + 1} companies on the trade-floor leaderboard.</p>
-            <ol className="cv-rank">{[...others, { name: 'you', company: s.company, value: b.total }].sort((x, y) => y.value - x.value).slice(0, 10).map(l => <li key={l.name} className={l.name === 'you' ? 'me' : ''}><span>{l.company}</span><b>{money(l.value ?? 0)}</b></li>)}</ol></>}
+            <ol className="cv-rank">{[...others, { name: 'you', company: s.company, value: b.total }].sort((x, y) => y.value - x.value).slice(0, 10).map(l => <li key={l.name} className={l.name === 'you' ? 'me' : ''} onClick={() => l.name !== 'you' && onPlayer?.(l.name)}><span>{l.company}</span><b>{money(l.value ?? 0)}</b></li>)}</ol></>}
       </div>
     </div>
   )

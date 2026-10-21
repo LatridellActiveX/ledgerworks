@@ -61,6 +61,9 @@ export class MarketDO {
     const now = Date.now()
     const err = (e: string, st = 400) => Response.json({ error: e }, { status: st })
     if (op === 'board') return Response.json({ orders: P.board(L, b.res).slice(0, 50), leaders: P.leaderboard(L) })
+    // Public, no key needed: player search and profiles (public fields only).
+    if (op === 'search') return Response.json({ players: P.searchAccounts(L, String(b.q ?? '')) })
+    if (op === 'profile') return Response.json({ profile: P.publicProfile(L, String(b.who ?? '')) })
     if (op === 'register') {
       // The server makes the key; only its hash is kept. Shown to the player once.
       const key = [...crypto.getRandomValues(new Uint8Array(18))].map(x => x.toString(16).padStart(2, '0')).join('')
