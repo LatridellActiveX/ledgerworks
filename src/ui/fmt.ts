@@ -1,5 +1,8 @@
 // Number/time formatting helpers for the UI.
-export const money = (n: number) => '$' + Math.round(n).toLocaleString('en-US')
+/** Dollars with cents below $10,000 (prices, unit costs); whole dollars above
+ *  (cash balances), so "$2.40" never shows as "$2". */
+export const money = (n: number) =>
+  (n < 0 ? '-$' : '$') + Math.abs(n).toLocaleString('en-US', Math.abs(n) < 10000 ? { minimumFractionDigits: 2, maximumFractionDigits: 2 } : { maximumFractionDigits: 0 })
 export const num = (n: number) => (Math.round(n * 10) / 10).toLocaleString('en-US')
 /** Game hours -> "2d 3h" / "3h 20m" / "45m". */
 export function dur(h: number) {

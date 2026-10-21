@@ -4,6 +4,12 @@ export interface ChangeEntry { id: string; date: string; title: string; notes: s
 
 export const CHANGELOG: ChangeEntry[] = [
   {
+    id: 'fix-price-cents-display',
+    date: '2026-10-21',
+    title: 'Prices show cents',
+    notes: ['Prices under $10,000 now show cents ($2.40 instead of $2).'],
+  },
+  {
     id: 'mvp-plot-grid-layout-fix',
     date: '2026-10-21',
     title: 'Tidier plot grid',
