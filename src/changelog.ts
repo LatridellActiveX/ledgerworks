@@ -4,6 +4,12 @@ export interface ChangeEntry { id: string; date: string; title: string; notes: s
 
 export const CHANGELOG: ChangeEntry[] = [
   {
+    id: 'sound-effects-v2',
+    date: '2026-10-21',
+    title: 'New sound effects',
+    notes: ['The game now has its own sound effects, all made in the browser (no audio files): collecting goods, coins coming in, starting and finishing production, hammering when you build, a wind-up when an upgrade or construction is done, market buys and sells, soft taps on tabs, a short fanfare when you level up and a dull bonk for errors.', 'Collect quickly and each collect plays a little higher, like a rising tune.', 'Settings has a sound on/off switch (still off until you turn it on), a volume slider from 0 to 100 and a Test sounds button, plus a button for each sound. Your choices are remembered.', 'Inspired by the small mechanical interface sounds in Anno 1800.'],
+  },
+  {
     id: 'narrow-phone-fit',
     date: '2026-10-21',
     title: 'Fits narrow phones',

@@ -23,7 +23,8 @@ import * as A from './game/auth'
 import { BuildingArt, Logo, ResIcon } from './ui/art'
 import { Campus3D } from './ui/Campus3D'
 import { Ticker } from './ui/Ticker'
-import { setSound, sfx, soundOn } from './ui/sound'
+import { setSound, setVolume, sfx, soundOn, testSounds, unlockAudio, volume, SFX_LIST } from './ui/sound'
+import { actionSfx, tickSfx } from './ui/sfxFor'
 import { clock, dur, money, num } from './ui/fmt'
 import { CHANGELOG } from './changelog'
 import { RetailPanel } from './ui/RetailPanel'
@@ -47,6 +48,8 @@ export default function App() {
   const [msg, setMsg] = useState('')
   const [view, setView] = useState<'3d' | '2d'>(() => (localStorage.getItem('ledgerworks-view') as '3d' | '2d') || '3d')
   const [sound, setSnd] = useState(soundOn())
+  const [vol, setVol] = useState(volume())
+  useEffect(() => unlockAudio(), []) // resume audio on the first tap (mobile rule)
   const [screen, setScreen] = useState<Screen>('map')
   const [menu, setMenu] = useState(false)
   // Accounts: who is signed in (cookie session), and whether to show the login screen.
@@ -69,10 +72,19 @@ export default function App() {
     const next = structuredClone(s)
     const err = f(next)
     if (!err) for (const m of checkAchievements(next)) next.log.unshift(m)
-    sfx(err ? 'buzz' : next.cash > s.cash ? 'coin' : 'pop')
+    sfx(actionSfx(s, next, err)) // collect / build / trade / error ... (see ui/sfxFor.ts)
     setMsg(err || '')
-    if (!err) { setS(next); saveGame(next) }
+    if (!err) { heard.current = next; setS(next); saveGame(next) }
   }
+  // Sounds for things that happen on their own: a job or construction
+  // finishing, or a level up from sales. `heard` is the last state we made a
+  // sound for, so an action's own change isn't played twice.
+  const heard = useRef(s)
+  useEffect(() => {
+    if (heard.current === s) return
+    const k = tickSfx(heard.current, s); heard.current = s
+    if (k) sfx(k)
+  }, [s])
 
   // Tick: advance by real time once a second; autosave every 5 s.
   useEffect(() => {
@@ -111,7 +123,7 @@ export default function App() {
   const idle = s.plots.flatMap((bd, i) => (bd && !bd.job ? [i] : []))
   const nextIdle = s.plots.reduce((m, bd) => (bd?.job && bd.job.endH < m ? bd.job.endH : m), Infinity)
   const unseen = Math.max(0, s.log.length - seenLog)
-  const open = (t: Screen) => { setScreen(t); setMenu(false); if (t === 'log') { setSeenLog(s.log.length); localStorage.setItem('ledgerworks-seen-log', String(s.log.length)) } }
+  const open = (t: Screen) => { sfx('tap'); setScreen(t); setMenu(false); if (t === 'log') { setSeenLog(s.log.length); localStorage.setItem('ledgerworks-seen-log', String(s.log.length)) } }
   const xpPct = Math.floor((100 * (s.xp - xpLo)) / (xpHi - xpLo))
   const toggleView = () => { const v = view === '3d' ? '2d' : '3d'; setView(v); localStorage.setItem('ledgerworks-view', v) }
 
@@ -156,7 +168,7 @@ export default function App() {
       {/* Full-screen menu screens, sliding in over the map. */}
       {screen !== 'map' && <section key={screen} className="screen">
         <header className="screen-head">
-          <button className="hud-btn" aria-label="Back to map" onClick={() => { setScreen('map'); if (screen === 'building') setSel(null) }}>‹</button>
+          <button className="hud-btn" aria-label="Back to map" onClick={() => { sfx('tap'); setScreen('map'); if (screen === 'building') setSel(null) }}>‹</button>
           <h2>{screen === 'building' && sel !== null ? (s.plots[sel] ? `${BLD[s.plots[sel]!.type].name} · level ${s.plots[sel]!.level}` : `Build on plot ${sel + 1}`) : SCREEN_TITLE[screen]}</h2>
           {(screen === 'exchange' || screen === 'trade') && <div className="seg"><button className={screen === 'exchange' ? 'on' : ''} onClick={() => setScreen('exchange')}>Exchange</button><button className={screen === 'trade' ? 'on' : ''} onClick={() => setScreen('trade')}>Trade floor</button></div>}
           {(screen === 'research' || screen === 'board') && <div className="seg"><button className={screen === 'research' ? 'on' : ''} onClick={() => setScreen('research')}>Research</button><button className={screen === 'board' ? 'on' : ''} onClick={() => setScreen('board')}>Board & goals</button></div>}
@@ -189,7 +201,14 @@ export default function App() {
           {screen === 'privacy' && <PrivacyBody />}
           {screen === 'settings' && <div className="menu-list">
             <button onClick={toggleView}>Map view: {view === '3d' ? '3D (tap for 2D)' : '2D (tap for 3D)'}</button>
-            <button onClick={() => { setSound(!sound); setSnd(!sound); if (!sound) setTimeout(() => sfx('pop'), 50) }}>Sound: {sound ? 'on 🔊' : 'off 🔇'}</button>
+            {/* Sound: mute toggle, volume slider (0-100, saved) and a preview. */}
+            <div className="sound-box">
+              <button className={sound ? 'on' : ''} aria-pressed={sound} onClick={() => { setSound(!sound); setSnd(!sound); if (!sound) setTimeout(() => sfx('coin', true), 50) }}>{sound ? '🔊 Sound on' : '🔇 Sound off (muted)'}</button>
+              <label className="vol">Volume <input type="range" min={0} max={100} step={1} value={vol} disabled={!sound} aria-label="Sound volume"
+                onChange={e => { const v = setVolume(Number(e.target.value)); setVol(v); sfx('tap') }} /><b>{vol}</b></label>
+              <button disabled={!sound} onClick={testSounds}>▶ Test sounds</button>
+              <div className="sfx-chips">{SFX_LIST.map(x => <button key={x.id} disabled={!sound} onClick={() => sfx(x.id, true)}>{x.label}</button>)}</div>
+            </div>
             <button onClick={() => setTut({ ...tut, off: !tut.off, done: tut.off ? false : tut.done })}>Tutorial: {tut.off ? 'off' : 'on'}</button>
             <button onClick={() => { setTut({ step: 0, done: false, off: false }); setScreen('map') }}>Restart tutorial</button>
             <button onClick={() => setScreen('privacy')}>🔒 Privacy policy</button>

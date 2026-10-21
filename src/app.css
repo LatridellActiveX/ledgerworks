@@ -538,3 +538,11 @@ button.link { background: none; border: 0; box-shadow: none; color: #6b7280; tex
 .ex .card { overflow-x: auto } .ex .chart { max-width: 100% }
 .acts3 > button, .lots > button { min-width: 0 }
 @media (max-width: 400px) { .wh-tile { flex-basis: 132px } .chain small { width: 84px } }
+/* Settings > Sound: mute toggle, volume slider, test buttons (phone-sized). */
+.sound-box { display: flex; flex-direction: column; gap: 10px; padding: 12px; border: 1px solid var(--line); border-radius: 14px; background: var(--card) }
+.sound-box > button.on { background: #3c7a4a; color: #fff; border-color: #3c7a4a }
+.sound-box .vol { display: flex; align-items: center; gap: 12px; min-height: 48px; font-size: 16px }
+.sound-box .vol input { flex: 1; width: auto; min-width: 0; height: 32px; padding: 0; border: 0; background: none; accent-color: var(--accent) }
+.sound-box .vol b { min-width: 2.2em; text-align: right; font-variant-numeric: tabular-nums }
+.sfx-chips { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px }
+.menu-list .sfx-chips button { min-height: 44px; font-size: 14px; padding: 4px 6px }
