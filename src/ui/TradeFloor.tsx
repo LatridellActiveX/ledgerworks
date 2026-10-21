@@ -60,6 +60,11 @@ export function TradeFloor({ s, act }: { s: E.GameState; act: Act }) {
           <button onClick={async () => { if (await run('withdrawGoods', { res: d.res, q: d.q, qty: d.v })) act(st => { E.addStock(st, d.res, d.q, d.v) }) }}>Take home</button></span>)}
         <small>Key for other devices: <code>{T.accountKey(acc)}</code></small>
         <button onClick={() => { T.setAccount(null); setAcc(null); setMe(null) }}>Sign out</button>
+        <button className="danger" onClick={async () => {
+          // Owner-only delete: the key proves it is yours. Wallet and depot are lost.
+          if (!confirm('Delete this account for good? Your open orders are removed, and anything still in your wallet or depot is lost.')) return
+          if (await run('delete')) { T.setAccount(null); setAcc(null); setMe(null) }
+        }}>Delete account</button>
         {msg && <span className="err">{msg}</span>}
       </div>
       <div className="card">

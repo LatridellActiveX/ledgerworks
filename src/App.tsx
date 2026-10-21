@@ -111,7 +111,7 @@ export default function App() {
             <button title="Switch between the 3D and 2D campus" onClick={() => { const v = view === '3d' ? '2d' : '3d'; setView(v); localStorage.setItem('ledgerworks-view', v) }}>{view === '3d' ? '2D view' : '3D view'}</button>
             <button title="Sound effects" onClick={() => { setSound(!sound); setSnd(!sound); if (!sound) setTimeout(() => sfx('pop'), 50) }}>{sound ? '🔊' : '🔇'}</button>
           </div>
-          {view === '3d' && <div className="hint">Drag to orbit · scroll to zoom · right-drag to pan · click a plot</div>}
+          {view === '3d' && <div className="hint">Drag to pan · scroll or pinch to zoom · Q / E or ⟲ ⟳ to turn · click a plot</div>}
           {sel !== null && s.plots[sel] && <div className="campus-label">{BLD[s.plots[sel]!.type].name} · level {s.plots[sel]!.level}</div>}
         </section>
 

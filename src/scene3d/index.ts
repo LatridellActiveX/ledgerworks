@@ -22,20 +22,26 @@ import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js'
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js'
 import { OutlinePass } from 'three/examples/jsm/postprocessing/OutlinePass.js'
 import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js'
+import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js'
 import { BLD } from '../game/data'
+import { Kit, GLOW, setEnv } from './kit'
+import { buildModel, plotGround, type Emitter } from './models'
 
 // --------------------------------------------------------------------------
 // Public types
 // --------------------------------------------------------------------------
 export interface PlotSnap { type: string; level: number; busy: boolean; building: boolean }
 export interface Snapshot { plots: (PlotSnap | null)[]; slots: number; hour: number; sel: number | null }
-export interface SceneHandle { update(s: Snapshot): void; dispose(): void; snapshot(): string }
+export interface SceneHandle { update(s: Snapshot): void; dispose(): void; snapshot(): string; rotate(dir: 1 | -1): void }
 
 const COLS = 6, ROWS = 4, TILE = 12 // plot spacing in world units
 const GW = COLS * TILE, GD = ROWS * TILE
 /** World position of a plot centre. */
 // Row 0 (your first plots) sits nearest the camera.
 const plotXZ = (i: number) => ({ x: (i % COLS) * TILE - GW / 2 + TILE / 2, z: GD / 2 - TILE / 2 - Math.floor(i / COLS) * TILE })
+
+// --------------------------------------------------------------------------
+// Small helpers
 
 // --------------------------------------------------------------------------
 // Small helpers
@@ -55,48 +61,6 @@ function mesh(geo: THREE.BufferGeometry, m: THREE.Material | THREE.Material[], x
 const box = (w: number, h: number, d: number, m: THREE.Material | THREE.Material[], x = 0, y = 0, z = 0) => mesh(new THREE.BoxGeometry(w, h, d), m, x, y + h / 2, z)
 const cyl = (rt: number, rb: number, h: number, m: THREE.Material, x = 0, y = 0, z = 0, seg = 16) => mesh(new THREE.CylinderGeometry(rt, rb, h, seg), m, x, y + h / 2, z)
 
-/** Canvas texture of a facade: wall color with a grid of windows. */
-function facadeTextures() {
-  const c = document.createElement('canvas'); c.width = 128; c.height = 128
-  const g = c.getContext('2d')!
-  g.fillStyle = '#ffffff'; g.fillRect(0, 0, 128, 128)
-  g.fillStyle = '#9fb6c8'
-  for (let x = 0; x < 3; x++) g.fillRect(14 + x * 38, 34, 24, 48)
-  g.fillStyle = '#e6e0d6'; g.fillRect(0, 118, 128, 10)
-  const map = new THREE.CanvasTexture(c); map.colorSpace = THREE.SRGBColorSpace
-  // Emissive map: only the windows glow.
-  const e = document.createElement('canvas'); e.width = 128; e.height = 128
-  const ge = e.getContext('2d')!
-  ge.fillStyle = '#000'; ge.fillRect(0, 0, 128, 128); ge.fillStyle = '#ffd27a'
-  for (let x = 0; x < 3; x++) ge.fillRect(14 + x * 38, 34, 24, 48)
-  const emi = new THREE.CanvasTexture(e); emi.colorSpace = THREE.SRGBColorSpace
-  for (const t of [map, emi]) { t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = 4 }
-  return { map, emi }
-}
-
-/** Canvas texture with a shop's name, for signage. */
-function signTexture(text: string, color: string) {
-  const c = document.createElement('canvas'); c.width = 256; c.height = 64
-  const g = c.getContext('2d')!
-  g.fillStyle = '#fffaf0'; g.beginPath(); g.roundRect(2, 2, 252, 60, 14); g.fill()
-  g.strokeStyle = color; g.lineWidth = 6; g.stroke()
-  g.fillStyle = '#2d2a32'; g.font = '700 30px Fredoka, system-ui'; g.textAlign = 'center'; g.textBaseline = 'middle'
-  g.fillText(text, 128, 34)
-  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace
-  return t
-}
-
-/** Striped awning texture. */
-function stripeTexture(color: string) {
-  const c = document.createElement('canvas'); c.width = 64; c.height = 8
-  const g = c.getContext('2d')!
-  for (let i = 0; i < 8; i++) { g.fillStyle = i % 2 ? '#fffaf0' : color; g.fillRect(i * 8, 0, 8, 8) }
-  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace
-  return t
-}
-
-// --------------------------------------------------------------------------
-// The scene
 // --------------------------------------------------------------------------
 export function mount(el: HTMLElement, opts: { onPick: (i: number) => void }): SceneHandle {
   const mobile = matchMedia('(pointer: coarse)').matches || innerWidth < 760
@@ -110,17 +74,41 @@ export function mount(el: HTMLElement, opts: { onPick: (i: number) => void }): S
   el.appendChild(renderer.domElement)
 
   const scene = new THREE.Scene()
-  scene.fog = new THREE.Fog('#cfe5f2', 230, 560)
-  const camera = new THREE.PerspectiveCamera(34, 1, 1, 900)
-  camera.position.set(48, 50, 66)
+  
+  // ---- 2.5D isometric camera: orthographic, fixed classic iso angle
+  // (45 degrees around, ~35.26 degrees down). Pan and zoom only; the view
+  // turns in 90-degree steps with rotate() or the Q / E keys.
+  const VIEW = 40 // half the visible height in world units at zoom 1
+  const camera = new THREE.OrthographicCamera(-VIEW, VIEW, VIEW, -VIEW, 1, 2000)
+  const ISO_EL = Math.atan(1 / Math.SQRT2), DIST = 320
+  let az = Math.PI / 4, azGoal = az
+  const placeCam = () => {
+    camera.position.set(controls.target.x + Math.sin(az) * Math.cos(ISO_EL) * DIST, controls.target.y + Math.sin(ISO_EL) * DIST, controls.target.z + Math.cos(az) * Math.cos(ISO_EL) * DIST)
+    camera.lookAt(controls.target)
+  }
+  camera.zoom = 1.6
 
   const controls = new OrbitControls(camera, renderer.domElement)
-  controls.target.set(0, 2, 0)
+  controls.target.set(0, 0, 0)
+  controls.enableRotate = false
   controls.enableDamping = true
-  controls.dampingFactor = 0.08
-  controls.minDistance = 28; controls.maxDistance = 190
-  controls.maxPolarAngle = 1.3; controls.minPolarAngle = 0.25
-  controls.screenSpacePanning = false
+  controls.dampingFactor = 0.12
+  controls.minZoom = 0.7; controls.maxZoom = 5
+  controls.screenSpacePanning = false // pan across the ground plane
+  controls.mouseButtons = { LEFT: THREE.MOUSE.PAN, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.PAN }
+  controls.touches = { ONE: THREE.TOUCH.PAN, TWO: THREE.TOUCH.DOLLY_PAN }
+  placeCam()
+  const onKey = (e: KeyboardEvent) => {
+    if ((e.target as HTMLElement)?.tagName === 'INPUT') return
+    if (e.key === 'q' || e.key === 'Q') azGoal -= Math.PI / 2
+    if (e.key === 'e' || e.key === 'E') azGoal += Math.PI / 2
+  }
+  addEventListener('keydown', onKey)
+
+  // Image-based lighting: a neutral studio environment gives metals and glass real reflections.
+  const pmrem = new THREE.PMREMGenerator(renderer)
+  scene.background = new THREE.Color('#cfe5f2')
+  scene.fog = new THREE.Fog('#cfe5f2', DIST + 90, DIST + 460) // ortho: measured from the camera plane
 
   // ---- Sky dome: vertical gradient whose colors follow the time of day.
   const skyU = { top: { value: new THREE.Color('#6fb4e8') }, bottom: { value: new THREE.Color('#e9f3f7') } }
@@ -151,6 +139,8 @@ export function mount(el: HTMLElement, opts: { onPick: (i: number) => void }): S
   Object.assign(sun.shadow.camera, { left: -70, right: 70, top: 70, bottom: -70, near: 10, far: 300 })
   sun.shadow.bias = -0.0005; sun.shadow.normalBias = 0.04; sun.shadow.radius = 4
   scene.add(sun, sun.target)
+  // The iso view never sees the horizon: the flat background color follows the sky instead.
+  sky.visible = sunDisc.visible = moonDisc.visible = stars.visible = false
 
   // ---- Terrain: large grass plane with gentle color noise, campus pad, pond.
   const groundGeo = new THREE.PlaneGeometry(520, 520, 64, 64)
@@ -235,170 +225,33 @@ export function mount(el: HTMLElement, opts: { onPick: (i: number) => void }): S
     p.userData.plot = i; pads.push(p); scene.add(p)
   }
 
-  // ---- Shared textures for facades.
-  const fac = facadeTextures()
+  // ---- Sidewalks, curbs, planters and lamp posts for every plot, merged into one kit.
+  const gk = new Kit()
+  for (let i = 0; i < COLS * ROWS; i++) { const { x, z } = plotXZ(i); plotGround(gk, x, z, TILE - 1.4, i) }
+  const groundKit = gk.build(); groundKit.position.y = 0.22; scene.add(groundKit)
 
-  /** A building body with windowed facade (floors × window columns) and a flat roof. */
-  function body(w: number, h: number, d: number, color: string, floors: number, roof = '#cfc8bb') {
-    const side = (rep: number) => {
-      const map = fac.map.clone(); map.repeat.set(rep, floors); map.needsUpdate = true
-      const emi = fac.emi.clone(); emi.repeat.set(rep, floors); emi.needsUpdate = true
-      const m = new THREE.MeshStandardMaterial({ color, map, emissive: '#ffcf6a', emissiveMap: emi, emissiveIntensity: 0, roughness: 0.8 })
-      m.userData.window = true
-      return m
-    }
-    const sx = side(Math.max(1, Math.round(d / 3.2))), sz = side(Math.max(1, Math.round(w / 3.2)))
-    const r = mat(roof)
-    return box(w, h, d, [sx, sx, r, r, sz, sz])
-  }
-
-  /** Little rooftop extras that appear as a building levels up. */
-  function rooftop(g: THREE.Group, w: number, d: number, top: number, level: number) {
-    if (level >= 3) { g.add(box(1.6, 1, 1.2, mat('#d5d9de'), -w / 4, top, d / 5), box(1.2, 0.8, 1.2, mat('#c3c8cf'), -w / 4 + 2, top, d / 5)) }
-    if (level >= 6) { g.add(cyl(0.08, 0.08, 4, mat('#8d8a93'), w / 3, top, -d / 3, 4)); g.add(mesh(new THREE.SphereGeometry(0.25, 8, 6), new THREE.MeshStandardMaterial({ color: '#ff6b5b', emissive: '#ff3b2b', emissiveIntensity: 2 }), w / 3, top + 4.1, -d / 3, false)) }
-    if (level >= 9) { for (let i = 0; i < 3; i++) { const p = box(2.2, 0.15, 1.4, mat('#2f4a7a', { metalness: 0.4, roughness: 0.3 }), -w / 3 + i * 2.5, top + 0.6, -d / 4); p.rotation.x = -0.4; g.add(p) } }
-  }
-
-  /** Sawtooth factory roof made of prisms. */
-  function sawtooth(g: THREE.Group, w: number, d: number, top: number, color: string) {
-    const n = Math.max(2, Math.round(w / 2.6)), sw = w / n
-    const shape = new THREE.Shape(); shape.moveTo(0, 0); shape.lineTo(sw, 0); shape.lineTo(sw, 1.8); shape.closePath()
-    const geo = new THREE.ExtrudeGeometry(shape, { depth: d, bevelEnabled: false })
-    for (let i = 0; i < n; i++) g.add(mesh(geo, mat(color), -w / 2 + i * sw, top, -d / 2))
-  }
-
-  type Emitter = { x: number; y: number; z: number; steam?: boolean }
-  /** Build one building model. Returns the group plus smoke emitter points. */
-  function model(p: PlotSnap, i: number): { g: THREE.Group; emit: Emitter[]; spin?: THREE.Object3D; nod?: THREE.Object3D } {
-    const b = BLD[p.type], col = b.color, g = new THREE.Group()
-    const L = Math.min(p.level, 20)
-    const floors = Math.min(9, 1 + Math.floor(L / 2))
-    const emit: Emitter[] = []
-    let spin: THREE.Object3D | undefined, nod: THREE.Object3D | undefined
-    // Contact shadow: soft dark disc on the pad.
-    const cs = mesh(new THREE.CircleGeometry(5.2, 24), new THREE.MeshBasicMaterial({ color: '#000', transparent: true, opacity: 0.16, depthWrite: false }), 0, 0.24, 0, false)
-    cs.rotation.x = -Math.PI / 2; g.add(cs)
-    switch (p.type) {
-      case 'generator': {
-        g.add(box(3, 2, 2.6, mat('#e8e1d4'), 3, 0.2, 2.5))
-        const h = 9 + L * 0.6
-        g.add(cyl(0.45, 0.9, h, mat('#f7f4ee'), 0, 0.2, 0, 12))
-        const hub = new THREE.Group(); hub.position.set(0, h + 0.2, 0.9)
-        hub.add(mesh(new THREE.SphereGeometry(0.5, 10, 8), mat('#8d8a93')))
-        for (let k = 0; k < 3; k++) { const bl = mesh(new THREE.BoxGeometry(0.5, 5.5, 0.12), mat(col)); bl.position.y = 2.8; const arm = new THREE.Group(); arm.rotation.z = (k * Math.PI * 2) / 3; arm.add(bl); hub.add(arm) }
-        g.add(box(1, 0.9, 2, mat('#e8e1d4'), 0, h - 0.2, 0.3))
-        g.add(hub); spin = hub
-        break
-      }
-      case 'pump': {
-        g.add(body(5, 3 + L * 0.3, 4, col, 1, '#7aa6c2').translateX(-2))
-        const tower = new THREE.Group(); tower.position.set(3, 0, 0)
-        for (const [dx, dz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) tower.add(cyl(0.12, 0.12, 7 + L * 0.3, mat('#7d8796'), dx * 1.1, 0.2, dz * 1.1, 5))
-        tower.add(cyl(2, 2, 3, mat(col), 0, 7 + L * 0.3, 0, 20), cyl(0.2, 2.1, 1, mat('#5d8fb0'), 0, 10 + L * 0.3, 0, 20))
-        g.add(tower)
-        break
-      }
-      case 'orchard': {
-        const tr = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1, 0), mat('#6fbf5f', { flatShading: true }), 12)
-        const tk = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.12, 0.16, 1, 5), mat('#8a6a4a'), 12)
-        tr.castShadow = true
-        const o = new THREE.Object3D()
-        let n = 0
-        for (let r = 0; r < 3; r++) for (let c = 0; c < 4; c++) {
-          const s = 0.9 + Math.min(L, 8) * 0.06
-          o.position.set(-4 + c * 2.4, 0.7, -3 + r * 2.4); o.scale.set(1, 1, 1); o.updateMatrix(); tk.setMatrixAt(n, o.matrix)
-          o.position.y = 1.8 * s; o.scale.setScalar(s); o.updateMatrix(); tr.setMatrixAt(n, o.matrix); n++
-        }
-        g.add(tk, tr)
-        for (let k = 0; k < 6; k++) g.add(mesh(new THREE.SphereGeometry(0.18, 6, 4), mat('#e8574f'), -4 + (k % 4) * 2.4 + 0.5, 2.2, -3 + Math.floor(k / 2) * 2.4 + 0.6, false))
-        g.add(box(2.6, 2, 2, mat('#e9c9a3'), 3.6, 0.2, 3.2))
-        break
-      }
-      case 'barnyard': {
-        const h = 4 + L * 0.4
-        g.add(box(6, h, 4.4, mat('#d0604f'), -1, 0.2, 0))
-        const roof = new THREE.Shape(); roof.moveTo(-3.3, 0); roof.lineTo(3.3, 0); roof.lineTo(0, 2.6); roof.closePath()
-        const rf = mesh(new THREE.ExtrudeGeometry(roof, { depth: 4.8, bevelEnabled: false }), mat('#8d3b32'), -1, h + 0.2, -2.4)
-        g.add(rf)
-        g.add(box(1.6, 2.4, 0.1, mat('#fffaf0'), -1, 0.2, 2.25))
-        g.add(cyl(1.3, 1.3, h + 3, mat('#dcd6cc'), 3.8, 0.2, -0.5, 16), mesh(new THREE.SphereGeometry(1.3, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2), mat('#b9b2a5'), 3.8, h + 3.2, -0.5))
-        for (let k = 0; k < 8; k++) g.add(box(0.15, 0.8, 0.15, mat('#fffaf0'), -4.6 + k * 1.3, 0.2, 4.4))
-        break
-      }
-      case 'well': {
-        g.add(box(3, 1, 2, mat('#8d8a93'), 3, 0.2, 2.5))
-        g.add(box(0.6, 4.4, 0.6, mat('#6b6b75'), 0, 0.2, 0))
-        const beam = new THREE.Group(); beam.position.set(0, 4.7, 0)
-        beam.add(box(7, 0.5, 0.6, mat(col), 0, -0.25, 0), box(0.9, 1.8, 0.8, mat('#4a4a52'), -3.5, -1.6, 0))
-        g.add(beam); nod = beam
-        g.add(cyl(0.5, 0.5, 1.2, mat('#4a4a52'), -3.5, 0.2, 0, 10))
-        break
-      }
-      case 'pit': {
-        g.add(mesh(new THREE.CylinderGeometry(4.6, 3.2, 0.6, 18), mat('#a88d5f'), 0, 0.05, 0, false))
-        for (const [dx, dz, s] of [[-3, 3, 1.2], [3.5, -3, 1], [3.6, 3.2, 0.8]] as number[][]) g.add(mesh(new THREE.ConeGeometry(s * 1.4, s * 1.6, 9), mat('#c9ae7e', { flatShading: true }), dx, s * 0.8 + 0.2, dz))
-        const crane = new THREE.Group(); crane.position.set(-3.5, 0.2, -3.5)
-        crane.add(box(0.5, 8, 0.5, mat('#e3b23c')), box(7, 0.4, 0.4, mat('#e3b23c'), 3, 8, 0))
-        crane.add(box(0.08, 3, 0.08, mat('#555'), 5.8, 5, 0))
-        g.add(crane); if (p.busy) spin = crane
-        emit.push({ x: 0, y: 1, z: 0, steam: true }) // dust
-        break
-      }
-      case 'refinery': {
-        g.add(body(4, 3, 4, '#d9d2c4', 1).translateX(-3).translateZ(2.5))
-        for (const [dx, dz] of [[2.5, -2.5], [-1, -3], [2.6, 1.4]]) g.add(cyl(1.6, 1.6, 3 + L * 0.2, mat(col), dx, 0.2, dz, 20), cyl(1.65, 1.65, 0.2, mat('#fff4d6'), dx, 3.2 + L * 0.2, dz, 20))
-        const th = 8 + L * 0.5
-        g.add(cyl(0.5, 0.6, th, mat('#9b9aa3'), -3.6, 0.2, -2.5, 10))
-        emit.push({ x: -3.6, y: th + 0.4, z: -2.5 })
-        break
-      }
-      case 'lab': {
-        const h = 3 + floors * 2.6
-        g.add(body(7, h, 6, '#eef3f6', floors, '#c7d5dc'))
-        g.add(mesh(new THREE.SphereGeometry(2.2, 24, 12, 0, Math.PI * 2, 0, Math.PI / 2), mat(col, { roughness: 0.3, metalness: 0.3 }), 0, h + 0.2, 0))
-        g.add(cyl(0.07, 0.07, 3, mat('#7d8796'), 2.6, h, 2.2, 4))
-        rooftop(g, 7, 6, h + 0.2, L)
-        emit.push({ x: -2.4, y: h + 1, z: 2.2, steam: true })
-        break
-      }
-      default: {
-        if (b.kind === 'retail') {
-          const h = 3 + floors * 2.6
-          g.add(body(8, h, 6.4, col, floors))
-          const aw = new THREE.MeshStandardMaterial({ map: stripeTexture(col), roughness: 0.9 })
-          const a = box(8.4, 0.25, 1.6, aw, 0, 3, 3.9); a.rotation.x = 0.35; g.add(a)
-          const sign = mesh(new THREE.PlaneGeometry(6, 1.5), new THREE.MeshStandardMaterial({ map: signTexture(b.name, col), emissive: '#ffffff', emissiveIntensity: 0, roughness: 0.6 }), 0, h + 1.2, 1.2, false)
-          ;(sign.material as THREE.Material).userData.window = true
-          g.add(sign, box(0.2, 1.4, 0.2, mat('#8d8a93'), -2.5, h + 0.2, 1.2), box(0.2, 1.4, 0.2, mat('#8d8a93'), 2.5, h + 0.2, 1.2))
-          rooftop(g, 8, 6.4, h + 0.2, L)
-          // Display window
-          g.add(box(5, 1.6, 0.1, new THREE.MeshStandardMaterial({ color: '#cfe7ff', emissive: '#ffe2a6', emissiveIntensity: 0, roughness: 0.15, metalness: 0.2 }), 0, 0.6, 3.22))
-        } else {
-          // Generic factory: windowed hall, sawtooth roof, chimney, loading dock.
-          const h = 2.6 + floors * 1.9
-          g.add(body(8.6, h, 6.6, col, Math.max(1, floors - 1)))
-          sawtooth(g, 8.6, 6.6, h + 0.2, '#c8c2b6')
-          const ch = h + 5 + L * 0.3
-          g.add(cyl(0.55, 0.7, ch, mat('#8d8a93'), 3, 0.2, -2.2, 12), cyl(0.62, 0.62, 0.5, mat('#d0584a'), 3, ch - 0.4, -2.2, 12))
-          emit.push({ x: 3, y: ch + 0.5, z: -2.2 })
-          g.add(box(3, 1.2, 1.6, mat('#d9d2c4'), -2.4, 0.2, 4.1))
-          g.add(box(2.4, 2.2, 0.1, mat('#6f6a75'), -2.4, 0.2, 3.32))
-          rooftop(g, 8.6, 6.6, h + 2, L)
-        }
-      }
-    }
-    // Scaffolding while under construction.
+  /** Build one plot's model: high-detail building + contact shadow + scaffolding while building. */
+  function model(p: PlotSnap, i: number) {
+    const b = BLD[p.type]
+    const m = buildModel(p.type, p.level, b.name, b.color, b.kind, i * 31 + 7)
+    // Soft contact shadow (cheap ambient-occlusion look).
+    const cs = mesh(new THREE.PlaneGeometry(9.6, 9.6), new THREE.MeshBasicMaterial({ color: '#000', transparent: true, opacity: 0.12, depthWrite: false }), 0, 0.12, 0, false)
+    cs.rotation.x = -Math.PI / 2; m.g.add(cs)
     if (p.building) {
-      const sc = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(9, 8, 7)), new THREE.LineBasicMaterial({ color: '#e3b23c' }))
-      sc.position.y = 4.2; g.add(sc)
-      g.add(box(1, 1, 1, mat('#e3b23c'), 4.5, 0.2, 4))
+      // Scaffolding: tube frame with planks and a site crane hook.
+      const sk = new Kit(), sm = new THREE.MeshStandardMaterial({ color: '#e3b23c', metalness: 0.4, roughness: 0.5 })
+      for (const x of [-4.4, -1.5, 1.5, 4.4]) for (const z of [-3.6, 3.6]) sk.cyl(0.06, 0.06, 7, sm, x, 0, z, 6)
+      for (let y = 1.6; y < 7; y += 1.8) { sk.box(8.9, 0.08, 0.08, sm, 0, y, 3.6); sk.box(8.9, 0.08, 0.08, sm, 0, y, -3.6); sk.box(8.8, 0.06, 0.6, new THREE.MeshStandardMaterial({ color: '#b48a5a' }), 0, y, 3.9) }
+      m.g.add(sk.build())
     }
-    g.traverse(o => (o.userData.plot = i))
-    return { g, emit, spin, nod }
+    m.g.traverse(o => (o.userData.plot = i))
+    // Collect LOD detail groups so zooming out can hide them.
+    const lod: THREE.Object3D[] = []; m.g.traverse(o => { if (o.userData.lod) lod.push(o) })
+    return { ...m, lod }
   }
 
   // ---- Building bookkeeping: rebuild a plot only when its look changes.
-  const built: ({ key: string; g: THREE.Group; emit: Emitter[]; spin?: THREE.Object3D; nod?: THREE.Object3D } | null)[] = Array(COLS * ROWS).fill(null)
+  const built: ({ key: string; g: THREE.Group; emit: Emitter[]; spin?: THREE.Object3D; nod?: THREE.Object3D; swing?: THREE.Object3D; lod: THREE.Object3D[] } | null)[] = Array(COLS * ROWS).fill(null)
 
   // ---- Smoke / steam particles: one Points cloud shared by all emitters.
   const PN = mobile ? 160 : 360
@@ -460,9 +313,13 @@ export function mount(el: HTMLElement, opts: { onPick: (i: number) => void }): S
   const resize = () => {
     const w = el.clientWidth, h = el.clientHeight || 1
     renderer.setSize(w, h, false); composer.setSize(w, h)
-    camera.aspect = w / h; camera.updateProjectionMatrix()
+    camera.left = -VIEW * w / h; camera.right = VIEW * w / h; camera.top = VIEW; camera.bottom = -VIEW; camera.updateProjectionMatrix()
   }
   const ro = new ResizeObserver(resize); ro.observe(el); resize()
+  // Environment lighting is baked AFTER the first size is set: PMREM rendering
+  // changes the renderer's viewport, so restore the target and size afterwards.
+  setEnv(pmrem.fromScene(new RoomEnvironment(), 0.04).texture) // reflections on metal and glass only
+  renderer.setRenderTarget(null); resize()
 
   // ---- Picking: a click that isn't a drag selects the plot under it.
   const ray = new THREE.Raycaster(), ndc = new THREE.Vector2()
@@ -482,20 +339,25 @@ export function mount(el: HTMLElement, opts: { onPick: (i: number) => void }): S
   renderer.domElement.addEventListener('pointerdown', onDown)
   renderer.domElement.addEventListener('pointerup', onUp)
 
+  // Focus the camera on one plot (used by the screenshot tool, and handy for debugging).
+  ;(globalThis as any).__lwFocus = (i: number, zoom = 3, turn = 0) => {
+    const { x, z } = plotXZ(i); controls.target.set(x, 0, z); camera.zoom = zoom; camera.updateProjectionMatrix(); azGoal = az = Math.PI / 4 + turn * Math.PI / 2
+  }
+
   // ---- State from React
   let snap: Snapshot = { plots: [], slots: 0, hour: 12, sel: null }
   function update(s: Snapshot) {
     snap = s
     for (let i = 0; i < COLS * ROWS; i++) {
       const p = s.plots[i]
-      const key = p ? `${p.type}|${Math.min(p.level, 20)}|${p.building}|${p.busy && p.type === 'pit'}` : ''
+      const key = p ? `${p.type}|${Math.min(p.level, 20)}|${p.building}` : ''
       if ((built[i]?.key ?? '') !== key) {
-        if (built[i]) { scene.remove(built[i]!.g); built[i] = null }
+        if (built[i]) { scene.remove(built[i]!.g); built[i]!.g.traverse(o => (o as THREE.Mesh).geometry?.dispose()); built[i] = null }
         if (p) {
           const m = model(p, i), { x, z } = plotXZ(i)
           m.g.position.set(x, 0.22, z)
           // Face the nearest road edge for variety.
-          m.g.rotation.y = Math.floor(i / COLS) < ROWS / 2 ? 0 : Math.PI
+          m.g.rotation.y = 0 // every front faces the default iso view
           scene.add(m.g); built[i] = { key, ...m }
           // Pop-in animation
           m.g.scale.setScalar(0.01); m.g.userData.grow = 0
@@ -523,7 +385,10 @@ export function mount(el: HTMLElement, opts: { onPick: (i: number) => void }): S
   let pi = 0, emitAcc = 0
   renderer.setAnimationLoop(() => {
     const dt = Math.min(0.05, clock.getDelta()), t = clock.elapsedTime
+    // Turn toward the goal angle (90-degree steps), keep the iso offset, then let controls damp pan/zoom.
+    az += (azGoal - az) * Math.min(1, dt * 8); placeCam()
     controls.update()
+    const showDetail = camera.zoom > 1.05 // LOD: hide tiny parts when zoomed out
     // Keep panning near the campus.
     controls.target.x = THREE.MathUtils.clamp(controls.target.x, -60, 60)
     controls.target.z = THREE.MathUtils.clamp(controls.target.z, -50, 50)
@@ -534,20 +399,20 @@ export function mount(el: HTMLElement, opts: { onPick: (i: number) => void }): S
     sunDisc.position.set(sx, sy, sz); moonDisc.position.set(-sx, -sy, -sz)
     const up = td.elev > -0.05
     sun.position.copy(up ? sunDisc.position : moonDisc.position).multiplyScalar(0.5)
-    sun.intensity = up ? 2.6 * Math.max(0.15, td.elev) + 0.3 : 0.55
+    sun.intensity = up ? 2.2 * Math.max(0.15, td.elev) + 0.3 : 0.5
     sun.color.copy(up ? C('#fff1d6').lerp(C('#ffb27a'), td.dusk) : C('#9fb4ff'))
-    hemi.intensity = 0.35 + 0.65 * (1 - td.night)
+    hemi.intensity = 0.35 + 0.6 * (1 - td.night)
     hemi.color.copy(C('#dff1ff').lerp(C('#5a6a9a'), td.night))
     skyU.top.value.copy(C('#5aa7e6').lerp(C('#0d1738'), td.night)).lerp(C('#7d6fb5'), td.dusk * 0.4)
     skyU.bottom.value.copy(C('#e9f3f7').lerp(C('#26305a'), td.night)).lerp(C('#ffb48a'), td.dusk * 0.7)
     ;(scene.fog as THREE.Fog).color.copy(skyU.bottom.value)
+    ;(scene.background as THREE.Color).copy(skyU.bottom.value)
     ;(stars.material as THREE.PointsMaterial).opacity = td.night
-    renderer.toneMappingExposure = 1.05 - td.night * 0.25
+    renderer.toneMappingExposure = 0.9 - td.night * 0.2
     bloom.strength = 0.18 + td.night * 0.9
     bulbM.emissiveIntensity = td.night * 3
     const glow = td.night * 2.2 + td.dusk * 0.4
-    scene.traverse(o => { const m = (o as THREE.Mesh).material as THREE.MeshStandardMaterial | undefined; if (m && !Array.isArray(m) && m.userData?.window) m.emissiveIntensity = glow })
-    for (const b of built) if (b) for (const m of b.g.children) { const mm = (m as THREE.Mesh).material; if (Array.isArray(mm)) for (const x of mm) if ((x as any).userData?.window) (x as THREE.MeshStandardMaterial).emissiveIntensity = glow }
+    for (const m of GLOW) m.emissiveIntensity = glow
     pMat.uniforms.night.value = td.night
 
     // Building animations: pop-in, windmill blades, pumpjack nod, crane swing.
@@ -555,7 +420,9 @@ export function mount(el: HTMLElement, opts: { onPick: (i: number) => void }): S
       if (!b) return
       if (b.g.userData.grow < 1) { b.g.userData.grow = Math.min(1, b.g.userData.grow + dt * 3); const k = b.g.userData.grow; b.g.scale.setScalar(1 - Math.pow(1 - k, 3) * 0.99 + Math.sin(k * Math.PI) * 0.06) }
       const busy = snap.plots[i]?.busy
-      if (b.spin && busy) { if (snap.plots[i]?.type === 'pit') b.spin.rotation.y = Math.sin(t * 0.6) * 0.8; else b.spin.rotation.z -= dt * 3 }
+      if (b.spin && busy) b.spin.rotation.z -= dt * 3
+      if (b.swing && busy) b.swing.rotation.y = Math.sin(t * 0.6) * 0.8
+      for (const o of b.lod) o.visible = showDetail
       if (b.nod && busy) b.nod.rotation.z = Math.sin(t * 2.2) * 0.22
       if (snap.sel === i) b.g.position.y = 0.22 + Math.sin(t * 4) * 0.08
       else b.g.position.y = 0.22
@@ -598,9 +465,10 @@ export function mount(el: HTMLElement, opts: { onPick: (i: number) => void }): S
 
   return {
     update,
+    rotate(dir: 1 | -1) { azGoal += (dir * Math.PI) / 2 },
     snapshot: () => renderer.domElement.toDataURL('image/png'),
     dispose() {
-      renderer.setAnimationLoop(null); ro.disconnect(); controls.dispose()
+      renderer.setAnimationLoop(null); ro.disconnect(); controls.dispose(); removeEventListener('keydown', onKey); pmrem.dispose()
       renderer.domElement.removeEventListener('pointerdown', onDown); renderer.domElement.removeEventListener('pointerup', onUp)
       renderer.dispose(); el.removeChild(renderer.domElement)
     },

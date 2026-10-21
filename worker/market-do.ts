@@ -84,6 +84,7 @@ export class MarketDO {
       case 'buy': r = P.buy(L, a, n(b.id), n(b.qty)); break
       case 'offer': r = P.offer(L, a, String(b.to), String(b.res), n(b.q), n(b.qty), n(b.price), now); break
       case 'answer': r = P.answer(L, a, n(b.id), b.how); break
+      case 'delete': P.deleteAccount(L, a); await this.state.storage.put('ledger', L); return Response.json({ ok: true, deleted: a.name })
       default: return err('unknown op', 404)
     }
     if (typeof r === 'string') return err(r)

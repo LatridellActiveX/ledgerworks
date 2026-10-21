@@ -49,3 +49,15 @@ describe('p2p ledger', () => {
     expect(P.grade(0)).toBe('C')
   })
 })
+describe('account deletion', () => {
+  it('removes the account, its orders, and returns offers sent to it', () => {
+    const L = P.emptyLedger()
+    P.register(L, 'alice', 'h1', 'A', 0); P.register(L, 'bob', 'h2', 'B', 0)
+    const a = L.accounts.alice, b = L.accounts.bob
+    P.deposit(a, 0, [{ res: 'seeds', q: 0, qty: 10 }]); P.deposit(b, 0, [{ res: 'seeds', q: 0, qty: 5 }])
+    P.list(L, a, 'seeds', 0, 4, 1, 0); P.offer(L, b, 'alice', 'seeds', 0, 5, 1, 0)
+    expect(P.deleteAccount(L, a)).toBe(true)
+    expect(L.accounts.alice).toBeUndefined(); expect(L.orders.length).toBe(0); expect(L.contracts.length).toBe(0)
+    expect(b.depot['seeds|0']).toBe(5)
+  })
+})

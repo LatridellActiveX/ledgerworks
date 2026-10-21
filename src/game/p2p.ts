@@ -165,3 +165,17 @@ export const view = (L: Ledger, a: Account) => ({
   orders: L.orders.filter(o => o.seller === a.name),
   inbox: L.contracts.filter(c => c.to === a.name), outbox: L.contracts.filter(c => c.from === a.name),
 })
+
+/**
+ * Delete your own account (needs your key; no admin). Your open orders and
+ * the offers you sent are removed with it. Offers other players sent you go
+ * back to their depots. Wallet and depot contents are discarded, so the UI
+ * asks you to take them home first.
+ */
+export function deleteAccount(L: Ledger, a: Account): R {
+  L.orders = L.orders.filter(o => o.seller !== a.name)
+  for (const c of L.contracts) if (c.to === a.name) { const f = L.accounts[c.from]; if (f) f.depot[k(c.res, c.q)] = (f.depot[k(c.res, c.q)] ?? 0) + c.qty }
+  L.contracts = L.contracts.filter(c => c.to !== a.name && c.from !== a.name)
+  delete L.accounts[a.name]
+  return true
+}

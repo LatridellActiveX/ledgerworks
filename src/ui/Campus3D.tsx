@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from 'react'
 import type { GameState } from '../game/engine'
 import { Campus } from './campus'
 
-type Handle = { update(s: unknown): void; dispose(): void }
+type Handle = { update(s: unknown): void; dispose(): void; rotate?(dir: 1 | -1): void }
 declare const __BUILD_ID__: string
 
 /** Load the 3D module: a separate file in production, a normal import in dev. */
@@ -45,6 +45,11 @@ export function Campus3D({ s, slots, sel, onPick, mode }: { s: GameState; slots:
   return (
     <div className="scene3d" ref={box}>
       {state === 'loading' && <div className="scene-loading"><span className="spinner" /> Building your campus…</div>}
+      {/* Turn the isometric view in 90-degree steps (also Q / E). */}
+      {state === 'ready' && <div className="rot-tools">
+        <button title="Turn view left (Q)" onClick={() => handle.current?.rotate?.(-1)}>⟲</button>
+        <button title="Turn view right (E)" onClick={() => handle.current?.rotate?.(1)}>⟳</button>
+      </div>}
     </div>
   )
 }

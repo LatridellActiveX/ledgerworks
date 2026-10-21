@@ -4,6 +4,12 @@ export interface ChangeEntry { id: string; date: string; title: string; notes: s
 
 export const CHANGELOG: ChangeEntry[] = [
   {
+    id: 'iso-pass-high-detail-models-account-delete',
+    date: '2026-10-21',
+    title: 'Isometric campus with detailed buildings',
+    notes: ['The campus is now a crisp 2.5D isometric view: drag to pan, scroll or pinch to zoom, and turn it in 90-degree steps with the arrow buttons or Q / E.', 'Every one of the 40 building types has a new, highly detailed model: framed windows with mullions and sills, cornices and parapets, entrances with steps, loading docks with roll-up doors, rooftop air units, vents, ladders, catwalks, riveted tanks, chimneys, fences, pallets and readable signs.', 'Type-specific scenes: orchard rows, crop fields and a greenhouse, animal pens and beehives, pumpjacks, gas derricks, distillation columns, cranes, conveyors, test tracks and a car lot full of cars.', 'Buildings grow with level: more floors, side wings and rooftop gear.', 'Brick, concrete, metal and wood surfaces, plus glass that reflects. Every plot gets sidewalks, planters and a street lamp.', 'Owners can delete their own trading account from the Trade floor.'],
+  },
+  {
     id: 'stage12-111-goods-seasons-realm',
     date: '2026-10-21',
     title: '111 goods and the Seasons realm',

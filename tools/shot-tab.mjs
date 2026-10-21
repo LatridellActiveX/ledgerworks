@@ -27,6 +27,8 @@ if (lvl) {
 if (tab) await p.getByRole('button', { name: tab, exact: true }).click({ force: true })
 await p.waitForTimeout(400)
 if (process.argv[5]) await p.locator('.plot, .tile').nth(Number(process.argv[5])).click({ force: true })
+// FOCUS=plot,zoom[,turn]: centre the iso camera on one plot.
+if (process.env.FOCUS) { await p.waitForTimeout(3500); const [i, z, t] = process.env.FOCUS.split(',').map(Number); await p.evaluate(([i, z, t]) => globalThis.__lwFocus?.(i, z, t || 0), [i, z, t]); await p.waitForTimeout(1500) }
 // ZOOM=n: scroll-zoom the 3D camera in for a close-up; CLICK=x,y clicks the canvas.
 if (process.env.ZOOM) { await p.waitForTimeout(4000); const c = await p.locator('.scene3d canvas').boundingBox(); await p.mouse.move(c.x + c.width * 0.55, c.y + c.height * 0.5); for (let i = 0; i < Number(process.env.ZOOM); i++) { await p.mouse.wheel(0, -200); await p.waitForTimeout(60) } }
 if (process.env.CLICK) { const c = await p.locator('.scene3d canvas').boundingBox(); const [fx, fy] = process.env.CLICK.split(',').map(Number); await p.mouse.click(c.x + c.width * fx, c.y + c.height * fy) }

@@ -196,3 +196,8 @@ select, input { border-radius: 10px; border: 1px solid #e6dac4; background: #fff
 .season-winter { background: linear-gradient(135deg, #e3f0ff, #b9d4f2) }
 select.realm { border-radius: 999px; padding: 4px 10px; font: inherit; font-size: 12px }
 .season-over { margin: 8px 12px; padding: 12px 16px; border-radius: 14px; background: linear-gradient(135deg, #fff6d8, #ffe2a8); display: flex; gap: 12px; align-items: center }
+
+/* Iso pass: view rotation buttons */
+.rot-tools { position: absolute; left: 10px; bottom: 10px; display: flex; gap: 6px; z-index: 3 }
+.rot-tools button { width: 36px; height: 36px; border-radius: 12px; font-size: 18px; padding: 0 }
+
