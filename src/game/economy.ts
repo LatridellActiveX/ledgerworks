@@ -25,12 +25,12 @@ export function adminOverhead(levels: number[]) {
 
 export const ACCOUNTING_FREE = 2_500_000
 /** Daily accounting rate for a cash balance. */
-export function accountingRate(cash: number) {
-  if (cash <= ACCOUNTING_FREE) return 0
-  const steps = Math.ceil((cash - ACCOUNTING_FREE) / ACCOUNTING_FREE)
+export function accountingRate(cash: number, free = ACCOUNTING_FREE) {
+  if (cash <= free) return 0
+  const steps = Math.ceil((cash - free) / ACCOUNTING_FREE)
   return Math.min(0.024, steps * 0.004)
 }
-export const accountingFee = (cash: number) => Math.round(accountingRate(cash) * Math.max(0, cash - ACCOUNTING_FREE))
+export const accountingFee = (cash: number, free = ACCOUNTING_FREE) => Math.round(accountingRate(cash, free) * Math.max(0, cash - free))
 
 /** Production speed multiplier for a building type in a phase. */
 export function productionMult(type: string, phase: Phase = 'normal') {

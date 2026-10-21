@@ -75,6 +75,7 @@ export function buy(s: GameState, res: string, qty: number, minQ = 0): string | 
   }
   s.asks = s.asks.filter(o => o.qty > 0)
   s.cash -= cost
+  s.stats.exSpend += cost
   return null
 }
 /** What buying `qty` would cost right now (Infinity if the book is too thin). */
@@ -122,6 +123,7 @@ export function quickSell(s: GameState, res: string, q: number, qty: number): st
   if (crates) takeStock(s, 'crates', crates)
   s.bidLeft[res] -= qty
   s.cash += qty * bidPrice(s, res, q) * (1 - FEE)
+  s.stats.exRev += qty * bidPrice(s, res, q)
   s.exSold[res] = (s.exSold[res] ?? 0) + qty
   return null
 }
@@ -145,6 +147,7 @@ export function npcHour(s: GameState, say: (m: string) => void) {
       if (o.owner === 'me') {
         const used = Math.min(o.crates, cratesFor(r.id, t)); o.crates -= used
         s.cash += t * o.price * (1 - FEE)
+        s.stats.exRev += t * o.price
         s.exSold[r.id] = (s.exSold[r.id] ?? 0) + t
         if (o.qty <= 1e-9) say(`Exchange: your ${RES[r.id].name} Q${o.q} order sold out.`)
       }

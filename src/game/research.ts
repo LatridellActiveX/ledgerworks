@@ -67,3 +67,6 @@ export function applyResearch(s: GameState, res: string, n: number, takeNotes: (
   s.patents[res] = (s.patents[res] ?? 0) + got
   return got
 }
+
+/** Quality reached for a raw patent count (used by achievements). */
+export function qFromPatents(p: number) { let q = 0; while (q < 12 && p >= PATENTS_FOR_Q[q + 1]) q++; return q }

@@ -15,6 +15,8 @@ import { CHANGELOG } from './changelog'
 import { RetailPanel } from './ui/RetailPanel'
 import { Exchange } from './ui/Exchange'
 import { Research } from './ui/Research'
+import { Board } from './ui/Board'
+import { cashLineBonus, checkAchievements } from './game/execs'
 import { PHASE_LABEL, accountingFee, productionMult } from './game/economy'
 import { cloudKey, cloudLoad, cloudSave, syncWorld, useCloudKey } from './game/cloud'
 import './app.css'
@@ -23,12 +25,13 @@ export default function App() {
   const [s, setS] = useState<E.GameState>(() => E.advanceReal(loadGame()))
   const [sel, setSel] = useState<number | null>(null)
   const [msg, setMsg] = useState('')
-  const [tab, setTab] = useState<'warehouse' | 'exchange' | 'research' | 'market' | 'log' | 'changes'>('warehouse')
+  const [tab, setTab] = useState<'warehouse' | 'exchange' | 'research' | 'board' | 'market' | 'log' | 'changes'>('warehouse')
 
   /** Run a mutating engine action on a copy, show its error if any. */
   const act = (f: (st: E.GameState) => string | null | void) => {
     const next = structuredClone(s)
     const err = f(next)
+    if (!err) for (const m of checkAchievements(next)) next.log.unshift(m)
     setMsg(err || '')
     if (!err) { setS(next); saveGame(next) }
   }
@@ -68,7 +71,7 @@ export default function App() {
         </span>
         <span className="pill">{clock(s.hour)}</span>
         <span className={`pill phase-${s.phase ?? 'normal'}`} title="Boom: shops sell faster, factories slower. Recession: the reverse.">Economy: {PHASE_LABEL[s.phase ?? 'normal']}</span>
-        <span className="pill" title={`Admin overhead raises every wage bill. Accounting fee today: ${money(accountingFee(s.cash))}`}>Overhead {(E.overhead(s) * 100).toFixed(1)}%</span>
+        <span className="pill" title={`Admin overhead raises every wage bill. Accounting fee today: ${money(accountingFee(s.cash, 2_500_000 + cashLineBonus(s)))}`}>Overhead {(E.overhead(s) * 100).toFixed(1)}%</span>
         <span className="grow" />
         <button onClick={() => { navigator.clipboard?.writeText(exportCode(s)); setMsg('Save code copied to clipboard') }}>Copy save</button>
         <button onClick={() => { const c = prompt('Paste a save code'); if (c) try { const n = importCode(c.trim()); setS(n); saveGame(n) } catch (e: any) { setMsg(e.message) } }}>Load save</button>
@@ -92,12 +95,13 @@ export default function App() {
       </main>
 
       <nav className="tabs">
-        {(['warehouse', 'exchange', 'research', 'market', 'log', 'changes'] as const).map(t => <button key={t} className={tab === t ? 'on' : ''} onClick={() => setTab(t)}>{t === 'warehouse' ? 'Warehouse' : t === 'exchange' ? 'Exchange' : t === 'research' ? 'Research' : t === 'market' ? 'Public demand' : t === 'log' ? 'Events' : 'Change log'}</button>)}
+        {(['warehouse', 'exchange', 'research', 'board', 'market', 'log', 'changes'] as const).map(t => <button key={t} className={tab === t ? 'on' : ''} onClick={() => setTab(t)}>{t === 'warehouse' ? 'Warehouse' : t === 'exchange' ? 'Exchange' : t === 'research' ? 'Research' : t === 'board' ? 'Board & goals' : t === 'market' ? 'Public demand' : t === 'log' ? 'Events' : 'Change log'}</button>)}
       </nav>
       <section className="bottom">
         {tab === 'warehouse' && <Warehouse s={s} />}
         {tab === 'exchange' && <Exchange s={s} act={act} />}
         {tab === 'research' && <Research s={s} act={act} />}
+        {tab === 'board' && <Board s={s} act={act} />}
         {tab === 'market' && <Demand s={s} />}
         {tab === 'log' && <ul className="log">{s.log.map((l, i) => <li key={i}>{l}</li>)}</ul>}
         {tab === 'changes' && <ul className="log">{CHANGELOG.map(c => <li key={c.id}><b>{c.date} · {c.title}</b> — {c.notes.join(' ')}</li>)}</ul>}

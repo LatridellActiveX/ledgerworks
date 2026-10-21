@@ -119,3 +119,18 @@ button.primary { background: linear-gradient(#ea8a70, #db6d52); font-weight: 600
 .scaffold rect { animation: belt 1s linear infinite }
 .smoke circle, .spin, .nod { transform-box: view-box }
 @media (prefers-reduced-motion: reduce) { .smoke circle, .spin, .nod, .belt, .bob, .blink { animation: none } }
+.boardtab { display: grid; grid-template-columns: 1.6fr 1fr; gap: 16px }
+.boardtab h4 { margin: 4px 0 8px }
+.seats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 10px }
+.seat { margin: 0; gap: 4px }
+.who { font-weight: 600 }
+.skills { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; font-size: 12px }
+.skills span { position: relative; background: #fff; border-radius: 6px; padding: 2px 6px; overflow: hidden }
+.skills i { position: absolute; left: 0; bottom: 0; height: 3px; background: #9fd49a }
+.skills .hi { box-shadow: inset 0 0 0 1px #e07a5f }
+.seat .row button { padding: 3px 8px; font-size: 12px }
+.achs { display: flex; flex-direction: column; gap: 6px }
+.ach { display: flex; gap: 10px; align-items: center; background: #fff; border-radius: 10px; padding: 6px 10px; box-shadow: inset 0 0 0 1px var(--line) }
+.ach.got { background: linear-gradient(90deg, #fff4d6, #fff) }
+.medal { color: #e3b23c; font-size: 16px; min-width: 40px }
+@media (max-width: 900px) { .boardtab { grid-template-columns: 1fr } .seats { grid-template-columns: 1fr 1fr } }

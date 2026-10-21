@@ -14,8 +14,10 @@
 // ============================================================================
 import { BLD, REC, RES } from './data'
 import { marketDay, npcHour, restockNpc, type Order } from './market'
-import { accountingFee, adminOverhead, isPhaseDay, nextPhase, PHASE_LABEL, productionMult, retailMult } from './economy'
+import { ACCOUNTING_FREE, accountingFee, adminOverhead, isPhaseDay, nextPhase, PHASE_LABEL, productionMult, retailMult } from './economy'
 import { rand } from './rng'
+import * as X from './execs'
+import { qFromPatents } from './research'
 import { applyResearch, RESEARCH_LEVEL, researchable, researchedQ } from './research'
 
 export const GAME_SPEED = 4 // game hours per real hour
@@ -61,6 +63,11 @@ export interface GameState {
   patents: Record<string, number> // patents per product
   /** Daily going price per good, last 30 days (for charts). */
   priceHist?: Record<string, number[]>
+  // --- Executives & achievements (stage 9) ---
+  execs: Partial<Record<X.Seat, X.Exec>>
+  candidates: X.Exec[]
+  stats: X.Stats
+  ach: Record<string, number> // tiers reached per achievement
 }
 
 // --------------------------------------------------------------------------
@@ -113,9 +120,10 @@ export function newGame(company = 'My Company', now = Date.now()): GameState {
   const s: GameState = {
     version: 1, company, cash: START_CASH, xp: 0, hour: 8, lastReal: now, nextUid: 1,
     plots: Array(24).fill(null), stock: {}, saturation: {}, soldToday: {}, log: ['Welcome to Ledgerworks!'],
-    seed: 12345, ref: {}, asks: [], bidLeft: {}, exSold: {}, patents: {},
+    seed: 12345, ref: {}, asks: [], bidLeft: {}, exSold: {}, patents: {}, execs: {}, candidates: [], stats: X.emptyStats(), ach: {},
   }
   restockNpc(s)
+  X.newCandidates(s)
   return s
 }
 
@@ -136,6 +144,7 @@ export function construct(s: GameState, plot: number, type: string): string | nu
   s.cash -= b.cost
   s.plots[plot] = { uid: s.nextUid++, type, level: 1, job: { kind: 'build', endH: s.hour + buildHours(1) } }
   s.xp += b.cost / 200
+  s.stats.built++
   say(s, `Started building a ${b.name}.`)
   return null
 }
@@ -178,7 +187,7 @@ export function scrap(s: GameState, plot: number): string | null {
 export const makeHours = (res: string, qty: number, level: number, type?: string, s?: GameState) =>
   qty / (REC[res].perHour * level * (type && s ? productionMult(type, s.phase) : 1))
 /** Company admin overhead fraction from all building levels. */
-export const overhead = (s?: GameState) => (s ? adminOverhead(s.plots.filter(Boolean).map(b => b!.level)) : 0)
+export const overhead = (s?: GameState) => (s ? adminOverhead(s.plots.filter(Boolean).map(b => b!.level)) * (1 - X.overheadCut(s)) : 0)
 /** Wages for `hours` of work, including admin overhead when a state is given. */
 export const makeWages = (type: string, level: number, hours: number, s?: GameState) => BLD[type].wage * level * hours * (1 + overhead(s))
 
@@ -219,7 +228,7 @@ export function sellRate(s: GameState, res: string, q: number, price: number) {
   const r = RES[res]
   const base = (r.dailyDemand ?? 0) / 24
   const sat = s.saturation[res] ?? 1
-  return base * Math.pow(fairPrice(res, q) / price, 2.2) * (1 + 0.12 * q) / sat * retailMult(s.phase)
+  return base * Math.pow(fairPrice(res, q) / price, 2.2) * (1 + 0.12 * q) / sat * retailMult(s.phase) * X.retailBoost(s)
 }
 export const sellHours = (s: GameState, res: string, q: number, price: number, qty: number, level: number) =>
   qty / (sellRate(s, res, q, price) * level)
@@ -254,7 +263,11 @@ export function rollDay(s: GameState) {
   }
   s.soldToday = {}
   // Accounting fee on large cash piles.
-  const fee = accountingFee(s.cash)
+  // Executives: pay salaries; refresh candidates weekly.
+  const pay = X.dailySalaries(s)
+  if (pay > 0) { s.cash -= pay; say(s, `Executive salaries: $${pay.toLocaleString()}.`) }
+  if (Math.floor(s.hour / 24) % 7 === 0) X.newCandidates(s)
+  const fee = accountingFee(s.cash, ACCOUNTING_FREE + X.cashLineBonus(s))
   if (fee > 0) { s.cash -= fee; say(s, `Accounting fee: $${fee.toLocaleString()}.`) }
   // Weekly economy roll (offline only; online the server decides).
   const day = Math.floor(s.hour / 24)
@@ -279,6 +292,7 @@ function finishJob(s: GameState, bd: Building) {
   } else if (j.kind === 'sell') {
     const rev = j.qty * j.price
     s.cash += rev
+    s.stats.retailRev += rev
     s.soldToday[j.res] = (s.soldToday[j.res] ?? 0) + j.qty
     s.xp += rev / 50
     say(s, `${name} sold ${Math.round(j.qty)} ${RES[j.res].name} for $${Math.round(rev).toLocaleString()}.`)
@@ -307,6 +321,7 @@ export function advanceTo(s: GameState, toHour: number): GameState {
     }
   }
   s.hour = Math.max(s.hour, toHour)
+  for (const m of X.checkAchievements(s)) say(s, m)
   return s
 }
 
@@ -345,4 +360,6 @@ export function research(s: GameState, res: string, n: number, bonus = 1): strin
 }
 
 /** Patent chance multiplier from executives (CTO arrives in stage 9). */
-export const patentBonus = (_s: GameState) => 1
+export const patentBonus = (s: GameState) => X.techBoost(s)
+
+X.setQualityFn(qFromPatents)

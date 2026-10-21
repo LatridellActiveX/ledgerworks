@@ -4,6 +4,12 @@ export interface ChangeEntry { id: string; date: string; title: string; notes: s
 
 export const CHANGELOG: ChangeEntry[] = [
   {
+    id: 'stage9-executives-achievements',
+    date: '2026-10-21',
+    title: 'The board and your goals',
+    notes: ['Executives from level 12: Operations (cuts overhead), Finance (raises the tax-free cash line), Marketing (faster shops) and Technology (better patent odds) chiefs. Each seat also gets a quarter of the matching skill from the rest of the board.', 'New candidates every week; signing bonus, daily salary and training.', '11 tiered achievements with cash rewards, shown on the new Board & goals tab.'],
+  },
+  {
     id: 'gfx-overhaul-iso-campus',
     date: '2026-10-21',
     title: 'A whole new look',
