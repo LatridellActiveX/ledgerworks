@@ -33,6 +33,8 @@ import { setSound, setVolume, sfx, soundOn, testSounds, unlockAudio, volume, SFX
 import { actionSfx, tickSfx } from './ui/sfxFor'
 import { clock, dur, money, num } from './ui/fmt'
 import { CHANGELOG } from './changelog'
+import { Crest } from './ui/Crest'
+import { renameCompany } from './game/company'
 import { RetailPanel } from './ui/RetailPanel'
 import { Exchange } from './ui/Exchange'
 import { Research } from './ui/Research'
@@ -155,7 +157,7 @@ export default function App() {
       {/* Top HUD: menu + company badge (left); cash, level, bell, info (right). */}
       <div className="hud-top">
         <button className="hud-btn burger" aria-label="Menu" onClick={() => setMenu(true)}><span /><span /><span /></button>
-        <button className="hud-badge" title={s.company} aria-label="Company" onClick={() => open('value')}><Logo /></button>
+        <button className="hud-badge" title={s.company} aria-label="Company" onClick={() => open('value')}><Crest name={s.company} size={36} /></button>
         <span className="grow" />
         <button className="hud-btn bell" aria-label="Notifications" onClick={() => open('log')}>🔔{unseen > 0 && <i>{unseen > 99 ? '99+' : unseen}</i>}</button>
         <div className="hud-stats">
@@ -222,7 +224,23 @@ export default function App() {
           {screen === 'account' && <div className="menu-list">
             {user ? <p>Signed in as <b>{user}</b> <button onClick={async () => { await A.logout().catch(() => {}); setUser(null); A.setGuest(true); setMsg('Signed out') }}>Log out</button></p>
               : <><p className="muted">Playing as a guest. Create an account to keep this company safe and play on any device.</p><button className="primary" onClick={() => setShowLogin(true)}>Sign in or create account</button></>}
-            <p><b>{s.company}</b> · {s.online ? '● online' : '○ offline'} · Overhead {(E.overhead(s) * 100).toFixed(1)}% <small className="muted">(accounting fee today {money(accountingFee(s.cash, 2_500_000 + cashLineBonus(s)))})</small></p>
+            <div className="crest-row">
+              <Crest name={s.company} size={84} />
+              <div>
+                <b className="co-name">{s.company}</b>
+                <small className="muted">Level {E.companyLevel(s.xp)} company</small>
+                <button onClick={() => {
+                  const raw = prompt('New company name (2 to 40 characters)', s.company)
+                  if (raw === null) return
+                  const r = renameCompany(s, raw)
+                  if ('error' in r) { setMsg(r.error); return }
+                  setS(r.state); saveGame(r.state)
+                  setMsg(`Renamed to ${r.state.company}`)
+                  if (T.account()) T.p2p('me', { company: r.state.company }).catch(() => {})
+                }}>✎ Rename company</button>
+              </div>
+            </div>
+            <p>{s.online ? '● online' : '○ offline'} · Overhead {(E.overhead(s) * 100).toFixed(1)}% <small className="muted">(accounting fee today {money(accountingFee(s.cash, 2_500_000 + cashLineBonus(s)))})</small></p>
             <label>Realm <select className="realm" value={SEA.realm()} title="Classic: play forever. Seasons: a timed season with weather phases, then a fresh start." onChange={e => { saveGame(s); SEA.setRealm(e.target.value as SEA.Realm); location.reload() }}>
               <option value="classic">Classic realm</option><option value="seasons">Seasons realm</option></select></label>
             {s.realm === 'seasons' && (() => { const se = SEA.seasonAt(); return <p className={`season-${se.phase}`}>Season {s.season} · {se.phase} · {se.daysLeft}d left — {SEA.PHASE_NOTE[se.phase]}</p> })()}

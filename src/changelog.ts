@@ -4,6 +4,11 @@ export interface ChangeEntry { id: string; date: string; title: string; notes: s
 
 export const CHANGELOG: ChangeEntry[] = [
   {
+    id: 'company-crest-rename',
+    date: '2026-10-21',
+    title: 'Rename your company, and a company crest',
+    notes: ["Rename your company from the menu (Account screen). Names are 2 to 40 characters: letters, numbers, spaces and . , ' & -.", "Every company has a crest made from its name: a shaped badge with gradients, stripes, a gold engraved ring and a star medallion. It shows on the company badge in the HUD, on the Account screen and on Company Value. Renaming redraws it."] },
+  {
     id: 'tradefloor-session',
     date: '2026-10-21',
     title: "One sign-in for the trade floor",

@@ -10,6 +10,7 @@
 //    publish their value). Offline or with no data, the rank card says so.
 // ============================================================================
 import { PlayerSearch } from './Players'
+import { Crest } from './Crest'
 import { useEffect, useState } from 'react'
 import type { GameState } from '../game/engine'
 import { valueBreakdown } from '../game/value'
@@ -52,6 +53,7 @@ export function CompanyValue({ s, onPlayer }: { s: GameState; onPlayer?: (name: 
   return (
     <div className="cvalue">
       <div className="card cv-total">
+        <div className="cv-crest"><Crest name={s.company} size={96} /><div><small>{s.company}</small></div></div>
         <small>Total company value</small>
         <b>{money(b.total)}</b>
         {pts.length > 1 && <span className={change >= 0 ? 'up' : 'down'}>{change >= 0 ? '▲' : '▼'} {money(Math.abs(change))} over {num(Math.round((s.hour - pts[0].h) / 24))} days</span>}

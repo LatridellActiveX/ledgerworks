@@ -334,6 +334,11 @@ html, body { height: 100%; overflow: hidden; overscroll-behavior: none }
 .burger span { display: block; width: 22px; height: 3px; border-radius: 2px; background: #fff }
 .hud-badge { width: 52px; height: 52px; border-radius: 50%; border: 3px solid #fff; background: #fffaf2; display: grid; place-items: center; box-shadow: 0 4px 12px #0003; padding: 0 }
 .hud-badge svg { width: 32px; height: 32px }
+.crest { display: block; flex: none; filter: drop-shadow(0 2px 4px #0003) }
+.crest-row { display: flex; gap: 14px; align-items: center; margin: 8px 0 12px }
+.crest-row .co-name { display: block; font-size: 1.2em }
+.cv-crest { display: flex; align-items: center; gap: 12px; margin-bottom: 6px }
+.cv-crest small { font-size: 1.05em; font-weight: 700 }
 .bell { font-size: 20px }
 .bell i { position: absolute; top: -4px; right: -4px; min-width: 20px; height: 20px; border-radius: 10px; background: #e5484d; color: #fff; font: 700 11px/20px system-ui; font-style: normal; padding: 0 5px }
 .hud-stats { display: flex; flex-direction: column; align-items: stretch; gap: 4px; min-width: 150px }
