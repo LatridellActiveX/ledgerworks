@@ -12,6 +12,9 @@ npm test         # vitest unit tests
 ```
 
 ## Deploy (Cloudflare Workers)
+Pushes to `main` deploy automatically through GitHub Actions, which needs the
+`CLOUDFLARE_API_TOKEN` repository secret. The manual steps below still work.
+
 The build bundles the whole game into one HTML file and wraps it in a Worker
 (`dist/worker.js`).
 ```
