@@ -36,6 +36,7 @@ import { RetailPanel } from './ui/RetailPanel'
 import { Exchange } from './ui/Exchange'
 import { Research } from './ui/Research'
 import { Board } from './ui/Board'
+import { Executives } from './ui/Executives'
 import { Finance } from './ui/Finance'
 import { TradeFloor } from './ui/TradeFloor'
 import { QtyPicker, clampQty } from './ui/QtyPicker'
@@ -203,7 +204,8 @@ export default function App() {
           {screen === 'exchange' && <Exchange s={s} act={act} />}
           {screen === 'trade' && <TradeFloor s={s} act={act} />}
           {screen === 'research' && <Research s={s} act={act} />}
-          {screen === 'board' && <Board s={s} act={act} />}
+          {screen === 'board' && <Board s={s} onExecs={() => open('execs')} />}
+          {screen === 'execs' && <Executives s={s} act={act} />}
           {screen === 'finance' && <Finance s={s} act={act} />}
           {screen === 'value' && <CompanyValue s={s} />}
           {screen === 'building' && sel !== null && (s.plots[sel] ? <BuildingPanel s={s} plot={sel} act={act} /> : <BuildMenu s={s} plot={sel} act={act} />)}
@@ -259,7 +261,7 @@ export default function App() {
       {/* Hamburger drawer: the less-used screens and settings. */}
       {menu && <div className="drawer-bg" onClick={() => setMenu(false)}><nav className="drawer" onClick={e => e.stopPropagation()}>
         <div className="drawer-head"><Logo /><b>{s.company}</b></div>
-        {(['value', 'news', 'routes', 'chains', 'market', 'log', 'changes', 'account', 'settings', 'privacy'] as const).map(t => <button key={t} onClick={() => open(t)}>{SCREEN_ICON[t]} {SCREEN_TITLE[t]}</button>)}
+        {(['value', 'execs', 'news', 'routes', 'chains', 'market', 'log', 'changes', 'account', 'settings', 'privacy'] as const).map(t => <button key={t} onClick={() => open(t)}>{SCREEN_ICON[t]} {SCREEN_TITLE[t]}</button>)}
         <button onClick={() => { toggleView(); setMenu(false) }}>{view === '3d' ? '▦ Switch to 2D map' : '◈ Switch to 3D map'}</button>
       </nav></div>}
 
@@ -281,9 +283,9 @@ export default function App() {
 }
 
 /** Every screen the HUD can open. 'map' is the plain map. */
-type Screen = 'map' | 'value' | 'building' | 'warehouse' | 'exchange' | 'trade' | 'research' | 'board' | 'finance' | 'market' | 'log' | 'changes' | 'account' | 'settings' | 'privacy' | 'chains' | 'news' | 'routes'
-const SCREEN_TITLE: Record<Screen, string> = { map: 'Map', value: 'Company value', building: 'Building', warehouse: 'Warehouse', exchange: 'Market', trade: 'Market', research: 'Research', board: 'Research', finance: 'Finance', market: 'Public demand', log: 'Events', changes: 'Change log', account: 'Saves & account', settings: 'Settings', privacy: 'Privacy policy', chains: 'Production chains', news: 'Market news', routes: 'Trade routes' }
-const SCREEN_ICON: Partial<Record<Screen, string>> = { value: '💹', market: '📈', log: '🔔', changes: '📝', account: '💾', settings: '⚙', privacy: '🔒', chains: '🔗', news: '📰', routes: '🛒' }
+type Screen = 'map' | 'value' | 'building' | 'warehouse' | 'exchange' | 'trade' | 'research' | 'board' | 'finance' | 'market' | 'log' | 'changes' | 'account' | 'settings' | 'privacy' | 'chains' | 'news' | 'routes' | 'execs'
+const SCREEN_TITLE: Record<Screen, string> = { map: 'Map', value: 'Company value', building: 'Building', warehouse: 'Warehouse', exchange: 'Market', trade: 'Market', research: 'Research', board: 'Research', finance: 'Finance', market: 'Public demand', log: 'Events', changes: 'Change log', account: 'Saves & account', settings: 'Settings', privacy: 'Privacy policy', chains: 'Production chains', news: 'Market news', routes: 'Trade routes', execs: 'Executives' }
+const SCREEN_ICON: Partial<Record<Screen, string>> = { value: '💹', market: '📈', log: '🔔', changes: '📝', account: '💾', settings: '⚙', privacy: '🔒', chains: '🔗', news: '📰', routes: '🛒', execs: '👔' }
 /** The bottom tab bar (original simple glyphs). */
 const TABS: [Screen, string, string][] = [['map', 'Map', '🗺'], ['warehouse', 'Warehouse', '📦'], ['exchange', 'Market', '⇄'], ['research', 'Research', '🔬'], ['finance', 'Finance', '🏦']]
 

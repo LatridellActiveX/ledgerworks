@@ -4,6 +4,12 @@ export interface ChangeEntry { id: string; date: string; title: string; notes: s
 
 export const CHANGELOG: ChangeEntry[] = [
   {
+    id: 'executives-screen',
+    date: '2026-10-21',
+    title: 'Executives',
+    notes: ['New Executives screen (menu → 👔 Executives) with four seats: a COO who cuts building overhead, a CFO who lowers Exchange fees (the 3% sell fee and the 1% buy-order fee, up to half off), a CMO who makes shops sell faster and a CTO who speeds up research.', 'Each person has a skill level (1 to 5 stars) that sets how big their bonus is, and a salary that is now charged every hour instead of once a day, including while you are away. Hiring still costs a week of salary up front, and you can train or let people go at any time.', 'A new group of four candidates arrives every day at midnight. Each card shows the seat they fit best. Everyone has a drawn portrait for their role.', 'The top of the screen lists every bonus your board is giving you and the hourly salary bill. The Exchange sell box shows when your CFO has cut the fee.', 'Hiring someone plays a new handshake-and-chord sound (also in Settings → Test sounds).'],
+  },
+  {
     id: 'galaxy-a-graphics',
     date: '2026-10-21',
     title: "Better on Samsung Galaxy A phones",

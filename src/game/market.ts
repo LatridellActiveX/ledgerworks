@@ -20,9 +20,12 @@ import { RES, RESOURCES } from './data'
 import { rand } from './rng'
 import { priceTrend } from './economy'
 import { newsPrice } from './news'
+import { feeMult } from './execs'
 import { addStock, setWhy, haveQty, key, takeStock, type GameState } from './engine'
 
 export const FEE = 0.03
+/** The seller fee you actually pay: the base 3%, cut by a hired CFO (see execs.ts). */
+export const feeRate = (s: GameState) => FEE * feeMult(s)
 export const CANCEL_FREE_AFTER_H = 48
 export const EXPIRE_H = 24 * 7
 
@@ -124,7 +127,7 @@ export function placeAsk(s: GameState, res: string, q: number, qty: number, pric
 export function cancelAsk(s: GameState, id: number): string | null {
   const o = s.asks.find(a => a.id === id && a.owner === 'me')
   if (!o) return 'Order not found'
-  const fee = s.hour - o.placedH < CANCEL_FREE_AFTER_H ? FEE * o.qty * o.price : 0
+  const fee = s.hour - o.placedH < CANCEL_FREE_AFTER_H ? feeRate(s) * o.qty * o.price : 0
   setWhy('order cancelled')
   addStock(s, o.res, o.q, o.qty)
   if (o.crates) addStock(s, 'crates', 0, o.crates)
@@ -132,7 +135,7 @@ export function cancelAsk(s: GameState, id: number): string | null {
   s.asks = s.asks.filter(a => a !== o)
   return null
 }
-export const cancelFee = (s: GameState, o: Order) => (s.hour - o.placedH < CANCEL_FREE_AFTER_H ? FEE * o.qty * o.price : 0)
+export const cancelFee = (s: GameState, o: Order) => (s.hour - o.placedH < CANCEL_FREE_AFTER_H ? feeRate(s) * o.qty * o.price : 0)
 
 /** Sell instantly to NPC buyers at the bid price, up to today's limit. */
 export function quickSell(s: GameState, res: string, q: number, qty: number): string | null {
@@ -145,7 +148,7 @@ export function quickSell(s: GameState, res: string, q: number, qty: number): st
   addStock(s, res, q, -qty)
   if (crates) takeStock(s, 'crates', crates)
   s.bidLeft[res] -= qty
-  s.cash += qty * bidPrice(s, res, q) * (1 - FEE)
+  s.cash += qty * bidPrice(s, res, q) * (1 - feeRate(s))
   s.stats.exRev += qty * bidPrice(s, res, q)
   s.exSold[res] = (s.exSold[res] ?? 0) + qty
   return null
@@ -169,7 +172,7 @@ export function npcHour(s: GameState, say: (m: string) => void) {
       o.qty -= t; want -= t
       if (o.owner === 'me') {
         const used = Math.min(o.crates, cratesFor(r.id, t)); o.crates -= used
-        s.cash += t * o.price * (1 - FEE)
+        s.cash += t * o.price * (1 - feeRate(s))
         s.stats.exRev += t * o.price
         s.exSold[r.id] = (s.exSold[r.id] ?? 0) + t
         if (o.qty <= 1e-9) say(`Exchange: your ${RES[r.id].name} Q${o.q} order sold out.`)

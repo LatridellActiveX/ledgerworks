@@ -348,10 +348,12 @@ export function rollDay(s: GameState) {
   }
   s.soldToday = {}
   // Accounting fee on large cash piles.
-  // Executives: pay salaries; refresh candidates weekly.
+  // Executives: salaries are paid every hour (see X.payHour in advanceTo);
+  // here we just note the day's total and swap in today's candidate pool.
   const pay = X.dailySalaries(s)
-  if (pay > 0) { s.cash -= pay; say(s, `Executive salaries: $${pay.toLocaleString()}.`) }
-  if (Math.floor(s.hour / 24) % 7 === 0) { X.newCandidates(s); F.newBondOffers(s) }
+  if (pay > 0) say(s, `Executive salaries paid over the last day: $${pay.toLocaleString()}.`)
+  X.newCandidates(s)
+  if (Math.floor(s.hour / 24) % 7 === 0) F.newBondOffers(s)
   F.bondDay(s, m => say(s, m))
   F.govDay(s, m => say(s, m))
   F.depleteAll(s)
@@ -482,6 +484,7 @@ export function advanceTo(s: GameState, toHour: number): GameState {
     else {
       npcHour(s, m => say(s, m))
       B.bidHour(s) // standing buy orders check the book and passing sellers
+      X.payHour(s) // executives draw 1/24 of their daily salary every game hour
       if (nextHour % 24 === 0) rollDay(s)
     }
   }

@@ -24,6 +24,7 @@
 import { RES } from './data'
 import { rand } from './rng'
 import { addStock, logMsg, setWhy, type GameState } from './engine'
+import { feeMult } from './execs'
 import { book, depth, refPrice, EXPIRE_H } from './market'
 
 /** Broker fee on the part of a bid that waits on the book (1%). */
@@ -96,7 +97,7 @@ export function placeBid(s: GameState, res: string, minQ: number, qty: number, p
   s.cash -= b.escrow
   matchBook(s, b) // instant part, no broker fee
   if (b.qty > 0) {
-    s.cash -= b.qty * price * BROKER_FEE // fee on the waiting part only
+    s.cash -= b.qty * price * BROKER_FEE * feeMult(s) // fee on the waiting part only (a CFO cuts it)
     bids.push(b)
   } else logMsg(s, `Exchange: your buy order for ${RES[res].name} filled at once.`)
   return null

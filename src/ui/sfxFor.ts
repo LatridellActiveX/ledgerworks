@@ -2,6 +2,7 @@
 // so the choice is unit-tested. App.tsx plays the result with sfx().
 import * as E from '../game/engine'
 import type { Sfx } from './sound'
+import { boardSize } from '../game/execs'
 import { dayOf, storyStarting } from '../game/news'
 
 /** Departures + arrivals so far: carts on the road count once, finished trips twice. */
@@ -13,6 +14,7 @@ const leveledUp = (a: E.GameState, b: E.GameState) => E.companyLevel(b.xp) === E
 export function actionSfx(a: E.GameState, b: E.GameState, err?: string | null | void): Sfx {
   if (err) return 'error'
   if (leveledUp(a, b)) return 'levelup'
+  if (boardSize(b) > boardSize(a)) return 'hire' // a new executive joined
   for (let i = 0; i < Math.max(a.plots.length, b.plots.length); i++) {
     const p = a.plots[i], n = b.plots[i]
     if (!p && n) return 'build' // new construction

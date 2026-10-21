@@ -681,3 +681,19 @@ tr.bidrow td { color: #3c9a5f; font-weight: 600 }
 /* Samsung A-series / large text: tab labels shrink and never collide. */
 .tabbar button { min-width: 0 } .tabbar button > span:last-child { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 0 2px; font-size: clamp(9.5px, 2.9vw, 12px) }
 .gfx-set { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 48px }
+/* ---- Executives screen (src/ui/Executives.tsx) ---- */
+.execs { display: flex; flex-direction: column; gap: 10px }
+.execs h4 { margin: 8px 0 0 }
+.exec-sum { gap: 6px }
+.exec-sum ul { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 4px; font-size: 14px }
+.exec-sum .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: middle }
+.exec-seats { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 10px }
+.exec-card { margin: 0; flex-direction: row !important; align-items: flex-start; gap: 10px }
+.exec-portrait { flex: none }
+.exec-info { display: flex; flex-direction: column; gap: 3px; min-width: 0; flex: 1 }
+.exec-info .row { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 2px }
+.exec-info .row button { padding: 4px 8px; font-size: 12px }
+.exec-stars { color: #e0a526; letter-spacing: 1px; font-size: 13px }
+.exec-stars i { color: #d8d2c8; font-style: normal }
+.exec-note { font-size: 11px; color: #3d9970 }
+@media (max-width: 420px) { .exec-seats { grid-template-columns: 1fr } }

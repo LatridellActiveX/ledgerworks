@@ -6,16 +6,21 @@
 //    ops, fin, mkt, tech (0-40). A seat uses its own skill at full weight,
 //    plus a quarter of the matching skill of everyone else on the board.
 //  - COO (ops): cuts admin overhead by ops% (relative).
-//  - CFO (fin): raises the tax-free cash line by $200k per point.
+//  - CFO (fin): raises the tax-free cash line by $200k per point, AND cuts
+//    Exchange fees (the 3% seller fee and the 1% buy-order broker fee) by
+//    2% per point, at most half (see feeMult).
 //  - CMO (mkt): shops sell mkt% faster.
 //  - CTO (tech): patent chance × (1 + tech%).
-//  - They draw a daily salary that grows with total skill; hiring costs a
-//    week of salary up front. Training adds +1 to the seat's skill.
-//  - New candidates show up every game week.
+//  - They draw a salary that grows with total skill. It is quoted per day
+//    but charged every game hour (1/24 at a time, see payHour), so it ticks
+//    in real time and offline catch-up charges exactly the hours you missed.
+//    Hiring costs a week of salary up front. Training adds +1 to a skill.
+//  - A fresh pool of four candidates arrives every game day. The pool is a
+//    pure function of the day number (like Market news), so every player
+//    sees the same people on the same day and reloading never rerolls it.
 //
 // Achievements: tiered goals that pay cash once per tier.
 // ============================================================================
-import { rand } from './rng'
 import type { GameState } from './engine'
 
 export type Seat = 'coo' | 'cfo' | 'cmo' | 'cto'
@@ -30,7 +35,6 @@ export const SEAT_LABEL: Record<Seat, string> = { coo: 'Operations chief', cfo: 
 const FIRST = ['Ada', 'Bo', 'Cleo', 'Dev', 'Esme', 'Finn', 'Gia', 'Hal', 'Ivy', 'Jun', 'Kai', 'Lena', 'Milo', 'Nia', 'Oren', 'Pia', 'Quin', 'Rae', 'Sol', 'Tess']
 const LAST = ['Arbor', 'Brook', 'Copperfield', 'Dale', 'Ember', 'Frost', 'Gale', 'Hollis', 'Ingram', 'Juniper', 'Kestrel', 'Lark', 'Marsh', 'North', 'Orchard', 'Pike']
 
-function rnd(s: GameState) { const [r, n] = rand(s.seed); s.seed = n; return r }
 
 /** Daily salary: $150 base + $40 per total skill point, growing faster at the
  *  top (tuned down so a first hire around level 12 is affordable). */
@@ -38,18 +42,53 @@ export const salary = (e: Exec) => { const t = Object.values(e.skills).reduce((a
 export const hireCost = (e: Exec) => salary(e) * 7
 export const trainCost = (e: Exec, sk: Skill) => 4000 * (e.skills[sk] + 1)
 
-/** Fresh weekly candidate list: one strong skill each, some all-rounders. */
-export function newCandidates(s: GameState) {
-  const out: Exec[] = []
-  for (let i = 0; i < 4; i++) {
-    const main = (['ops', 'fin', 'mkt', 'tech'] as Skill[])[Math.floor(rnd(s) * 4)]
-    const sk = { ops: 0, fin: 0, mkt: 0, tech: 0 } as Record<Skill, number>
-    for (const k of Object.keys(sk) as Skill[]) sk[k] = Math.floor(rnd(s) * 6)
-    sk[main] += 4 + Math.floor(rnd(s) * 14)
-    out.push({ id: s.nextUid++, name: `${FIRST[Math.floor(rnd(s) * FIRST.length)]} ${LAST[Math.floor(rnd(s) * LAST.length)]}`, skills: sk })
-  }
-  s.candidates = out
+/** Integer hash (xorshift-multiply mix); same input, same output. */
+function hash(n: number) {
+  let x = (n | 0) ^ 0x5bd1e995
+  x = Math.imul(x ^ (x >>> 15), 0x2c1b3c6d)
+  x = Math.imul(x ^ (x >>> 12), 0x297a2d39)
+  return (x ^ (x >>> 15)) >>> 0
 }
+/** Deterministic 0..1 stream for one day's candidate pool. */
+function dayRng(day: number) {
+  let k = 0
+  return () => hash(day * 7919 + 101 * ++k) / 4294967296
+}
+/** Candidate ids live in their own range so they never clash with nextUid. */
+export const candId = (day: number, i: number) => 1_000_000 + day * 8 + i
+
+/**
+ * The candidate pool for a given game day: four people, each with one strong
+ * skill (that is the seat they suit best) and small side skills. Pure: the
+ * same day always gives the same pool.
+ */
+export function candidatesFor(day: number): Exec[] {
+  const r = dayRng(day), out: Exec[] = []
+  for (let i = 0; i < 4; i++) {
+    // Rotate the strong skill so each day has a good spread of roles.
+    const main = (['ops', 'fin', 'mkt', 'tech'] as Skill[])[(i + Math.floor(r() * 4)) % 4]
+    const sk = { ops: 0, fin: 0, mkt: 0, tech: 0 } as Record<Skill, number>
+    for (const k of Object.keys(sk) as Skill[]) sk[k] = Math.floor(r() * 6)
+    sk[main] += 4 + Math.floor(r() * 14)
+    out.push({ id: candId(day, i), name: `${FIRST[Math.floor(r() * FIRST.length)]} ${LAST[Math.floor(r() * LAST.length)]}`, skills: sk })
+  }
+  return out
+}
+
+/** Swap in today's pool (called at every midnight and for a new company).
+ *  People already on your board are left out so nobody appears twice. */
+export function newCandidates(s: GameState) {
+  const hired = new Set(SEATS.map(x => s.execs?.[x]?.id))
+  s.candidates = candidatesFor(Math.floor(s.hour / 24)).filter(c => !hired.has(c.id))
+}
+
+/** Best-fit seat for a candidate: the seat that uses their strongest skill. */
+export function bestSeat(e: Exec): Seat {
+  return SEATS.reduce((a, b) => (e.skills[SEAT_SKILL[b]] > e.skills[SEAT_SKILL[a]] ? b : a))
+}
+/** Skill level 1-5 for a seat (shown as stars): every 4 points of the
+ *  seat's skill is one level, so a 17+ specialist is a 5-star hire. */
+export const skillLevel = (e: Exec, seat: Seat) => Math.max(1, Math.min(5, Math.ceil(e.skills[SEAT_SKILL[seat]] / 4)))
 
 /** Effective skill for a seat: seat holder full + 25% of the rest of the board. */
 export function seatPower(s: GameState, seat: Seat) {
@@ -62,8 +101,21 @@ export const overheadCut = (s: GameState) => Math.min(0.6, seatPower(s, 'coo') /
 export const cashLineBonus = (s: GameState) => seatPower(s, 'cfo') * 200_000
 export const retailBoost = (s: GameState) => 1 + seatPower(s, 'cmo') / 100
 export const techBoost = (s: GameState) => 1 + seatPower(s, 'cto') / 100
+/** Multiplier on Exchange fees (seller fee and broker fee): 2% off per CFO
+ *  point, never below half. 1 = no CFO. */
+export const feeMult = (s: GameState) => 1 - Math.min(0.5, seatPower(s, 'cfo') * 0.02)
 export const boardSize = (s: GameState) => SEATS.filter(x => s.execs?.[x]).length
 export const dailySalaries = (s: GameState) => SEATS.reduce((t, x) => t + (s.execs?.[x] ? salary(s.execs[x]!) : 0), 0)
+
+/** Hourly salary bill of the whole board (daily total / 24). */
+export const hourlySalaries = (s: GameState) => dailySalaries(s) / 24
+/** Charge one game hour of salaries. Called once per whole hour by
+ *  advanceTo, so offline catch-up pays exactly the hours that passed.
+ *  Cash may dip below zero like other running costs; you can fire anyone. */
+export function payHour(s: GameState) {
+  const pay = hourlySalaries(s)
+  if (pay > 0) s.cash -= pay
+}
 
 export function hire(s: GameState, id: number, seat: Seat, level: number): string | null {
   if (level < EXEC_LEVEL) return `Executives unlock at company level ${EXEC_LEVEL}`

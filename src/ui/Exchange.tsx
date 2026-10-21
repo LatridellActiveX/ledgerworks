@@ -56,7 +56,7 @@ export function Exchange({ s, act }: { s: E.GameState; act: Act }) {
       </div>
       <div className="card bidcard">
         <b>Buy order</b>
-        <small className="muted">Name your price and wait. The cash is held until the order fills; it buys from any seller at or below your price, cheapest first. 1% broker fee on the waiting part.</small>
+        <small className="muted">Name your price and wait. The cash is held until the order fills; it buys from any seller at or below your price, cheapest first. 1% broker fee on the waiting part{M.feeRate(s) < M.FEE ? ', cut by your CFO' : ''}.</small>
         <DepthChart s={s} res={res} />
         <label>Amount <input type="number" min={1} step={1} value={bidQty} onChange={e => setBidQty(Math.max(1, Math.floor(Number(e.target.value) || 1)))} /></label>
         <label>Your price $<input type="number" step="0.01" value={bp} onChange={e => setBidP(Number(e.target.value))} /></label>
@@ -79,9 +79,9 @@ export function Exchange({ s, act }: { s: E.GameState; act: Act }) {
           <label>Price $<input type="number" step="0.01" value={p} onChange={e => setPrice(Number(e.target.value))} /></label>
           {/* Crates: needed vs owned; if short, the buttons buy the shortfall in the same step. */}
           <CrateLine s={s} res={res} qty={qty} />
-          <small>3% fee → you get {money(qty * p * (1 - M.FEE))}</small>
+          <small>{(M.feeRate(s) * 100).toFixed(2).replace(/\.?0+$/, '')}% fee{M.feeRate(s) < M.FEE ? ' (CFO discount)' : ''} → you get {money(qty * p * (1 - M.feeRate(s)))}</small>
           <button className="primary" disabled={lim.max < 1} onClick={() => withCrateConfirm(s, res, qty) && act(st => M.withCrates(st, res, qty, () => M.placeAsk(st, res, lot.q, qty, p)))}>{M.crateShort(s, res, qty) ? `Add ${num(M.crateShort(s, res, qty))} crates + list ${num(qty)}` : `List ${num(qty)} on exchange`}</button>
-          <button disabled={qlim.max < 1} title={qlim.why} onClick={() => { const n = Math.min(qty, qlim.max); if (withCrateConfirm(s, res, n)) act(st => M.withCrates(st, res, n, () => M.quickSell(st, res, lot.q, n))) }}>{M.crateShort(s, res, Math.min(qty, qlim.max)) ? `+${num(M.crateShort(s, res, Math.min(qty, qlim.max)))} crates · ` : ''}Quick sell {num(Math.min(qty, qlim.max))} to traders at {money(M.bidPrice(s, res, lot.q))} → {money(Math.min(qty, qlim.max) * M.bidPrice(s, res, lot.q) * (1 - M.FEE))} ({num(s.bidLeft[res] ?? 0)} wanted today)</button>
+          <button disabled={qlim.max < 1} title={qlim.why} onClick={() => { const n = Math.min(qty, qlim.max); if (withCrateConfirm(s, res, n)) act(st => M.withCrates(st, res, n, () => M.quickSell(st, res, lot.q, n))) }}>{M.crateShort(s, res, Math.min(qty, qlim.max)) ? `+${num(M.crateShort(s, res, Math.min(qty, qlim.max)))} crates · ` : ''}Quick sell {num(Math.min(qty, qlim.max))} to traders at {money(M.bidPrice(s, res, lot.q))} → {money(Math.min(qty, qlim.max) * M.bidPrice(s, res, lot.q) * (1 - M.feeRate(s)))} ({num(s.bidLeft[res] ?? 0)} wanted today)</button>
         </>}
       </div>
       <div className="card">
