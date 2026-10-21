@@ -4,6 +4,12 @@ export interface ChangeEntry { id: string; date: string; title: string; notes: s
 
 export const CHANGELOG: ChangeEntry[] = [
   {
+    id: 'fix-autosave-interval',
+    date: '2026-10-21',
+    title: 'Autosave fixed',
+    notes: ['The 5-second autosave now really runs. Before, only your own actions saved the game.'],
+  },
+  {
     id: 'stage8-research-patents-quality',
     date: '2026-10-21',
     title: 'Research labs and patents',

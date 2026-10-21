@@ -4,7 +4,7 @@
 //   top bar (cash, level, clock) | plot grid | side panel (selected plot)
 //   warehouse + exchange | event log | change log
 // ============================================================================
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import * as E from './game/engine'
 import { BLD, BUILDINGS, REC, RES, RESOURCES } from './game/data'
 import { loadGame, saveGame, exportCode, importCode } from './game/save'
@@ -37,7 +37,11 @@ export default function App() {
     const t = setInterval(() => setS(p => E.advanceReal(structuredClone(p))), 1000)
     return () => clearInterval(t)
   }, [])
-  useEffect(() => { const t = setInterval(() => saveGame(s), 5000); return () => clearInterval(t) })
+  // Autosave: keep the latest state in a ref so ONE interval (created once)
+  // always saves the current company. (Before, the interval was recreated on
+  // every 1 s tick and never got to fire.)
+  const latest = useRef(s); latest.current = s
+  useEffect(() => { const t = setInterval(() => saveGame(latest.current), 5000); return () => clearInterval(t) }, [])
 
   // Every minute: pull shared prices from the server; every 2 minutes: cloud save.
   useEffect(() => {

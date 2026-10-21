@@ -3,7 +3,7 @@
 import { chromium } from 'playwright'
 const [file, tab, lvl] = process.argv.slice(2)
 const b = await chromium.launch(); const p = await b.newPage({ viewport: { width: 1400, height: 1000 } })
-await p.goto('https://ledgerworks.parkercthomson.workers.dev/'); await p.waitForTimeout(600)
+await p.goto('https://ledgerworks.parkercthomson.workers.dev/'); await p.waitForTimeout(5600) // let the 5 s autosave write a save
 if (lvl) {
   await p.evaluate(l => {
     const k = 'ledgerworks-save-v1', s = JSON.parse(localStorage.getItem(k))
