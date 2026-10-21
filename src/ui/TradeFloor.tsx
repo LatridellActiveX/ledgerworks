@@ -9,6 +9,8 @@ import { RES, RESOURCES } from '../game/data'
 import { ResIcon } from './art'
 import { money, num } from './fmt'
 import { QtyPicker, clampQty } from './QtyPicker'
+import { PlayerLink } from './PlayerLink'
+import { ContractComposer, ContractList } from './Trading'
 
 type Act = (f: (st: E.GameState) => string | null | void) => void
 
@@ -96,7 +98,7 @@ export function TradeFloor({ s, act, user, onSignup }: { s: E.GameState; act: Ac
         <b>Player board</b>
         <label>Good <select value={res} onChange={e => setRes(e.target.value)}>{RESOURCES.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}</select></label>
         <table className="demand"><thead><tr><th>Seller</th><th>Q</th><th>Qty</th><th>Price</th><th /></tr></thead>
-          <tbody>{boardData.orders.map((o: any) => <tr key={o.id} className={o.seller === acc.name ? 'mine' : ''}><td>@{o.seller}</td><td>Q{o.q}</td><td>{num(o.qty)}</td><td>{money(o.price)}</td>
+          <tbody>{boardData.orders.map((o: any) => <tr key={o.id} className={o.seller === acc.name ? 'mine' : ''}><td><PlayerLink name={o.seller} /></td><td>Q{o.q}</td><td>{num(o.qty)}</td><td>{money(o.price)}</td>
             <td>{o.seller === acc.name ? <button onClick={() => run('cancel', { id: o.id })}>Cancel</button> : <button disabled={Math.min(f.qty, o.qty, Math.floor((me?.wallet ?? 0) / o.price)) < 1} onClick={() => run('buy', { id: o.id, qty: Math.min(f.qty, o.qty, Math.floor((me?.wallet ?? 0) / o.price)) })}>Buy {num(Math.max(1, Math.min(f.qty, o.qty, Math.floor((me?.wallet ?? 0) / o.price))))}</button>}</td></tr>)}
             {boardData.orders.length === 0 && <tr><td colSpan={5} className="muted">No player listings for this good yet.</td></tr>}</tbody></table>
         <small>Bought goods go to your depot. Sellers pay a 3% fee.</small>
@@ -115,12 +117,11 @@ export function TradeFloor({ s, act, user, onSignup }: { s: E.GameState; act: Ac
           if (await run('deposit', { goods: [{ res, q: f.q, qty: f.qty }] })) act(st => { st.stock[E.key(res, f.q)] -= f.qty; if (st.stock[E.key(res, f.q)] <= 0) delete st.stock[E.key(res, f.q)] })
         }}>Ship {num(f.qty)} {RES[res].name} to depot (have {num(s.stock[E.key(res, f.q)] ?? 0)})</button>
         <button className="primary" onClick={() => run('list', { res, q: f.q, qty: f.qty, price: f.price })}>List from depot</button>
-        <b>Contract</b>
-        <label>To player <input value={f.to} placeholder="username" onChange={e => set({ to: e.target.value })} /></label>
-        <button onClick={() => run('offer', { to: f.to, res, q: f.q, qty: f.qty, price: f.price })}>Offer {num(f.qty)} at {money(f.price)} each</button>
-        {(me?.inbox ?? []).map((c: any) => <span key={c.id}>@{c.from} offers {num(c.qty)} {RES[c.res]?.name} Q{c.q} at {money(c.price)}{' '}
-          <button className="primary" onClick={() => run('answer', { id: c.id, how: 'accept' })}>Accept</button><button onClick={() => run('answer', { id: c.id, how: 'decline' })}>Decline</button></span>)}
-        {(me?.outbox ?? []).map((c: any) => <span key={c.id} className="muted">To @{c.to}: {num(c.qty)} {RES[c.res]?.name} at {money(c.price)} <button onClick={() => run('answer', { id: c.id, how: 'cancel' })}>Withdraw</button></span>)}
+      </div>
+      <div className="card">
+        <b>Contracts</b>
+        <ContractComposer s={s} act={act} me={me} run={run} to={f.to} onSent={() => set({ to: '' })} />
+        <ContractList me={me} run={run} />
       </div>
       <Leaders rows={boardData.leaders} me={acc.name} />
     </div>
@@ -130,6 +131,6 @@ export function TradeFloor({ s, act, user, onSignup }: { s: E.GameState; act: Ac
 function Leaders({ rows, me }: { rows: any[]; me?: string }) {
   return <div className="card"><b>Leaderboard</b>
     <table className="demand"><thead><tr><th>#</th><th>Company</th><th>Rating</th><th>Value</th></tr></thead>
-      <tbody>{rows.map((r, i) => <tr key={r.name} className={r.name === me ? 'mine' : ''}><td>{i + 1}</td><td>{r.company} <small>@{r.name}</small></td><td><span className="grade">{r.grade}</span></td><td>{money(r.value)}</td></tr>)}
+      <tbody>{rows.map((r, i) => <tr key={r.name} className={r.name === me ? 'mine' : ''}><td>{i + 1}</td><td>{r.company} <small><PlayerLink name={r.name} /></small></td><td><span className="grade">{r.grade}</span></td><td>{money(r.value)}</td></tr>)}
         {rows.length === 0 && <tr><td colSpan={4} className="muted">No players yet.</td></tr>}</tbody></table></div>
 }

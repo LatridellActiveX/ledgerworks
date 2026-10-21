@@ -8,11 +8,12 @@ import { ResIcon } from './art'
 import { dur, money, num } from './fmt'
 import { QtyPicker, clampQty } from './QtyPicker'
 import * as Q from '../game/qty'
+import { BondMarket } from './Bonds'
 
 type Act = (f: (st: E.GameState) => string | null | void) => void
 const pct = (r: number) => `${(r * 100).toFixed(2)}%`
 
-export function Finance({ s, act }: { s: E.GameState; act: Act }) {
+export function Finance({ s, act, user }: { s: E.GameState; act: Act; user?: string | null }) {
   const [lots, setLots] = useState(2)
   const rating = F.myRating(s)
   const [rate, setRate] = useState(F.MIN_RATE[rating] * 100)
@@ -35,6 +36,10 @@ export function Finance({ s, act }: { s: E.GameState; act: Act }) {
         {(s.bondOffers ?? []).map(o => <span key={o.id}>{o.issuer} <b className={`rating r${F.RATINGS.indexOf(o.rating)}`}>{o.rating}</b> {money(o.amount)} at {pct(o.rate)}/day <button disabled={lvl < F.BOND_LEVEL} onClick={() => act(st => F.buyBond(st, o.id))}>Buy</button></span>)}
         <small className="muted">Riskier ratings pay more but may default. Holdings: {money(F.heldValue(s))}</small>
         {(s.holdings ?? []).map(h => <span key={h.id}>• {h.issuer} {h.rating} {money(h.amount)} @ {pct(h.rate)}</span>)}
+      </div>
+      <div className="card">
+        <b>Bond market</b>
+        <BondMarket s={s} act={act} user={user} />
       </div>
       <div className="card">
         <b>Government order</b>

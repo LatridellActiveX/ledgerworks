@@ -31,15 +31,16 @@ describe('p2p ledger', () => {
     expect(P.cancel(L, b, o.id)).toMatch(/No such/)
     expect(P.cancel(L, a, o.id)).toBe(true); expect(a.depot['apples|0']).toBe(10)
   })
-  it('contracts: accept pays, decline returns', () => {
+  it('contracts: accept pays the total with no fee, decline returns the goods', () => {
     const { L, a, b } = setup()
     P.deposit(a, 0, [{ res: 'seeds', q: 1, qty: 20 }]); P.deposit(b, 100)
-    const c1 = P.offer(L, a, 'bob', 'seeds', 1, 10, 2, 0) as P.Contract
-    const c2 = P.offer(L, a, 'bob', 'seeds', 1, 10, 2, 0) as P.Contract
-    expect(P.answer(L, a, c1.id, 'accept')).toMatch(/Not your/)
-    expect(P.answer(L, b, c1.id, 'accept')).toBe(true)
-    expect(b.wallet).toBe(80); expect(a.wallet).toBeCloseTo(19.4)
-    expect(P.answer(L, b, c2.id, 'decline')).toBe(true); expect(a.depot['seeds|1']).toBe(10)
+    const c1 = P.offer(L, a, 'bob', [{ res: 'seeds', q: 1, qty: 10 }], 20, '', 0) as P.Contract
+    const c2 = P.offer(L, a, 'bob', [{ res: 'seeds', q: 1, qty: 10 }], 20, '', 0) as P.Contract
+    expect(P.answer(L, a, c1.id, 'accept', 0)).toMatch(/Not your/)
+    expect(P.answer(L, b, c1.id, 'accept', 0)).toBe(true)
+    expect(b.wallet).toBe(80); expect(a.wallet).toBe(20)
+    expect(b.depot['seeds|1']).toBe(10)
+    expect(P.answer(L, b, c2.id, 'decline', 0)).toBe(true); expect(a.depot['seeds|1']).toBe(10)
   })
   it('grades and ranks', () => {
     const { L, a } = setup()
@@ -55,7 +56,7 @@ describe('account deletion', () => {
     P.register(L, 'alice', 'h1', 'A', 0); P.register(L, 'bob', 'h2', 'B', 0)
     const a = L.accounts.alice, b = L.accounts.bob
     P.deposit(a, 0, [{ res: 'seeds', q: 0, qty: 10 }]); P.deposit(b, 0, [{ res: 'seeds', q: 0, qty: 5 }])
-    P.list(L, a, 'seeds', 0, 4, 1, 0); P.offer(L, b, 'alice', 'seeds', 0, 5, 1, 0)
+    P.list(L, a, 'seeds', 0, 4, 1, 0); P.offer(L, b, 'alice', [{ res: 'seeds', q: 0, qty: 5 }], 5, '', 0)
     expect(P.deleteAccount(L, a)).toBe(true)
     expect(L.accounts.alice).toBeUndefined(); expect(L.orders.length).toBe(0); expect(L.contracts.length).toBe(0)
     expect(b.depot['seeds|0']).toBe(5)

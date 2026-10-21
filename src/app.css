@@ -736,3 +736,16 @@ tr.bidrow td { color: #3c9a5f; font-weight: 600 }
 .pprof { display: flex; flex-direction: column; gap: 12px } .pp-head { display: flex; align-items: center; gap: 12px } .pp-head h3 { margin: 0 }
 .cv-rank li { cursor: pointer }
 .tf-cta { background: linear-gradient(135deg, #eef7ff, #f2fbf2) } .ok-note { color: #2c7a41; font-weight: 600 }
+
+/* Player links, contracts and bonds (ui/PlayerLink.tsx, ui/Trading.tsx, ui/Bonds.tsx) */
+.plink { background: none; border: 0; padding: 0; color: inherit; font: inherit; text-decoration: underline dotted; cursor: pointer }
+.plink:hover { text-decoration: underline }
+.ctr, .bonds { display: grid; gap: 8px }
+.ctr-line { display: flex; flex-wrap: wrap; gap: 6px; align-items: flex-end }
+.ctr-list { display: grid; gap: 8px }
+.ctr-card { display: grid; gap: 4px; padding: 10px; border-radius: 10px; background: #00000008; border-left: 4px solid #7b61ff }
+.ctr-card.out { border-left-color: #b8a9d9 }
+.ctr-card .row { display: flex; gap: 6px; flex-wrap: wrap }
+.ship summary { cursor: pointer; font-weight: 600 }
+.bond-row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; padding: 6px 0; border-bottom: 1px solid #0001 }
+.bond-cta { display: grid; gap: 6px }

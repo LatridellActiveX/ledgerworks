@@ -4,6 +4,12 @@ export interface ChangeEntry { id: string; date: string; title: string; notes: s
 
 export const CHANGELOG: ChangeEntry[] = [
   {
+    id: 'trading-contracts-bonds',
+    date: '2026-10-21',
+    title: 'Contracts, bonds and player orders',
+    notes: ["Tap any player name to open their profile: company, rank, listings and a Send contract form.", "Contracts now bundle up to 5 items from your trading depot with one total price, a note, and a 7-day expiry. There is no service fee and no shipping crates. Expired or withdrawn contracts return the goods to you.", "The Market tab lists individual player orders for each good. Buy one and the goods go straight into your company.", "Bond market on the Finance tab: list the bonds you hold, buy bonds other players list, and move them into your company. Sales pay the 3% board fee, as goods do."],
+  },
+  {
     id: 'company-level-details',
     date: '2026-10-21',
     title: 'Company level details',

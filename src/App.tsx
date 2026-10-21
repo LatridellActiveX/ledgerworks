@@ -6,6 +6,7 @@
 // ============================================================================
 import { Boot } from './ui/Boot'
 import { PlayerSearch, PlayerProfile } from './ui/Players'
+import { PlayerCtx } from './ui/PlayerLink'
 import * as GFX from './game/gfx'
 import { Warehouse, compact as compactNum } from './ui/Warehouse'
 import { Chains } from './ui/Chains'
@@ -148,7 +149,10 @@ export default function App() {
   const xpPct = Math.floor((100 * (s.xp - xpLo)) / (xpHi - xpLo))
   const toggleView = () => { const v = view === '3d' ? '2d' : '3d'; setView(v); localStorage.setItem('ledgerworks-view', v) }
 
+  // Any player name in the game opens their profile through this.
+  const openPlayer = (n: string) => { setPlayer(n); setScreen('players') }
   return (
+    <PlayerCtx.Provider value={openPlayer}>
     <div className="app hud-app">
       {/* The map is the whole screen; everything else floats over it. */}
       <section className="campus-wrap full">
@@ -207,17 +211,17 @@ export default function App() {
           {screen === 'news' && <News s={s} />}
           {screen === 'routes' && <Routes s={s} act={act} />}
           {screen === 'chains' && <Chains s={s} res={chainRes} onPick={setChainRes} />}
-          {screen === 'exchange' && <Exchange s={s} act={act} />}
+          {screen === 'exchange' && <Exchange s={s} act={act} user={user} />}
           {screen === 'trade' && <TradeFloor s={s} act={act} user={user} onSignup={() => { setLoginMode('up'); setShowLogin(true) }} />}
           {screen === 'research' && <Research s={s} act={act} />}
           {screen === 'board' && <Board s={s} onExecs={() => open('execs')} />}
           {screen === 'execs' && <Executives s={s} act={act} />}
-          {screen === 'finance' && <Finance s={s} act={act} />}
+          {screen === 'finance' && <Finance s={s} act={act} user={user} />}
           {screen === 'levels' && <LevelScreen s={s} />}
-          {screen === 'value' && <CompanyValue s={s} onPlayer={n => { setPlayer(n); setScreen('players') }} />}
+          {screen === 'value' && <CompanyValue s={s} onPlayer={openPlayer} />}
           {/* Player search + public profiles (ui/Players.tsx). Trade opens the trade floor offer form for that trader. */}
           {screen === 'players' && (player
-            ? <PlayerProfile name={player} onBack={() => setPlayer(null)} onTrade={t => { sessionStorage.setItem('lw-trade-to', t); setPlayer(null); setScreen('trade') }} />
+            ? <PlayerProfile name={player} s={s} act={act} user={user} onBack={() => setPlayer(null)} />
             : <PlayerSearch onOpen={setPlayer} />)}
           {screen === 'building' && sel !== null && (s.plots[sel] ? <BuildingPanel s={s} plot={sel} act={act} /> : <BuildMenu s={s} plot={sel} act={act} />)}
           {screen === 'market' && <Demand s={s} />}
@@ -306,6 +310,7 @@ export default function App() {
         })}
       </nav>
     </div>
+    </PlayerCtx.Provider>
   )
 }
 

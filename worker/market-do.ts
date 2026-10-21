@@ -60,7 +60,9 @@ export class MarketDO {
     const L = await this.ledger()
     const now = Date.now()
     const err = (e: string, st = 400) => Response.json({ error: e }, { status: st })
-    if (op === 'board') return Response.json({ orders: P.board(L, b.res).slice(0, 50), leaders: P.leaderboard(L) })
+    // Contracts that ran out give their goods back before anything else happens.
+    P.sweepContracts(L, now)
+    if (op === 'board') return Response.json({ orders: P.board(L, b.res).slice(0, 50), bonds: P.bondBoard(L).slice(0, 50), leaders: P.leaderboard(L) })
     // Public, no key needed: player search and profiles (public fields only).
     if (op === 'search') return Response.json({ players: P.searchAccounts(L, String(b.q ?? '')) })
     if (op === 'profile') return Response.json({ profile: P.publicProfile(L, String(b.who ?? '')) })
@@ -93,8 +95,13 @@ export class MarketDO {
       case 'list': r = P.list(L, a, String(b.res), n(b.q), n(b.qty), n(b.price), now); break
       case 'cancel': r = P.cancel(L, a, n(b.id)); break
       case 'buy': r = P.buy(L, a, n(b.id), n(b.qty)); break
-      case 'offer': r = P.offer(L, a, String(b.to), String(b.res), n(b.q), n(b.qty), n(b.price), now); break
-      case 'answer': r = P.answer(L, a, n(b.id), b.how); break
+      case 'offer': r = P.offer(L, a, String(b.to), Array.isArray(b.lines) ? b.lines.map((l: any) => ({ res: String(l?.res), q: n(l?.q), qty: n(l?.qty) })) : [], n(b.total), String(b.note ?? ''), now); break
+      case 'answer': r = P.answer(L, a, n(b.id), b.how, now); break
+      case 'depositBond': r = P.depositBond(L, a, b.bond ?? {}); break
+      case 'listBond': r = P.listBond(L, a, n(b.id), n(b.price), now); break
+      case 'cancelBond': r = P.cancelBond(L, a, n(b.id)); break
+      case 'buyBond': r = P.buyBond(L, a, n(b.id)); break
+      case 'withdrawBond': r = P.withdrawBond(a, n(b.id)); break
       case 'delete': P.deleteAccount(L, a); await this.state.storage.put('ledger', L); return Response.json({ ok: true, deleted: a.name })
       default: return err('unknown op', 404)
     }

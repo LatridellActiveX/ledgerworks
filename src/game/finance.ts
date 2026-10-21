@@ -11,7 +11,7 @@
 //    bonds if the daily rate you offer meets your rating's minimum. Bonds
 //    sell in $5,000 lots, total debt is capped at half your assets, and you
 //    can repay ("call") a bond after 14 days.
-//  - Bonds you buy pay daily interest, cannot be resold, may be repaid by
+//  - Bonds you buy pay daily interest, can be listed on the bond market, may be repaid by
 //    the issuer after 14 days, and can default (riskier ratings more often),
 //    returning only a recovery share.
 //  - Interest is settled at each midnight.

@@ -1,7 +1,7 @@
 // Exchange tab: order book for one good, buy from the cheapest asks, list
 // your own goods for sale (needs shipping crates), quick-sell to NPC buyers,
 // and manage your open orders.
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import * as E from '../game/engine'
 import * as M from '../game/market'
 import { RES, RESOURCES } from '../game/data'
@@ -10,10 +10,13 @@ import { dur, money, num } from './fmt'
 import { QtyPicker, clampQty } from './QtyPicker'
 import * as Q from '../game/qty'
 import * as B from '../game/bids'
+import * as T from '../game/trade'
+import { PlayerLink } from './PlayerLink'
+import { buyAndTakeHome, useTrader } from './Trading'
 
 type Act = (f: (st: E.GameState) => string | null | void) => void
 
-export function Exchange({ s, act }: { s: E.GameState; act: Act }) {
+export function Exchange({ s, act, user }: { s: E.GameState; act: Act; user?: string | null }) {
   const [res, setRes] = useState('seeds')
   const [minQ, setMinQ] = useState(0)
   const [bq, setBq] = useState(100)
@@ -84,6 +87,7 @@ export function Exchange({ s, act }: { s: E.GameState; act: Act }) {
           <button disabled={qlim.max < 1} title={qlim.why} onClick={() => { const n = Math.min(qty, qlim.max); if (withCrateConfirm(s, res, n)) act(st => M.withCrates(st, res, n, () => M.quickSell(st, res, lot.q, n))) }}>{M.crateShort(s, res, Math.min(qty, qlim.max)) ? `+${num(M.crateShort(s, res, Math.min(qty, qlim.max)))} crates · ` : ''}Quick sell {num(Math.min(qty, qlim.max))} to traders at {money(M.bidPrice(s, res, lot.q))} → {money(Math.min(qty, qlim.max) * M.bidPrice(s, res, lot.q) * (1 - M.feeRate(s)))} ({num(s.bidLeft[res] ?? 0)} wanted today)</button>
         </>}
       </div>
+      <PlayerOrders s={s} act={act} user={user} res={res} minQ={minQ} />
       <div className="card">
         <b>Your orders</b>
         {mine.length === 0 && <span className="muted">None.</span>}
@@ -160,4 +164,39 @@ function CrateLine({ s, res, qty }: { s: E.GameState; res: string; qty: number }
 export function withCrateConfirm(s: E.GameState, res: string, qty: number) {
   const n = M.crateShort(s, res, qty)
   return !n || confirm(`You're ${n} shipping crates short. Buy ${n} crates for ${money(M.crateShortCost(s, res, qty))} and continue?`)
+}
+
+/**
+ * Individual orders that players have listed on the goods board, for this good.
+ * Tap a seller to see their profile. Buy takes the goods home in one step.
+ */
+function PlayerOrders({ s, act, user, res, minQ }: { s: E.GameState; act: Act; user?: string | null; res: string; minQ: number }) {
+  const t = useTrader(user)
+  const [orders, setOrders] = useState<any[] | null>(null)
+  const [qty, setQty] = useState<Record<number, number>>({})
+  const [err, setErr] = useState('')
+  const load = () => T.p2p('board', { res }).then(j => setOrders(j.orders)).catch(() => setErr('Offline'))
+  useEffect(() => { load() }, [res])
+  const rows = (orders ?? []).filter(o => o.q >= minQ)
+  const wallet = t.me?.wallet ?? 0
+  return <div className="card">
+    <b>Player orders</b>
+    <small className="muted">Goods other players are selling right now. Buying takes them straight into your company.</small>
+    {err && <span className="err">{err}</span>}
+    {!user && <span className="muted">Sign in to buy from players. Your trading wallet pays for it.</span>}
+    {user && <small className="muted">Trading wallet {money(wallet)}. Move cash in on the Trade floor.</small>}
+    {t.msg && <span className="err">{t.msg}</span>}
+    {orders && rows.length === 0 && <span className="muted">No player orders for this good at this quality.</span>}
+    <table className="demand"><thead><tr><th>Seller</th><th>Q</th><th>Qty</th><th>Price</th><th /></tr></thead>
+      <tbody>{rows.map(o => {
+        const affordable = Math.floor(wallet / o.price)
+        const n = Math.min(qty[o.id] ?? o.qty, o.qty, affordable)
+        return <tr key={o.id} className={o.seller === t.me?.name ? 'mine' : ''}>
+          <td><PlayerLink name={o.seller} /></td><td>Q{o.q}</td><td>{num(o.qty)}</td><td>{money(o.price)}</td>
+          <td>{!user ? null : o.seller === t.me?.name ? <span className="muted">yours</span>
+            : <span className="row"><input type="number" min={1} max={o.qty} value={n} onChange={e => setQty({ ...qty, [o.id]: Math.max(1, Math.floor(Number(e.target.value) || 1)) })} />
+              <button disabled={n < 1 || affordable < 1} onClick={async () => { if (await buyAndTakeHome(t.run, act, o, n)) load() }}>{affordable < 1 ? 'Need cash' : `Buy ${num(n)}`}</button></span>}</td>
+        </tr>
+      })}</tbody></table>
+  </div>
 }
