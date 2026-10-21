@@ -13,6 +13,9 @@ import * as SEA from './game/seasons'
 import { companyValue } from './game/trade'
 import { CompanyValue } from './ui/CompanyValue'
 import { UpdatePrompt } from './ui/UpdatePrompt'
+import { Login } from './ui/Login'
+import { Tutorial, loadTut, saveTut, type TutState } from './ui/Tutorial'
+import * as A from './game/auth'
 import { BuildingArt, Logo, ResIcon } from './ui/art'
 import { Campus3D } from './ui/Campus3D'
 import { Ticker } from './ui/Ticker'
@@ -41,6 +44,19 @@ export default function App() {
   const [sound, setSnd] = useState(soundOn())
   const [screen, setScreen] = useState<Screen>('map')
   const [menu, setMenu] = useState(false)
+  // Accounts: who is signed in (cookie session), and whether to show the login screen.
+  const [user, setUser] = useState<string | null>(null)
+  const [showLogin, setShowLogin] = useState(false)
+  useEffect(() => { A.me().then(m => { if (m) setUser(m.name); else if (!A.isGuest()) setShowLogin(true) }) }, [])
+  /** After sign-in: load the account's cloud save, or upload this company if it has none. */
+  const afterLogin = async (name: string | null) => {
+    setShowLogin(false); setUser(name)
+    if (!name) return
+    try { const n = await cloudLoad(); setS(n); saveGame(n); setMsg(`Signed in as ${name}`) } catch { await cloudSave(latest.current); setMsg(`Signed in as ${name}. Company saved to your account.`) }
+  }
+  // First-time tutorial (progress in localStorage).
+  const [tut, setTutS] = useState<TutState>(loadTut)
+  const setTut = (t: TutState) => { setTutS(t); saveTut(t) }
   const [seenLog, setSeenLog] = useState(() => Number(localStorage.getItem('ledgerworks-seen-log') || 0))
 
   /** Run a mutating engine action on a copy, show its error if any. */
@@ -153,6 +169,8 @@ export default function App() {
           {screen === 'log' && <ul className="log">{s.log.map((l, i) => <li key={i}>{l}</li>)}</ul>}
           {screen === 'changes' && <ul className="log">{CHANGELOG.map(c => <li key={c.id}><b>{c.date} · {c.title}</b> — {c.notes.join(' ')}</li>)}</ul>}
           {screen === 'account' && <div className="menu-list">
+            {user ? <p>Signed in as <b>{user}</b> <button onClick={async () => { await A.logout().catch(() => {}); setUser(null); A.setGuest(true); setMsg('Signed out') }}>Log out</button></p>
+              : <><p className="muted">Playing as a guest. Create an account to keep this company safe and play on any device.</p><button className="primary" onClick={() => setShowLogin(true)}>Sign in or create account</button></>}
             <p><b>{s.company}</b> · {s.online ? '● online' : '○ offline'} · Overhead {(E.overhead(s) * 100).toFixed(1)}% <small className="muted">(accounting fee today {money(accountingFee(s.cash, 2_500_000 + cashLineBonus(s)))})</small></p>
             <label>Realm <select className="realm" value={SEA.realm()} title="Classic: play forever. Seasons: a timed season with weather phases, then a fresh start." onChange={e => { saveGame(s); SEA.setRealm(e.target.value as SEA.Realm); location.reload() }}>
               <option value="classic">Classic realm</option><option value="seasons">Seasons realm</option></select></label>
@@ -166,6 +184,8 @@ export default function App() {
           {screen === 'settings' && <div className="menu-list">
             <button onClick={toggleView}>Map view: {view === '3d' ? '3D (tap for 2D)' : '2D (tap for 3D)'}</button>
             <button onClick={() => { setSound(!sound); setSnd(!sound); if (!sound) setTimeout(() => sfx('pop'), 50) }}>Sound: {sound ? 'on 🔊' : 'off 🔇'}</button>
+            <button onClick={() => setTut({ ...tut, off: !tut.off, done: tut.off ? false : tut.done })}>Tutorial: {tut.off ? 'off' : 'on'}</button>
+            <button onClick={() => { setTut({ step: 0, done: false, off: false }); setScreen('map') }}>Restart tutorial</button>
             <p className="muted">Map: drag to pan · pinch or scroll to zoom · Q / E or ⟲ ⟳ to turn (3D) · tap a plot to manage it.</p>
           </div>}
         </div>
@@ -179,6 +199,8 @@ export default function App() {
       </nav></div>}
 
       <UpdatePrompt save={() => saveGame(latest.current)} />
+      {showLogin && <Login onDone={afterLogin} onClose={A.isGuest() || user ? () => setShowLogin(false) : undefined} />}
+      {!showLogin && !tut.done && !tut.off && <Tutorial t={tut} set={setTut} />}
 
       {/* Bottom tab bar: five main screens. */}
       <nav className="tabs tabbar">

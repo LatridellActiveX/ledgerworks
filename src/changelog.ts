@@ -4,6 +4,12 @@ export interface ChangeEntry { id: string; date: string; title: string; notes: s
 
 export const CHANGELOG: ChangeEntry[] = [
   {
+    id: 'accounts-passwords-tutorial',
+    date: '2026-10-21',
+    title: 'Accounts with passwords, and a guided tour',
+    notes: ['Sign up and sign in with a username and password. You stay signed in on that device for 30 days, and Log out is under Menu → Saves & account. After several wrong passwords, sign-in pauses for 15 minutes.', 'Prefer not to sign up? Choose Play as guest. You can create an account later and keep the company you have.', 'Have an old cloud key? Load it, then create an account to give it a password. The cloud key still works as a backup.', 'New players get a step-by-step tour that highlights each part of the screen: building, production, collecting, selling, Market, Warehouse, Research, Finance and Company value. Turn it off or restart it in Menu → Settings.'],
+  },
+  {
     id: 'update-popup-company-value-fullscreen-buildings',
     date: '2026-10-21',
     title: 'Update pop-up, Company value screen, full-screen building menus',

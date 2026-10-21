@@ -7,6 +7,7 @@
 //  POST /api/report       a player reports exchange volume sold today
 //  POST /api/save         cloud save   { id, token, state }
 //  POST /api/load         cloud load   { id, token }
+//  /api/auth/*           accounts: signup, login, logout, me (see auth.ts)
 //  POST /api/p2p/<op>     player-to-player trading (see src/game/p2p.ts)
 //  cron (every 15 min)    advances the shared market one step
 //
@@ -17,6 +18,7 @@
 //    order, with no races between players or the cron.
 // ============================================================================
 import { MarketDO } from './market-do'
+import { handleAuth, sessionUser } from './auth'
 export { MarketDO }
 
 declare const __HTML__: string
@@ -55,24 +57,33 @@ export default {
 
     // Stage 11: player accounts and trading all live in the market object.
     if (url.pathname.startsWith('/api/p2p/') && req.method === 'POST') return world(env).fetch('https://do/p2p/' + url.pathname.slice(9), { method: 'POST', body: await req.text() })
+    const auth = await handleAuth(req, env, url.pathname)
+    if (auth) return auth
     if (url.pathname === '/api/save' && req.method === 'POST') {
-      const { id, token, state } = await req.json<any>()
+      // Signed in: the account's own save row (no cloud token needed).
+      // Otherwise: the legacy cloud key (id + token), still the recovery path.
+      const me = await sessionUser(req, env)
+      const raw = await req.json<any>()
+      if (me) { raw.id = me.player_id + (raw.seasons ? '-s' : ''); raw.token = 'session:' + me.player_id }
+      const { id, token, state } = raw
       if (typeof id !== 'string' || typeof token !== 'string' || id.length > 64 || !state) return json({ error: 'bad request' }, 400)
       const body = JSON.stringify(state)
       if (body.length > 900_000) return json({ error: 'save too large' }, 413)
       const h = await sha(token)
       const row = await env.DB.prepare('SELECT token_hash FROM saves WHERE player_id=?').bind(id).first<any>()
-      if (row && row.token_hash !== h) return json({ error: 'wrong token' }, 403)
+      if (row && row.token_hash !== h && !me) return json({ error: 'wrong token' }, 403)
       await env.DB.prepare(`INSERT INTO saves (player_id, token_hash, company, level, cash, state, updated) VALUES (?,?,?,?,?,?,?)
         ON CONFLICT(player_id) DO UPDATE SET company=excluded.company, level=excluded.level, cash=excluded.cash, state=excluded.state, updated=excluded.updated`)
         .bind(id, h, String(state.company ?? '').slice(0, 40), Number(state.level ?? 1), Number(state.cash ?? 0), body, Date.now()).run()
       return json({ ok: true })
     }
     if (url.pathname === '/api/load' && req.method === 'POST') {
-      const { id, token } = await req.json<any>()
+      const me = await sessionUser(req, env)
+      const b = await req.json<any>()
+      const id = me ? me.player_id + (b.seasons ? '-s' : '') : b.id
       const row = await env.DB.prepare('SELECT token_hash, state FROM saves WHERE player_id=?').bind(id).first<any>()
       if (!row) return json({ error: 'no save' }, 404)
-      if (row.token_hash !== (await sha(token))) return json({ error: 'wrong token' }, 403)
+      if (!me && row.token_hash !== (await sha(b.token))) return json({ error: 'wrong token' }, 403)
       return new Response(row.state, { headers: { 'content-type': 'application/json' } })
     }
 

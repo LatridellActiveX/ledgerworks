@@ -56,13 +56,13 @@ export const resetReported = () => { reported = {} }
 export async function cloudSave(s: GameState): Promise<string | null> {
   try {
     const { id, token } = identity()
-    const r = await fetch('/api/save', { method: 'POST', body: JSON.stringify({ id: rowId(id), token, state: { ...s, level: undefined } }) })
+    const r = await fetch('/api/save', { method: 'POST', body: JSON.stringify({ id: rowId(id), token, seasons: realm() === 'seasons', state: { ...s, level: undefined } }) })
     return r.ok ? null : (await r.json()).error
   } catch { return 'Offline' }
 }
 export async function cloudLoad(): Promise<GameState> {
   const { id, token } = identity()
-  const r = await fetch('/api/load', { method: 'POST', body: JSON.stringify({ id: rowId(id), token }) })
+  const r = await fetch('/api/load', { method: 'POST', body: JSON.stringify({ id: rowId(id), token, seasons: realm() === 'seasons' }) })
   if (!r.ok) throw new Error((await r.json()).error)
   return migrate(await r.json())
 }

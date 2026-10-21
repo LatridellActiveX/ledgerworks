@@ -417,3 +417,26 @@ html, body { height: 100%; overflow: hidden; overscroll-behavior: none }
 .cv-rank { margin: 6px 0 0; padding-left: 22px } .cv-rank li { display: flex; justify-content: space-between; padding: 4px 0 } .cv-rank li.me { font-weight: 800; color: #2e8b57 }
 /* Building menu as a full screen: the hero art stays compact. */
 .screen .hero { max-height: 180px }
+
+/* Tutorial overlay: the spotlight is a hole cut by a giant box-shadow. */
+.tut { position: fixed; inset: 0; z-index: 40; pointer-events: auto }
+.tut-dim { position: absolute; inset: 0; background: #0b0e16a6 }
+.tut-hole { position: absolute; border-radius: 16px; box-shadow: 0 0 0 9999px #0b0e16a6, 0 0 0 3px #ff9a72, 0 0 24px 6px #ff9a7288; transition: all .3s cubic-bezier(.2,.9,.3,1); pointer-events: none }
+.tut-card { position: absolute; left: 50%; transform: translateX(-50%); width: min(360px, calc(100vw - 28px)); background: #fffaf2; border-radius: 18px; padding: 16px; box-shadow: 0 18px 50px #0006; animation: up-in .3s }
+.tut-card h3 { margin: 4px 0 6px } .tut-card p { margin: 0 0 10px; line-height: 1.4 }
+.tut-card .row { display: flex; gap: 8px; align-items: center } .tut-card .grow { flex: 1 }
+.tut-card button { min-height: 44px; padding: 0 16px }
+.tut-dots { display: flex; gap: 5px; justify-content: center; margin-bottom: 10px } .tut-dots i { width: 7px; height: 7px; border-radius: 50%; background: #0002 } .tut-dots i.on { background: #ea6a45; width: 18px; border-radius: 4px }
+button.link { background: none; border: 0; box-shadow: none; color: #6b7280; text-decoration: underline }
+/* Login screen */
+.login-screen { inset: 0 !important; z-index: 35 !important; background: radial-gradient(circle at 50% 20%, #2b3346, #11141c) !important; display: grid !important; place-items: center; padding: 16px }
+.login-card { position: relative; width: min(400px, 100%); background: #fffaf2; border-radius: 22px; padding: 22px; display: flex; flex-direction: column; gap: 12px; box-shadow: 0 20px 60px #0008 }
+.login-logo { display: flex; align-items: center; gap: 10px; justify-content: center } .login-logo h2 { margin: 0 } .login-logo svg { width: 40px; height: 40px }
+.login-card form { display: flex; flex-direction: column; gap: 10px }
+.login-card label { display: flex; flex-direction: column; gap: 4px; font-weight: 600 }
+.login-card input { min-height: 46px; font-size: 16px; padding: 0 12px; border-radius: 12px; border: 1px solid #0002 }
+.login-card .big { min-height: 50px; font-size: 17px }
+.seg.dark { background: #1f243014 } .seg.dark button { color: #1f2430 } .seg.dark button.on { background: #1f2430; color: #fff }
+.err { color: #c8553d; margin: 0 }
+@media (prefers-reduced-motion: reduce) { .tut-hole, .tut-card { transition: none; animation: none } }
+.login-card input { width: 100%; box-sizing: border-box }

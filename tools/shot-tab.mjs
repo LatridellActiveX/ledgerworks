@@ -7,6 +7,8 @@ const b = await chromium.launch({ args: ['--use-gl=angle', '--use-angle=swiftsha
 if (process.env.ACCOUNT) { const [name, key] = process.env.ACCOUNT.split(':'); await p.addInitScript(([n, k]) => localStorage.setItem('ledgerworks-account', JSON.stringify({ name: n, key: k })), [name, key]) }
 // REALM=seasons plays the seasons realm; TYPES=a,b,c overrides the sample campus; SEASON=n forces the save's season number.
 // VIEW=2d forces the flat campus (DOM plots can then be clicked).
+// Skip the login screen and tutorial unless asked (LOGIN=1 / TUT=1).
+await p.addInitScript(([lg, tu]) => { if (!lg) localStorage.setItem('ledgerworks-guest', '1'); localStorage.setItem('ledgerworks-tutorial', JSON.stringify(tu ? { step: Number(tu) - 1, done: false, off: false } : { step: 0, done: true, off: false })) }, [process.env.LOGIN || '', process.env.TUT || ''])
 if (process.env.VIEW) await p.addInitScript(v => localStorage.setItem('ledgerworks-view', v), process.env.VIEW)
 if (process.env.REALM) await p.addInitScript(r => localStorage.setItem('ledgerworks-realm', r), process.env.REALM)
 await p.goto(process.env.URL || 'https://ledgerworks.parkercthomson.workers.dev/'); await p.waitForTimeout(5600) // let the 5 s autosave write a save
