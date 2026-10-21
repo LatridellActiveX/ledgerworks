@@ -344,6 +344,31 @@ html, body { height: 100%; overflow: hidden; overscroll-behavior: none }
 .hud-stats { display: flex; flex-direction: column; align-items: stretch; gap: 4px; min-width: 150px }
 .hud-stats .pill.cash { background: linear-gradient(#7ccf4a, #4fa52c); color: #fff; font-size: 18px; font-weight: 800; text-align: center; padding: 6px 14px; border-radius: 12px; box-shadow: 0 4px 12px #0003; border: 0 }
 .hud-xp { display: flex; align-items: center; gap: 6px; background: #1f2430d9; color: #fff; border-radius: 12px; padding: 4px 10px; font-size: 13px; backdrop-filter: blur(8px) }
+button.hud-xp { border: 0; font: inherit; cursor: pointer; transition: transform .15s, box-shadow .15s }
+button.hud-xp:hover { box-shadow: 0 0 0 2px #b18cff88 } button.hud-xp:active { transform: scale(.97) }
+.lvl { display: grid; gap: 10px }
+.lvl-hero { display: flex; gap: 16px; align-items: center }
+.lvl-badge { width: 84px; height: 84px; flex: none; border-radius: 50%; display: grid; place-items: center; align-content: center; background: radial-gradient(circle at 35% 30%, #c9b2ff, #6b4fd6 70%); box-shadow: inset 0 -6px 14px #0003, 0 6px 18px #6b4fd655; color: #fff; text-align: center }
+.lvl-badge small { display: block; font-size: 9px; letter-spacing: .14em; opacity: .85 }
+.lvl-badge b { font-size: 34px; line-height: 1 }
+.lvl-main { flex: 1; min-width: 0 }
+.lvl-xp { font-weight: 800; font-size: 18px; font-variant-numeric: tabular-nums }
+.lvl-track { height: 12px; border-radius: 6px; background: #e8e2f5; overflow: hidden; margin: 8px 0 4px; box-shadow: inset 0 1px 3px #0002 }
+.lvl-track i { display: block; height: 100%; border-radius: 6px; background: linear-gradient(90deg, #b18cff, #7b61ff); box-shadow: 0 0 10px #7b61ffaa; transition: width .4s }
+.lvl-sub { display: flex; justify-content: space-between; font-size: 12px; color: #6b6b75 }
+.lvl-plots { font-size: 13px; margin-top: 6px }
+.lvl-next { display: grid; gap: 4px; border-left: 4px solid #7b61ff }
+.lvl-note { font-size: 12px; margin: 6px 0 }
+.lvl-list { list-style: none; padding: 0; margin: 8px 0 0; display: grid; gap: 6px }
+.lvl-row { display: flex; gap: 10px; align-items: flex-start; padding: 8px; border-radius: 10px; background: #00000008; opacity: .6 }
+.lvl-row.reached { opacity: 1 }
+.lvl-row.current { background: #7b61ff18; box-shadow: inset 0 0 0 1px #7b61ff66 }
+.lvl-dot { width: 30px; height: 30px; flex: none; border-radius: 50%; display: grid; place-items: center; font-weight: 800; background: #e8e2f5; color: #5a4a8a }
+.lvl-row.reached .lvl-dot { background: linear-gradient(135deg, #b18cff, #7b61ff); color: #fff; box-shadow: 0 2px 6px #7b61ff66 }
+.lvl-info { flex: 1; min-width: 0 }
+.lvl-head { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; align-items: baseline }
+.lvl-unlocks { margin: 4px 0 0; padding-left: 18px; font-size: 13px; line-height: 1.45 }
+.lvl-src { padding: 6px 0; border-bottom: 1px solid #0001; display: grid; gap: 2px }
 .hud-xp b { color: #ffd34d } .hud-xp .bar { flex: 1; width: auto; height: 6px; background: #ffffff33 } .hud-xp .bar i { background: linear-gradient(90deg, #b18cff, #7b61ff) }
 .hud-info { align-self: flex-end; background: #1f2430b3; color: #fff; font-size: 11px; padding: 3px 9px; border-radius: 9px }
 /* Idle box */

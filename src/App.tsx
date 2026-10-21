@@ -34,6 +34,7 @@ import { actionSfx, tickSfx } from './ui/sfxFor'
 import { clock, dur, money, num } from './ui/fmt'
 import { CHANGELOG } from './changelog'
 import { Crest } from './ui/Crest'
+import { LevelScreen } from './ui/Levels'
 import { renameCompany } from './game/company'
 import { RetailPanel } from './ui/RetailPanel'
 import { Exchange } from './ui/Exchange'
@@ -164,7 +165,7 @@ export default function App() {
           <span className="pill cash"><Ticker value={s.cash} /></span>
           {/* Shipping crate counter: tap to buy more in the Warehouse. */}
           <button className="pill crates" aria-label="Shipping crates" title="Shipping crates (tap to buy more)" onClick={() => open('warehouse')}><ResIcon id="crates" size={16} />{compactNum(E.haveQty(s, 'crates'))}</button>
-          <span className="hud-xp" title={`Company level ${lvl}, ${xpPct}% to the next`}><b>★ {lvl}</b><span className="bar"><i style={{ width: `${xpPct}%` }} /></span><small>{xpPct}%</small></span>
+          <button className="hud-xp" title={`Company level ${lvl}, ${xpPct}% to the next. Tap for details.`} aria-label={`Company level ${lvl}, ${xpPct} percent to the next. Show level details.`} onClick={() => open('levels')}><b>★ {lvl}</b><span className="bar"><i style={{ width: `${xpPct}%` }} /></span><small>{xpPct}%</small></button>
           <span className="hud-info">{clock(s.hour)} · <span className={`phase-${s.phase ?? 'normal'}`}>{PHASE_LABEL[s.phase ?? 'normal']}</span>{s.realm === 'seasons' ? ` · S${s.season}` : ''}</span>
         </div>
       </div>
@@ -212,6 +213,7 @@ export default function App() {
           {screen === 'board' && <Board s={s} onExecs={() => open('execs')} />}
           {screen === 'execs' && <Executives s={s} act={act} />}
           {screen === 'finance' && <Finance s={s} act={act} />}
+          {screen === 'levels' && <LevelScreen s={s} />}
           {screen === 'value' && <CompanyValue s={s} onPlayer={n => { setPlayer(n); setScreen('players') }} />}
           {/* Player search + public profiles (ui/Players.tsx). Trade opens the trade floor offer form for that trader. */}
           {screen === 'players' && (player
@@ -286,7 +288,7 @@ export default function App() {
       {/* Hamburger drawer: the less-used screens and settings. */}
       {menu && <div className="drawer-bg" onClick={() => setMenu(false)}><nav className="drawer" onClick={e => e.stopPropagation()}>
         <div className="drawer-head"><Logo /><b>{s.company}</b></div>
-        {(['value', 'players', 'execs', 'news', 'routes', 'chains', 'market', 'log', 'changes', 'account', 'settings', 'privacy'] as const).map(t => <button key={t} onClick={() => open(t)}>{SCREEN_ICON[t]} {SCREEN_TITLE[t]}</button>)}
+        {(['levels', 'value', 'players', 'execs', 'news', 'routes', 'chains', 'market', 'log', 'changes', 'account', 'settings', 'privacy'] as const).map(t => <button key={t} onClick={() => open(t)}>{SCREEN_ICON[t]} {SCREEN_TITLE[t]}</button>)}
         <button onClick={() => { toggleView(); setMenu(false) }}>{view === '3d' ? '▦ Switch to 2D map' : '◈ Switch to 3D map'}</button>
       </nav></div>}
 
@@ -308,9 +310,9 @@ export default function App() {
 }
 
 /** Every screen the HUD can open. 'map' is the plain map. */
-type Screen = 'map' | 'value' | 'building' | 'warehouse' | 'exchange' | 'trade' | 'research' | 'board' | 'finance' | 'market' | 'log' | 'changes' | 'account' | 'settings' | 'privacy' | 'chains' | 'news' | 'routes' | 'execs' | 'players'
-const SCREEN_TITLE: Record<Screen, string> = { map: 'Map', value: 'Company value', building: 'Building', warehouse: 'Warehouse', exchange: 'Market', trade: 'Market', research: 'Research', board: 'Research', finance: 'Finance', market: 'Public demand', log: 'Events', changes: 'Change log', account: 'Saves & account', settings: 'Settings', privacy: 'Privacy policy', chains: 'Production chains', news: 'Market news', routes: 'Trade routes', execs: 'Executives', players: 'Players' }
-const SCREEN_ICON: Partial<Record<Screen, string>> = { value: '💹', market: '📈', log: '🔔', changes: '📝', account: '💾', settings: '⚙', privacy: '🔒', chains: '🔗', news: '📰', routes: '🛒', execs: '👔', players: '🔎' }
+type Screen = 'map' | 'levels' | 'value' | 'building' | 'warehouse' | 'exchange' | 'trade' | 'research' | 'board' | 'finance' | 'market' | 'log' | 'changes' | 'account' | 'settings' | 'privacy' | 'chains' | 'news' | 'routes' | 'execs' | 'players'
+const SCREEN_TITLE: Record<Screen, string> = { map: 'Map', levels: 'Company level', value: 'Company value', building: 'Building', warehouse: 'Warehouse', exchange: 'Market', trade: 'Market', research: 'Research', board: 'Research', finance: 'Finance', market: 'Public demand', log: 'Events', changes: 'Change log', account: 'Saves & account', settings: 'Settings', privacy: 'Privacy policy', chains: 'Production chains', news: 'Market news', routes: 'Trade routes', execs: 'Executives', players: 'Players' }
+const SCREEN_ICON: Partial<Record<Screen, string>> = { levels: '★', value: '💹', market: '📈', log: '🔔', changes: '📝', account: '💾', settings: '⚙', privacy: '🔒', chains: '🔗', news: '📰', routes: '🛒', execs: '👔', players: '🔎' }
 /** The bottom tab bar (original simple glyphs). */
 const TABS: [Screen, string, string][] = [['map', 'Map', '🗺'], ['warehouse', 'Warehouse', '📦'], ['exchange', 'Market', '⇄'], ['research', 'Research', '🔬'], ['finance', 'Finance', '🏦']]
 

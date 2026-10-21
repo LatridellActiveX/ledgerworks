@@ -4,6 +4,12 @@ export interface ChangeEntry { id: string; date: string; title: string; notes: s
 
 export const CHANGELOG: ChangeEntry[] = [
   {
+    id: 'company-level-details',
+    date: '2026-10-21',
+    title: 'Company level details',
+    notes: ["Tap the level bar in the HUD to open Company level. It shows your XP, progress to the next level, and the next unlock.", "Every level is listed with its XP cost, its plot count and what it unlocks. Levels you have reached are ticked.", "A section explains exactly how XP is earned: building, upgrading, production, retail sales and trade routes."],
+  },
+  {
     id: 'company-crest-rename',
     date: '2026-10-21',
     title: 'Rename your company, and a company crest',
