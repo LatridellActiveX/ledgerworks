@@ -3,7 +3,7 @@
 // "+amount" number pops where you tapped. Pure DOM + CSS transitions, so it
 // costs nothing when idle.
 export function flyTo(from: DOMRect, kind: 'goods' | 'cash', label: string, iconHTML: string) {
-  const target = document.querySelector(kind === 'cash' ? '.pill.cash' : '.tabs button') as HTMLElement | null
+  const target = document.querySelector(kind === 'cash' ? '.pill.cash' : '.tabbar button:nth-child(2)') as HTMLElement | null
   const to = target?.getBoundingClientRect() ?? new DOMRect(innerWidth / 2, 0, 0, 0)
   const sx = from.left + from.width / 2, sy = from.top + from.height / 2
   // Number pop.

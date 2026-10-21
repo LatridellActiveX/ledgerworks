@@ -37,7 +37,9 @@ export default function App() {
   const [msg, setMsg] = useState('')
   const [view, setView] = useState<'3d' | '2d'>(() => (localStorage.getItem('ledgerworks-view') as '3d' | '2d') || '3d')
   const [sound, setSnd] = useState(soundOn())
-  const [tab, setTab] = useState<'warehouse' | 'exchange' | 'trade' | 'research' | 'board' | 'finance' | 'market' | 'log' | 'changes'>('warehouse')
+  const [screen, setScreen] = useState<Screen>('map')
+  const [menu, setMenu] = useState(false)
+  const [seenLog, setSeenLog] = useState(() => Number(localStorage.getItem('ledgerworks-seen-log') || 0))
 
   /** Run a mutating engine action on a copy, show its error if any. */
   const act = (f: (st: E.GameState) => string | null | void) => {
@@ -82,30 +84,34 @@ export default function App() {
   const slots = E.plotCount(lvl)
   const xpLo = E.xpForLevel(lvl), xpHi = E.xpForLevel(lvl + 1)
 
+  // ---- HUD layout (map fills the screen; menus are their own screens) ----
+  const idle = s.plots.flatMap((bd, i) => (bd && !bd.job ? [i] : []))
+  const nextIdle = s.plots.reduce((m, bd) => (bd?.job && bd.job.endH < m ? bd.job.endH : m), Infinity)
+  const unseen = Math.max(0, s.log.length - seenLog)
+  const open = (t: Screen) => { setScreen(t); setMenu(false); if (t === 'log') { setSeenLog(s.log.length); localStorage.setItem('ledgerworks-seen-log', String(s.log.length)) } }
+  const xpPct = Math.floor((100 * (s.xp - xpLo)) / (xpHi - xpLo))
+  const toggleView = () => { const v = view === '3d' ? '2d' : '3d'; setView(v); localStorage.setItem('ledgerworks-view', v) }
+
   return (
-    <div className="app">
-      <header>
-        <Logo /><b className="brand">Ledgerworks</b>
-        <span className="pill">{s.company}</span>
-        <span className="pill cash"><Ticker value={s.cash} /></span>
-        <span className="pill" title="Company level">Lv {lvl}
-          <span className="bar"><i style={{ width: `${(100 * (s.xp - xpLo)) / (xpHi - xpLo)}%` }} /></span>
-        </span>
-        <span className="pill">{clock(s.hour)}</span>
-        <span className={`pill phase-${s.phase ?? 'normal'}`} title="Boom: shops sell faster, factories slower. Recession: the reverse.">Economy: {PHASE_LABEL[s.phase ?? 'normal']}</span>
-        <span className="pill" title={`Admin overhead raises every wage bill. Accounting fee today: ${money(accountingFee(s.cash, 2_500_000 + cashLineBonus(s)))}`}>Overhead {(E.overhead(s) * 100).toFixed(1)}%</span>
-        {s.realm === 'seasons' && (() => { const se = SEA.seasonAt(); return <span className={`pill season-${se.phase}`} title={SEA.PHASE_NOTE[se.phase]}>Season {s.season} · {se.phase} · {se.daysLeft}d left</span> })()}
+    <div className="app hud-app">
+      {/* The map is the whole screen; everything else floats over it. */}
+      <section className="campus-wrap full">
+        <Campus3D s={s} slots={slots} sel={sel} onPick={i => { setSel(i); setScreen('map') }} mode={view} onCollect={collectAt} />
+      </section>
+
+      {/* Top HUD: menu + company badge (left); cash, level, bell, info (right). */}
+      <div className="hud-top">
+        <button className="hud-btn burger" aria-label="Menu" onClick={() => setMenu(true)}><span /><span /><span /></button>
+        <button className="hud-badge" title={s.company} aria-label="Company" onClick={() => open('finance')}><Logo /></button>
         <span className="grow" />
-        {/* Stage 12: pick a realm. Each realm has its own save, so switching never loses a company. */}
-        <select className="realm" value={SEA.realm()} title="Classic: play forever. Seasons: a timed season with weather phases, then a fresh start." onChange={e => { saveGame(s); SEA.setRealm(e.target.value as SEA.Realm); location.reload() }}>
-          <option value="classic">Classic realm</option><option value="seasons">Seasons realm</option></select>
-        <button onClick={() => { navigator.clipboard?.writeText(exportCode(s)); setMsg('Save code copied to clipboard') }}>Copy save</button>
-        <button onClick={() => { const c = prompt('Paste a save code'); if (c) try { const n = importCode(c.trim()); setS(n); saveGame(n) } catch (e: any) { setMsg(e.message) } }}>Load save</button>
-        <span className="pill" title="Prices come from the shared server market when online">{s.online ? '● online' : '○ offline'}</span>
-        <button onClick={async () => setMsg((await cloudSave(s)) || 'Saved to the cloud')}>Cloud save</button>
-        <button onClick={async () => { const k = prompt('Cloud key (copy it from another device). Leave as-is to load this browser\'s cloud save.', cloudKey()); if (!k) return; try { useCloudKey(k); const n = await cloudLoad(); setS(n); saveGame(n); setMsg('Loaded from the cloud') } catch (e: any) { setMsg(e.message) } }}>Cloud load</button>
-        <button onClick={() => { if (confirm('Start over? Your current company is lost.')) { const n = freshGame(prompt('Company name', 'My Company') || 'My Company'); setS(n); saveGame(n); setSel(null) } }}>New</button>
-      </header>
+        <button className="hud-btn bell" aria-label="Notifications" onClick={() => open('log')}>🔔{unseen > 0 && <i>{unseen > 99 ? '99+' : unseen}</i>}</button>
+        <div className="hud-stats">
+          <span className="pill cash"><Ticker value={s.cash} /></span>
+          <span className="hud-xp" title={`Company level ${lvl}, ${xpPct}% to the next`}><b>★ {lvl}</b><span className="bar"><i style={{ width: `${xpPct}%` }} /></span><small>{xpPct}%</small></span>
+          <span className="hud-info">{clock(s.hour)} · <span className={`phase-${s.phase ?? 'normal'}`}>{PHASE_LABEL[s.phase ?? 'normal']}</span>{s.realm === 'seasons' ? ` · S${s.season}` : ''}</span>
+        </div>
+      </div>
+
       {s.realm === 'seasons' && (s.season ?? 0) < SEA.seasonAt().no && <div className="season-over">
         <b>Season {s.season} is over!</b> Your company finished at {money(companyValue(s))}.
         <button className="primary" onClick={() => {
@@ -117,40 +123,80 @@ export default function App() {
         }}>Start Season {SEA.seasonAt().no}</button></div>}
       {msg && <div key={msg} className="toast" onClick={() => setMsg('')}>{msg}</div>}
 
-      <main>
-        <section className="campus-wrap">
-          <Campus3D s={s} slots={slots} sel={sel} onPick={setSel} mode={view} onCollect={collectAt} />
-          <div className="view-tools">
-            <button title="Switch between the 3D and 2D campus" onClick={() => { const v = view === '3d' ? '2d' : '3d'; setView(v); localStorage.setItem('ledgerworks-view', v) }}>{view === '3d' ? '2D view' : '3D view'}</button>
-            <button title="Sound effects" onClick={() => { setSound(!sound); setSnd(!sound); if (!sound) setTimeout(() => sfx('pop'), 50) }}>{sound ? '🔊' : '🔇'}</button>
-          </div>
-          {view === '3d' && <div className="hint">Drag to pan · scroll or pinch to zoom · Q / E or ⟲ ⟳ to turn · click a plot</div>}
-          {sel !== null && s.plots[sel] && <div className="campus-label">{BLD[s.plots[sel]!.type].name} · level {s.plots[sel]!.level}</div>}
-        </section>
+      {/* Bottom-left idle info; tap to jump to an idle building. */}
+      {screen === 'map' && sel === null && <button className="idle-box" onClick={() => idle.length && setSel(idle[0])}>
+        <span>Idle buildings: <b>{idle.length}</b></span>
+        <span>Next idle: <b>{nextIdle < Infinity ? clock(nextIdle) : '—'}</b></span>
+      </button>}
 
-        <aside className="panel">
-          {sel === null ? <p className="muted">Pick a plot to build or manage it.</p>
-            : s.plots[sel] ? <BuildingPanel s={s} plot={sel} act={act} /> : <BuildMenu s={s} plot={sel} act={act} />}
-        </aside>
-      </main>
+      {/* Building panel as a bottom sheet over the map. */}
+      {screen === 'map' && sel !== null && <div className="sheet" role="dialog">
+        <div className="sheet-grip" onClick={() => setSel(null)} />
+        <button className="sheet-close" aria-label="Close" onClick={() => setSel(null)}>✕</button>
+        <div className="sheet-body panel">{s.plots[sel] ? <BuildingPanel s={s} plot={sel} act={act} /> : <BuildMenu s={s} plot={sel} act={act} />}</div>
+      </div>}
 
-      <nav className="tabs">
-        {(['warehouse', 'exchange', 'trade', 'research', 'board', 'finance', 'market', 'log', 'changes'] as const).map(t => <button key={t} className={tab === t ? 'on' : ''} onClick={() => setTab(t)}>{t === 'warehouse' ? 'Warehouse' : t === 'exchange' ? 'Exchange' : t === 'trade' ? 'Trade floor' : t === 'research' ? 'Research' : t === 'board' ? 'Board & goals' : t === 'finance' ? 'Finance' : t === 'market' ? 'Public demand' : t === 'log' ? 'Events' : 'Change log'}</button>)}
+      {/* Full-screen menu screens, sliding in over the map. */}
+      {screen !== 'map' && <section key={screen} className="screen">
+        <header className="screen-head">
+          <button className="hud-btn" aria-label="Back to map" onClick={() => setScreen('map')}>‹</button>
+          <h2>{SCREEN_TITLE[screen]}</h2>
+          {(screen === 'exchange' || screen === 'trade') && <div className="seg"><button className={screen === 'exchange' ? 'on' : ''} onClick={() => setScreen('exchange')}>Exchange</button><button className={screen === 'trade' ? 'on' : ''} onClick={() => setScreen('trade')}>Trade floor</button></div>}
+          {(screen === 'research' || screen === 'board') && <div className="seg"><button className={screen === 'research' ? 'on' : ''} onClick={() => setScreen('research')}>Research</button><button className={screen === 'board' ? 'on' : ''} onClick={() => setScreen('board')}>Board & goals</button></div>}
+        </header>
+        <div className="screen-body bottom">
+          {screen === 'warehouse' && <Warehouse s={s} />}
+          {screen === 'exchange' && <Exchange s={s} act={act} />}
+          {screen === 'trade' && <TradeFloor s={s} act={act} />}
+          {screen === 'research' && <Research s={s} act={act} />}
+          {screen === 'board' && <Board s={s} act={act} />}
+          {screen === 'finance' && <Finance s={s} act={act} />}
+          {screen === 'market' && <Demand s={s} />}
+          {screen === 'log' && <ul className="log">{s.log.map((l, i) => <li key={i}>{l}</li>)}</ul>}
+          {screen === 'changes' && <ul className="log">{CHANGELOG.map(c => <li key={c.id}><b>{c.date} · {c.title}</b> — {c.notes.join(' ')}</li>)}</ul>}
+          {screen === 'account' && <div className="menu-list">
+            <p><b>{s.company}</b> · {s.online ? '● online' : '○ offline'} · Overhead {(E.overhead(s) * 100).toFixed(1)}% <small className="muted">(accounting fee today {money(accountingFee(s.cash, 2_500_000 + cashLineBonus(s)))})</small></p>
+            <label>Realm <select className="realm" value={SEA.realm()} title="Classic: play forever. Seasons: a timed season with weather phases, then a fresh start." onChange={e => { saveGame(s); SEA.setRealm(e.target.value as SEA.Realm); location.reload() }}>
+              <option value="classic">Classic realm</option><option value="seasons">Seasons realm</option></select></label>
+            {s.realm === 'seasons' && (() => { const se = SEA.seasonAt(); return <p className={`season-${se.phase}`}>Season {s.season} · {se.phase} · {se.daysLeft}d left — {SEA.PHASE_NOTE[se.phase]}</p> })()}
+            <button onClick={() => { navigator.clipboard?.writeText(exportCode(s)); setMsg('Save code copied to clipboard') }}>Copy save</button>
+            <button onClick={() => { const c = prompt('Paste a save code'); if (c) try { const n = importCode(c.trim()); setS(n); saveGame(n) } catch (e: any) { setMsg(e.message) } }}>Load save</button>
+            <button onClick={async () => setMsg((await cloudSave(s)) || 'Saved to the cloud')}>Cloud save</button>
+            <button onClick={async () => { const k = prompt('Cloud key (copy it from another device). Leave as-is to load this browser\'s cloud save.', cloudKey()); if (!k) return; try { useCloudKey(k); const n = await cloudLoad(); setS(n); saveGame(n); setMsg('Loaded from the cloud') } catch (e: any) { setMsg(e.message) } }}>Cloud load</button>
+            <button className="danger" onClick={() => { if (confirm('Start over? Your current company is lost.')) { const n = freshGame(prompt('Company name', 'My Company') || 'My Company'); setS(n); saveGame(n); setSel(null); setScreen('map') } }}>New company</button>
+          </div>}
+          {screen === 'settings' && <div className="menu-list">
+            <button onClick={toggleView}>Map view: {view === '3d' ? '3D (tap for 2D)' : '2D (tap for 3D)'}</button>
+            <button onClick={() => { setSound(!sound); setSnd(!sound); if (!sound) setTimeout(() => sfx('pop'), 50) }}>Sound: {sound ? 'on 🔊' : 'off 🔇'}</button>
+            <p className="muted">Map: drag to pan · pinch or scroll to zoom · Q / E or ⟲ ⟳ to turn (3D) · tap a plot to manage it.</p>
+          </div>}
+        </div>
+      </section>}
+
+      {/* Hamburger drawer: the less-used screens and settings. */}
+      {menu && <div className="drawer-bg" onClick={() => setMenu(false)}><nav className="drawer" onClick={e => e.stopPropagation()}>
+        <div className="drawer-head"><Logo /><b>{s.company}</b></div>
+        {(['market', 'log', 'changes', 'account', 'settings'] as const).map(t => <button key={t} onClick={() => open(t)}>{SCREEN_ICON[t]} {SCREEN_TITLE[t]}</button>)}
+        <button onClick={() => { toggleView(); setMenu(false) }}>{view === '3d' ? '▦ Switch to 2D map' : '◈ Switch to 3D map'}</button>
+      </nav></div>}
+
+      {/* Bottom tab bar: five main screens. */}
+      <nav className="tabs tabbar">
+        {TABS.map(([t, label, icon]) => {
+          const on = t === 'map' ? screen === 'map' : t === 'exchange' ? screen === 'exchange' || screen === 'trade' : t === 'research' ? screen === 'research' || screen === 'board' : screen === t
+          return <button key={t} aria-label={label} className={on ? 'on' : ''} onClick={() => { open(t); if (t === 'map') setSel(null) }}><span className="ti">{icon}</span><span>{label}</span></button>
+        })}
       </nav>
-      <section className="bottom">
-        {tab === 'warehouse' && <Warehouse s={s} />}
-        {tab === 'exchange' && <Exchange s={s} act={act} />}
-        {tab === 'trade' && <TradeFloor s={s} act={act} />}
-        {tab === 'research' && <Research s={s} act={act} />}
-        {tab === 'board' && <Board s={s} act={act} />}
-        {tab === 'finance' && <Finance s={s} act={act} />}
-        {tab === 'market' && <Demand s={s} />}
-        {tab === 'log' && <ul className="log">{s.log.map((l, i) => <li key={i}>{l}</li>)}</ul>}
-        {tab === 'changes' && <ul className="log">{CHANGELOG.map(c => <li key={c.id}><b>{c.date} · {c.title}</b> — {c.notes.join(' ')}</li>)}</ul>}
-      </section>
     </div>
   )
 }
+
+/** Every screen the HUD can open. 'map' is the plain map. */
+type Screen = 'map' | 'warehouse' | 'exchange' | 'trade' | 'research' | 'board' | 'finance' | 'market' | 'log' | 'changes' | 'account' | 'settings'
+const SCREEN_TITLE: Record<Screen, string> = { map: 'Map', warehouse: 'Warehouse', exchange: 'Market', trade: 'Market', research: 'Research', board: 'Research', finance: 'Finance', market: 'Public demand', log: 'Events', changes: 'Change log', account: 'Saves & account', settings: 'Settings' }
+const SCREEN_ICON: Partial<Record<Screen, string>> = { market: '📈', log: '🔔', changes: '📝', account: '💾', settings: '⚙' }
+/** The bottom tab bar (original simple glyphs). */
+const TABS: [Screen, string, string][] = [['map', 'Map', '🗺'], ['warehouse', 'Warehouse', '📦'], ['exchange', 'Market', '⇄'], ['research', 'Research', '🔬'], ['finance', 'Finance', '🏦']]
 
 type Act = (f: (st: E.GameState) => string | null | void) => void
 

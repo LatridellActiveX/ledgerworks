@@ -2,7 +2,7 @@
 // late-game features are visible: node tools/shot-tab.mjs <file> <tab> [xpLevel]
 import { chromium } from 'playwright'
 const [file, tab, lvl] = process.argv.slice(2)
-const b = await chromium.launch({ args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] }); const p = await b.newPage({ viewport: { width: 1400, height: 1000 } })
+const b = await chromium.launch({ args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] }); const mob = Number(process.env.VW || 0) > 0 && Number(process.env.VW) < 600; const p = await b.newPage({ viewport: { width: Number(process.env.VW || 1400), height: Number(process.env.VH || 1000) }, hasTouch: mob, isMobile: mob })
 // ACCOUNT=name:key signs the page in to a trade account (stage 11 shots).
 if (process.env.ACCOUNT) { const [name, key] = process.env.ACCOUNT.split(':'); await p.addInitScript(([n, k]) => localStorage.setItem('ledgerworks-account', JSON.stringify({ name: n, key: k })), [name, key]) }
 // REALM=seasons plays the seasons realm; TYPES=a,b,c overrides the sample campus; SEASON=n forces the save's season number.
@@ -32,7 +32,8 @@ if (lvl) {
   }, [Number(lvl), process.env.HOUR ? Number(process.env.HOUR) : null, process.env.REALM || '', process.env.TYPES || '', process.env.SEASON || '', Number(process.env.JOBQTY || 0)])
   await p.reload(); await p.waitForTimeout(800)
 }
-if (tab) await p.getByRole('button', { name: tab, exact: true }).click({ force: true })
+// tab: a button's accessible name (e.g. Warehouse, Market, Menu); 'none' stays on the map.
+if (tab && tab !== 'none') await p.getByRole('button', { name: tab, exact: true }).first().click({ force: true })
 await p.waitForTimeout(400)
 if (process.argv[5]) await p.locator('.plot, .tile').nth(Number(process.argv[5])).click({ force: true })
 // FOCUS=plot,zoom[,turn]: centre the iso camera on one plot.

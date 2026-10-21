@@ -7,7 +7,7 @@ import type { GameState } from '../game/engine'
 import { Campus, tilePos } from './campus'
 import * as E from '../game/engine'
 import { ResIcon } from './art'
-import { money, num } from './fmt'
+import { dur, money, num } from './fmt'
 import { activityOf, chipLabel } from '../game/activity'
 
 /** A collect bubble the campus shows above a building. */
@@ -84,7 +84,10 @@ function ActivityBadges({ s, posOf }: { s: GameState; posOf: (i: number) => { x:
   return <div className="acts">
     {s.plots.map((bd, i) => {
       const a = activityOf(s, bd)
-      if (!a || a.state === 'build') return null
+      if (!a) return null
+      // Dark time pill (time left on the job), like a status label over each building.
+      const left = bd?.job ? Math.max(0, bd.job.endH - s.hour) : 0
+      if (a.state === 'build') return <div key={i} className="act build" ref={reg(i)}><span className="tpill">🏗 {dur(left)}</span></div>
       const busy = a.state === 'make' || a.state === 'sell' || a.state === 'done'
       const R = 15, C = 2 * Math.PI * R
       return <div key={i} className={`act ${a.state}`} ref={reg(i)}>
@@ -96,7 +99,7 @@ function ActivityBadges({ s, posOf }: { s: GameState; posOf: (i: number) => { x:
           </svg>
           <span className="ic">{a.state === 'sell' ? <span className="coin sm">$</span> : <ResIcon id={a.res} size={18} />}</span>
           {a.state === 'sell' && <span className="kaching">ka-ching!</span>}
-          <span className="chip">{chipLabel[a.state]}</span>
+          <span className="tpill" title={chipLabel[a.state]}><i className={`dot ${a.state}`} />{a.state === 'done' ? 'Done' : dur(left)}</span>
         </> : <span className="zz" title="Idle: tap the building to start a job">z<small>Z</small></span>}
       </div>
     })}

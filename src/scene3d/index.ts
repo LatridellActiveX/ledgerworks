@@ -86,7 +86,7 @@ export function mount(el: HTMLElement, opts: { onPick: (i: number) => void }): S
     camera.position.set(controls.target.x + Math.sin(az) * Math.cos(ISO_EL) * DIST, controls.target.y + Math.sin(ISO_EL) * DIST, controls.target.z + Math.cos(az) * Math.cos(ISO_EL) * DIST)
     camera.lookAt(controls.target)
   }
-  camera.zoom = 1.6
+  camera.zoom = el.clientWidth < el.clientHeight ? 1.0 : 1.6 // portrait phones start further out so the whole campus fits
 
   const controls = new OrbitControls(camera, renderer.domElement)
   controls.target.set(0, 0, 0)

@@ -4,6 +4,12 @@ export interface ChangeEntry { id: string; date: string; title: string; notes: s
 
 export const CHANGELOG: ChangeEntry[] = [
   {
+    id: 'hud-fullscreen-map-layout',
+    date: '2026-10-21',
+    title: 'Full-screen map with a floating HUD',
+    notes: ['The map now fills the whole screen. Floating on top: a menu button and company badge, a green cash counter, your level and progress, a notification bell with a count, and the time and economy.', 'Each busy building shows a small dark label with the time left on its job. A box in the corner shows how many buildings are idle and when the next one finishes; tap it to jump to an idle building.', 'A tab bar along the bottom opens Map, Warehouse, Market (Exchange and Trade floor), Research (Research and Board & goals) and Finance. Each opens as its own full screen with a back button.', 'The menu button holds Public demand, Events, the change log, saves and account (realm, copy/load, cloud, new company) and settings (2D or 3D map, sound).', 'Tapping a building opens its panel as a sheet over the map. Everything is sized for phones, with large tap targets and room for notches and home bars.'],
+  },
+  {
     id: 'fix-2d-bubble-tap',
     date: '2026-10-21',
     title: 'Collect bubbles tap reliably in 2D',

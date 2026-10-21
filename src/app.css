@@ -317,3 +317,79 @@ select.realm { border-radius: 999px; padding: 4px 10px; font: inherit; font-size
    scroll the overlay and slide the bubble out from under the finger. */
 .bubbles, .acts { overflow: clip }
 .bubble:active, .bubble:not(:disabled):active { scale: none; transform: var(--t) }
+
+/* ===================== HUD layout (map fills the screen) ===================== */
+:root { --sat: env(safe-area-inset-top, 0px); --sab: env(safe-area-inset-bottom, 0px); --sal: env(safe-area-inset-left, 0px); --sar: env(safe-area-inset-right, 0px); --tabbar: 64px }
+html, body { height: 100%; overflow: hidden; overscroll-behavior: none }
+.hud-app { position: fixed; inset: 0; overflow: hidden }
+.campus-wrap.full { position: absolute; inset: 0; height: auto; border-radius: 0; border: 0; box-shadow: none; background: linear-gradient(#bfe0f5, #e8f1e0) }
+.campus-wrap.full .flat-wrap { height: 100%; display: grid; place-items: center }
+.campus-wrap.full svg.campus { width: 100%; height: 100%; max-height: 100% }
+/* Top HUD */
+.hud-top { position: absolute; z-index: 6; top: calc(var(--sat) + 8px); left: calc(var(--sal) + 8px); right: calc(var(--sar) + 8px); display: flex; align-items: flex-start; gap: 8px; pointer-events: none }
+.hud-top > * { pointer-events: auto }
+.hud-top .grow { flex: 1; pointer-events: none }
+.hud-btn { min-width: 48px; height: 48px; border-radius: 14px; border: 0; background: #1f2430d9; color: #fff; font-size: 22px; display: grid; place-items: center; backdrop-filter: blur(8px); box-shadow: 0 4px 12px #0003; position: relative; padding: 0 10px }
+.burger { display: flex; flex-direction: column; gap: 5px; justify-content: center; align-items: center }
+.burger span { display: block; width: 22px; height: 3px; border-radius: 2px; background: #fff }
+.hud-badge { width: 52px; height: 52px; border-radius: 50%; border: 3px solid #fff; background: #fffaf2; display: grid; place-items: center; box-shadow: 0 4px 12px #0003; padding: 0 }
+.hud-badge svg { width: 32px; height: 32px }
+.bell { font-size: 20px }
+.bell i { position: absolute; top: -4px; right: -4px; min-width: 20px; height: 20px; border-radius: 10px; background: #e5484d; color: #fff; font: 700 11px/20px system-ui; font-style: normal; padding: 0 5px }
+.hud-stats { display: flex; flex-direction: column; align-items: stretch; gap: 4px; min-width: 150px }
+.hud-stats .pill.cash { background: linear-gradient(#7ccf4a, #4fa52c); color: #fff; font-size: 18px; font-weight: 800; text-align: center; padding: 6px 14px; border-radius: 12px; box-shadow: 0 4px 12px #0003; border: 0 }
+.hud-xp { display: flex; align-items: center; gap: 6px; background: #1f2430d9; color: #fff; border-radius: 12px; padding: 4px 10px; font-size: 13px; backdrop-filter: blur(8px) }
+.hud-xp b { color: #ffd34d } .hud-xp .bar { flex: 1; width: auto; height: 6px; background: #ffffff33 } .hud-xp .bar i { background: linear-gradient(90deg, #b18cff, #7b61ff) }
+.hud-info { align-self: flex-end; background: #1f2430b3; color: #fff; font-size: 11px; padding: 3px 9px; border-radius: 9px }
+/* Idle box */
+.idle-box { position: absolute; z-index: 5; left: calc(var(--sal) + 10px); bottom: calc(var(--tabbar) + var(--sab) + 10px); display: flex; flex-direction: column; align-items: flex-start; gap: 2px; background: #1f2430b8; color: #fff; border: 0; border-radius: 12px; padding: 10px 14px; font-size: 15px; backdrop-filter: blur(6px); min-height: 48px }
+/* Bottom tab bar */
+.tabbar { position: absolute; z-index: 8; left: 0; right: 0; bottom: 0; height: calc(var(--tabbar) + var(--sab)); padding: 0 var(--sar) var(--sab) var(--sal) !important; display: flex; gap: 0 !important; background: #1f2430f2; backdrop-filter: blur(12px) }
+.tabbar button { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; background: none !important; color: #c9ccd3; border: 0; border-radius: 0 !important; box-shadow: none !important; font-size: 12px; padding: 0 !important; min-height: 56px }
+.tabbar button .ti { font-size: 22px; line-height: 1; filter: grayscale(.4) }
+.tabbar button.on { color: #fff } .tabbar button.on .ti { filter: none; transform: scale(1.1) }
+.tabbar button.on::after { content: ''; position: absolute; width: 28px; height: 3px; border-radius: 2px; background: #ff9a72; margin-top: 50px }
+/* Full-screen menu screens */
+.screen { position: absolute; z-index: 7; inset: 0 0 calc(var(--tabbar) + var(--sab)) 0; background: #f6efe3; display: flex; flex-direction: column; animation: screen-in .28s cubic-bezier(.2,.9,.3,1) }
+.screen-head { position: static; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: calc(var(--sat) + 10px) calc(var(--sar) + 12px) 10px calc(var(--sal) + 12px); background: #1f2430; color: #fff; box-shadow: 0 2px 10px #0003; backdrop-filter: none; border: 0 }
+.screen-head h2 { margin: 0; font-size: 20px; flex: 1 }
+.screen-head .hud-btn { font-size: 30px; background: #ffffff1a }
+.seg { display: flex; background: #ffffff1a; border-radius: 12px; padding: 3px; width: 100% }
+.seg button { flex: 1; min-height: 40px; background: none; color: #fff; border: 0; border-radius: 10px; box-shadow: none }
+.seg button.on { background: #fff; color: #1f2430 }
+.screen-body { flex: 1; overflow: auto; margin: 0 !important; border-radius: 0 !important; padding: 14px calc(var(--sar) + 14px) 24px calc(var(--sal) + 14px) !important; -webkit-overflow-scrolling: touch }
+.menu-list { display: flex; flex-direction: column; gap: 10px; max-width: 520px }
+.menu-list button, .menu-list select { min-height: 48px; font-size: 16px }
+@keyframes screen-in { from { transform: translateX(100%); opacity: .6 } }
+/* Bottom sheet for the building panel */
+.sheet { position: absolute; z-index: 7; left: 0; right: 0; bottom: calc(var(--tabbar) + var(--sab)); max-height: 62%; display: flex; flex-direction: column; background: #fffaf2f5; border-radius: 22px 22px 0 0; box-shadow: 0 -8px 30px #0004; animation: sheet-in .3s cubic-bezier(.2,.9,.3,1) }
+.sheet-grip { height: 22px; cursor: pointer } .sheet-grip::before { content: ''; display: block; width: 44px; height: 5px; border-radius: 3px; background: #0003; margin: 9px auto 0 }
+.sheet-close { position: absolute; right: 10px; top: 8px; width: 44px; height: 44px; border-radius: 50%; border: 0; background: #0000000f; font-size: 18px }
+.sheet-body { overflow: auto; max-height: none !important; padding: 0 16px calc(16px) !important; background: none !important; box-shadow: none !important; border: 0 !important; animation: none !important }
+@keyframes sheet-in { from { transform: translateY(100%) } }
+/* Hamburger drawer */
+.drawer-bg { position: absolute; inset: 0; z-index: 9; background: #0006; animation: fadein .2s }
+.drawer { position: absolute; top: 0; bottom: 0; left: 0; width: min(300px, 82vw); background: #1f2430; color: #fff; padding: calc(var(--sat) + 16px) 12px calc(var(--sab) + 16px) calc(var(--sal) + 12px); display: flex; flex-direction: column; gap: 6px; animation: drawer-in .25s cubic-bezier(.2,.9,.3,1); box-shadow: 8px 0 30px #0005 }
+.drawer-head { display: flex; align-items: center; gap: 10px; font-size: 17px; padding: 0 6px 14px; border-bottom: 1px solid #ffffff22; margin-bottom: 6px }
+.drawer button { text-align: left; min-height: 52px; font-size: 16px; background: none; color: #fff; border: 0; border-radius: 12px; padding: 0 12px; box-shadow: none }
+.drawer button:hover { background: #ffffff14 }
+@keyframes drawer-in { from { transform: translateX(-100%) } }
+/* Over-building time pill */
+.tpill { margin-top: 3px; display: inline-flex; align-items: center; gap: 4px; background: #1f2430d9; color: #fff; font: 700 11px/1 system-ui; padding: 4px 8px; border-radius: 8px; white-space: nowrap; box-shadow: 0 2px 6px #0003 }
+.tpill .dot { width: 7px; height: 7px; border-radius: 50% } .dot.make { background: #6fd08c } .dot.sell { background: #ffc845 } .dot.done { background: #b18cff }
+.act .chip { display: none }
+/* Hide old chrome */
+.view-tools, .hint, .campus-label { display: none !important }
+.rot-tools { bottom: calc(var(--tabbar) + var(--sab) + 12px) !important; top: auto !important; right: calc(var(--sar) + 10px) !important; left: auto !important }
+.rot-tools button { min-width: 48px; min-height: 48px }
+.toast { z-index: 10; bottom: calc(var(--tabbar) + var(--sab) + 80px) !important }
+.season-over { position: absolute; z-index: 6; top: calc(var(--sat) + 120px); left: 10px; right: 10px }
+/* Desktop: sheet becomes a side card; screens are a centred column. */
+@media (min-width: 900px) {
+  .sheet { left: auto; right: 16px; top: 140px; bottom: calc(var(--tabbar) + 16px); width: 400px; max-height: none; border-radius: 20px }
+  .screen-body > * { max-width: 1100px; margin-inline: auto }
+  .tabbar { left: 50%; right: auto; transform: translateX(-50%); width: min(640px, 100%); bottom: 12px; border-radius: 20px; height: var(--tabbar) }
+  .screen { bottom: 0; padding-bottom: calc(var(--tabbar) + 24px) }
+  .idle-box { bottom: 24px } .rot-tools { bottom: 24px !important }
+}
+@media (prefers-reduced-motion: reduce) { .screen, .sheet, .drawer, .drawer-bg { animation: none !important } }
