@@ -42,6 +42,6 @@ if (process.env.ZOOM) { await p.waitForTimeout(4000); const c = await p.locator(
 if (process.env.CLICK) { const c = await p.locator('.scene3d canvas').boundingBox(); const [fx, fy] = process.env.CLICK.split(',').map(Number); await p.mouse.click(c.x + c.width * fx, c.y + c.height * fy) }
 await p.waitForTimeout(Number(process.env.WAIT || 300))
 // TAP=selector: tap it, then shoot mid-animation (fly-to-HUD).
-if (process.env.TAP) { await p.locator(process.env.TAP).first().click(); await p.waitForTimeout(Number(process.env.TAPWAIT || 350)) }
+if (process.env.TAP) { await p.locator(process.env.TAP).first().click({ force: true }); await p.waitForTimeout(Number(process.env.TAPWAIT || 350)) }
 await p.screenshot({ path: `/workspace/${file}`, fullPage: true })
 await b.close()
