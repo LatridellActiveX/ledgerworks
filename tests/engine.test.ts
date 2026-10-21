@@ -18,7 +18,7 @@ describe('production timing', () => {
     expect(E.startMake(s, 0, 'power', 1200)).toBeNull() // 600/h at level 1 -> 2 h
     const job = s.plots[0]!.job as any
     expect(job.endH - job.startH).toBeCloseTo(2)
-    expect(cash - s.cash).toBeCloseTo(40 * 2) // windmill wage 40/h
+    expect(cash - s.cash).toBeCloseTo(40 * 2 * 1.0055) // windmill wage 40/h + 0.55% overhead (2 buildings)
     E.advanceTo(s, s.hour + 1.9)
     expect(E.haveQty(s, 'power')).toBe(0)
     E.advanceTo(s, s.hour + 0.2)

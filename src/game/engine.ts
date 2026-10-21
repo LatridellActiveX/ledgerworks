@@ -14,6 +14,8 @@
 // ============================================================================
 import { BLD, REC, RES } from './data'
 import { marketDay, npcHour, restockNpc, type Order } from './market'
+import { accountingFee, adminOverhead, isPhaseDay, nextPhase, PHASE_LABEL, productionMult, retailMult } from './economy'
+import { rand } from './rng'
 
 export const GAME_SPEED = 4 // game hours per real hour
 export const MAX_QUALITY = 12
@@ -169,8 +171,13 @@ export function scrap(s: GameState, plot: number): string | null {
 // Production
 // --------------------------------------------------------------------------
 /** Hours a production run takes: qty / (rate * level). */
-export const makeHours = (res: string, qty: number, level: number) => qty / (REC[res].perHour * level)
-export const makeWages = (type: string, level: number, hours: number) => BLD[type].wage * level * hours
+/** Hours a production run takes; economy phase speeds up or slows the building. */
+export const makeHours = (res: string, qty: number, level: number, type?: string, s?: GameState) =>
+  qty / (REC[res].perHour * level * (type && s ? productionMult(type, s.phase) : 1))
+/** Company admin overhead fraction from all building levels. */
+export const overhead = (s?: GameState) => (s ? adminOverhead(s.plots.filter(Boolean).map(b => b!.level)) : 0)
+/** Wages for `hours` of work, including admin overhead when a state is given. */
+export const makeWages = (type: string, level: number, hours: number, s?: GameState) => BLD[type].wage * level * hours * (1 + overhead(s))
 
 export function startMake(s: GameState, plot: number, res: string, qty: number): string | null {
   const bd = s.plots[plot]
@@ -178,7 +185,7 @@ export function startMake(s: GameState, plot: number, res: string, qty: number):
   const bt = BLD[bd.type], rc = REC[res]
   if (!bt.recipes?.includes(res)) return 'This building cannot make that'
   if (!(qty > 0)) return 'Pick an amount'
-  const hours = makeHours(res, qty, bd.level), wages = makeWages(bd.type, bd.level, hours)
+  const hours = makeHours(res, qty, bd.level, bd.type, s), wages = makeWages(bd.type, bd.level, hours, s)
   if (s.cash < wages) return 'Not enough cash for wages'
   for (const [inp, per] of Object.entries(rc.inputs)) if (haveQty(s, inp) + 1e-9 < per * qty) return `Need ${Math.ceil(per * qty)} ${RES[inp].name}`
   // Output quality = lowest input quality, capped by the company's know-how.
@@ -208,7 +215,7 @@ export function sellRate(s: GameState, res: string, q: number, price: number) {
   const r = RES[res]
   const base = (r.dailyDemand ?? 0) / 24
   const sat = s.saturation[res] ?? 1
-  return base * Math.pow(fairPrice(res, q) / price, 2.2) * (1 + 0.12 * q) / sat
+  return base * Math.pow(fairPrice(res, q) / price, 2.2) * (1 + 0.12 * q) / sat * retailMult(s.phase)
 }
 export const sellHours = (s: GameState, res: string, q: number, price: number, qty: number, level: number) =>
   qty / (sellRate(s, res, q, price) * level)
@@ -221,7 +228,7 @@ export function startSell(s: GameState, plot: number, res: string, q: number, qt
   if (!(price > 0)) return 'Set a price'
   const hours = sellHours(s, res, q, price, qty, bd.level)
   if (hours > 72) return 'Too slow (over 3 days). Lower the price or the amount.'
-  const wages = makeWages(bd.type, bd.level, hours)
+  const wages = makeWages(bd.type, bd.level, hours, s)
   if (s.cash < wages) return 'Not enough cash for wages'
   addStock(s, res, q, -qty)
   s.cash -= wages
@@ -242,6 +249,16 @@ export function rollDay(s: GameState) {
     s.saturation[r.id] = Math.max(0.6, Math.min(3, sat))
   }
   s.soldToday = {}
+  // Accounting fee on large cash piles.
+  const fee = accountingFee(s.cash)
+  if (fee > 0) { s.cash -= fee; say(s, `Accounting fee: $${fee.toLocaleString()}.`) }
+  // Weekly economy roll (offline only; online the server decides).
+  const day = Math.floor(s.hour / 24)
+  if (!s.online && isPhaseDay(day)) {
+    const [r, n] = rand(s.seed); s.seed = n
+    const was = s.phase ?? 'normal'; s.phase = nextPhase(was, r)
+    if (s.phase !== was) say(s, `The economy is now: ${PHASE_LABEL[s.phase]}.`)
+  }
   marketDay(s)
 }
 

@@ -13,6 +13,7 @@ import { clock, dur, money, num } from './ui/fmt'
 import { CHANGELOG } from './changelog'
 import { RetailPanel } from './ui/RetailPanel'
 import { Exchange } from './ui/Exchange'
+import { PHASE_LABEL, accountingFee, productionMult } from './game/economy'
 import { cloudKey, cloudLoad, cloudSave, syncWorld, useCloudKey } from './game/cloud'
 import './app.css'
 
@@ -61,6 +62,8 @@ export default function App() {
         </span>
         <span className="pill">Best quality Q{E.qualityCap(lvl)}</span>
         <span className="pill">{clock(s.hour)}</span>
+        <span className={`pill phase-${s.phase ?? 'normal'}`} title="Boom: shops sell faster, factories slower. Recession: the reverse.">Economy: {PHASE_LABEL[s.phase ?? 'normal']}</span>
+        <span className="pill" title={`Admin overhead raises every wage bill. Accounting fee today: ${money(accountingFee(s.cash))}`}>Overhead {(E.overhead(s) * 100).toFixed(1)}%</span>
         <span className="grow" />
         <button onClick={() => { navigator.clipboard?.writeText(exportCode(s)); setMsg('Save code copied to clipboard') }}>Copy save</button>
         <button onClick={() => { const c = prompt('Paste a save code'); if (c) try { const n = importCode(c.trim()); setS(n); saveGame(n) } catch (e: any) { setMsg(e.message) } }}>Load save</button>
@@ -151,7 +154,7 @@ function BuildingPanel({ s, plot, act }: { s: E.GameState; plot: number; act: Ac
         <button disabled={!!bd.job} onClick={() => act(st => E.upgrade(st, plot))}>Upgrade to L{bd.level + 1} ({money(E.upgradeCost(bd.type, bd.level + 1))})</button>
         <button className="danger" onClick={() => confirm(`Scrap for ${money(E.scrapRefund(bd))} back?`) && act(st => E.scrap(st, plot))}>Scrap</button>
       </div>
-      <p className="muted">Wages {money(bt.wage * bd.level)}/game hour while working.</p>
+      <p className="muted">Wages {money(bt.wage * bd.level * (1 + E.overhead(s)))}/game hour while working (incl. {(E.overhead(s) * 100).toFixed(1)}% admin overhead).</p>
     </div>
   )
 }
@@ -162,8 +165,8 @@ function MakeForm({ s, plot, act }: { s: E.GameState; plot: number; act: Act }) 
   const [res, setRes] = useState(bt.recipes![0])
   const [hours, setHours] = useState(2)
   const rc = REC[res]
-  const qty = Math.floor(rc.perHour * bd.level * hours)
-  const wages = E.makeWages(bd.type, bd.level, hours)
+  const qty = Math.floor(rc.perHour * bd.level * hours * productionMult(bd.type, s.phase))
+  const wages = E.makeWages(bd.type, bd.level, hours, s)
   const missing = useMemo(() => Object.entries(rc.inputs).filter(([k, v]) => E.haveQty(s, k) < v * qty), [s, rc, qty])
   return (
     <div className="card">

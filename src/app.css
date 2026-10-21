@@ -55,3 +55,4 @@ main { display: grid; grid-template-columns: 1fr 360px; gap: 16px; padding: 16px
 .ex .card { margin: 0 }
 tr.mine td { color: var(--accent); font-weight: 600 }
 @media (max-width: 800px) { .ex { grid-template-columns: 1fr } }
+.phase-boom { background: #dff3d6 } .phase-recession { background: #fde2d8 }

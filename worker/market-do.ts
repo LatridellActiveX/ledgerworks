@@ -11,12 +11,13 @@ import { RESOURCES } from '../src/game/data'
 import { rand } from '../src/game/rng'
 import { GAME_SPEED } from '../src/game/engine'
 import { depth } from '../src/game/market'
+import { isPhaseDay, nextPhase, priceTrend, type Phase } from '../src/game/economy'
 
 /** Real-world moment that counts as "game hour 0" of the shared world. */
 const EPOCH = Date.UTC(2026, 9, 21)
 export const worldHour = (now = Date.now()) => ((now - EPOCH) / 3600000) * GAME_SPEED
 
-interface World { day: number; seed: number; ref: Record<string, number>; sold: Record<string, number> }
+interface World { phase?: Phase; day: number; seed: number; ref: Record<string, number>; sold: Record<string, number> }
 
 export class MarketDO {
   constructor(private state: DurableObjectState) {}
@@ -37,12 +38,15 @@ export class MarketDO {
       for (const r of RESOURCES) {
         const [x, n] = rand(w.seed); w.seed = n
         const ref = w.ref[r.id] ?? r.basePrice
-        let next = ref + 0.1 * (r.basePrice - ref) + ref * 0.06 * (x - 0.5)
+        const target = r.basePrice * priceTrend(w.phase)
+        let next = ref + 0.1 * (target - ref) + ref * 0.06 * (x - 0.5)
         next *= 1 - Math.min(0.08, ((w.sold[r.id] ?? 0) / (depth(r.id) * 5)) * 0.04)
         w.ref[r.id] = Math.min(r.basePrice * 1.8, Math.max(r.basePrice * 0.6, next))
       }
       w.sold = {}
       w.day++
+      // Weekly economy roll, shared by every player.
+      if (isPhaseDay(w.day)) { const [x, n] = rand(w.seed); w.seed = n; w.phase = nextPhase(w.phase ?? 'normal', x) }
     }
     w.day = Math.max(w.day, today)
     await this.state.storage.put('world', w)
@@ -60,6 +64,6 @@ export class MarketDO {
       return Response.json({ ok: true })
     }
     const w = await this.step()
-    return Response.json({ day: w.day, hour: worldHour(), ref: w.ref })
+    return Response.json({ day: w.day, hour: worldHour(), ref: w.ref, phase: w.phase ?? 'normal' })
   }
 }

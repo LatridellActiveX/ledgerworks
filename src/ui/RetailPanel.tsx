@@ -30,7 +30,7 @@ export function RetailPanel({ s, plot, act }: { s: E.GameState; plot: number; ac
       <label>Amount <input type="number" min={1} max={lot.v} value={q} onChange={e => setQty(Math.min(lot.v, Number(e.target.value)))} /></label>
       <label>Price each $<input type="number" step="0.01" min={0.01} value={p} onChange={e => setPrice(Number(e.target.value))} /> <small className="muted">fair ≈ {money(fair)}</small></label>
       <div>Market: <b style={{ color: sat > 1.15 ? '#b0413e' : sat < 0.9 ? '#3c7a4a' : undefined }}>{sat > 1.15 ? 'flooded' : sat < 0.9 ? 'hungry' : 'normal'}</b> ({num(sat)}×)</div>
-      <div>Sells out in {dur(hours)} · revenue {money(q * p)} · wages {money(E.makeWages(bd.type, bd.level, hours))}</div>
+      <div>Sells out in {dur(hours)} · revenue {money(q * p)} · wages {money(E.makeWages(bd.type, bd.level, hours, s))}</div>
       <button className="primary" disabled={hours > 72} onClick={() => act(st => E.startSell(st, plot, lot.res, lot.q, q, p))}>{hours > 72 ? 'Too slow — lower price' : 'Start selling'}</button>
     </div>
   )

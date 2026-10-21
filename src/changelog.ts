@@ -4,6 +4,12 @@ export interface ChangeEntry { id: string; date: string; title: string; notes: s
 
 export const CHANGELOG: ChangeEntry[] = [
   {
+    id: 'stage7-overhead-accounting-phases',
+    date: '2026-10-21',
+    title: 'Overhead, accounting and the business cycle',
+    notes: ['Admin overhead: every wage bill rises 0.55% per building level beyond the first.', 'Accounting fee: cash above $2.5M is charged daily, 0.4% per extra $2.5M (max 2.4%).', 'Economy phases (Recession, Steady, Boom) can shift one step each game week, shared by everyone online. Booms sell faster in shops but slow factories, recessions the reverse, and fancier industries swing more.'],
+  },
+  {
     id: 'stage6-cloud-world-server',
     date: '2026-10-21',
     title: 'Shared world server',
