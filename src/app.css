@@ -56,3 +56,7 @@ main { display: grid; grid-template-columns: 1fr 360px; gap: 16px; padding: 16px
 tr.mine td { color: var(--accent); font-weight: 600 }
 @media (max-width: 800px) { .ex { grid-template-columns: 1fr } }
 .phase-boom { background: #dff3d6 } .phase-recession { background: #fde2d8 }
+.fields { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px }
+.rrow { display: flex; gap: 6px; align-items: center; font-size: 13px }
+.rrow button { padding: 2px 8px; margin-left: auto }
+@media (max-width: 800px) { .fields { grid-template-columns: 1fr } }

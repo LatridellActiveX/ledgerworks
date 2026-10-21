@@ -13,6 +13,7 @@ import { clock, dur, money, num } from './ui/fmt'
 import { CHANGELOG } from './changelog'
 import { RetailPanel } from './ui/RetailPanel'
 import { Exchange } from './ui/Exchange'
+import { Research } from './ui/Research'
 import { PHASE_LABEL, accountingFee, productionMult } from './game/economy'
 import { cloudKey, cloudLoad, cloudSave, syncWorld, useCloudKey } from './game/cloud'
 import './app.css'
@@ -21,7 +22,7 @@ export default function App() {
   const [s, setS] = useState<E.GameState>(() => E.advanceReal(loadGame()))
   const [sel, setSel] = useState<number | null>(null)
   const [msg, setMsg] = useState('')
-  const [tab, setTab] = useState<'warehouse' | 'exchange' | 'market' | 'log' | 'changes'>('warehouse')
+  const [tab, setTab] = useState<'warehouse' | 'exchange' | 'research' | 'market' | 'log' | 'changes'>('warehouse')
 
   /** Run a mutating engine action on a copy, show its error if any. */
   const act = (f: (st: E.GameState) => string | null | void) => {
@@ -60,7 +61,6 @@ export default function App() {
         <span className="pill" title="Company level">Lv {lvl}
           <span className="bar"><i style={{ width: `${(100 * (s.xp - xpLo)) / (xpHi - xpLo)}%` }} /></span>
         </span>
-        <span className="pill">Best quality Q{E.qualityCap(lvl)}</span>
         <span className="pill">{clock(s.hour)}</span>
         <span className={`pill phase-${s.phase ?? 'normal'}`} title="Boom: shops sell faster, factories slower. Recession: the reverse.">Economy: {PHASE_LABEL[s.phase ?? 'normal']}</span>
         <span className="pill" title={`Admin overhead raises every wage bill. Accounting fee today: ${money(accountingFee(s.cash))}`}>Overhead {(E.overhead(s) * 100).toFixed(1)}%</span>
@@ -98,11 +98,12 @@ export default function App() {
       </main>
 
       <nav className="tabs">
-        {(['warehouse', 'exchange', 'market', 'log', 'changes'] as const).map(t => <button key={t} className={tab === t ? 'on' : ''} onClick={() => setTab(t)}>{t === 'warehouse' ? 'Warehouse' : t === 'exchange' ? 'Exchange' : t === 'market' ? 'Public demand' : t === 'log' ? 'Events' : 'Change log'}</button>)}
+        {(['warehouse', 'exchange', 'research', 'market', 'log', 'changes'] as const).map(t => <button key={t} className={tab === t ? 'on' : ''} onClick={() => setTab(t)}>{t === 'warehouse' ? 'Warehouse' : t === 'exchange' ? 'Exchange' : t === 'research' ? 'Research' : t === 'market' ? 'Public demand' : t === 'log' ? 'Events' : 'Change log'}</button>)}
       </nav>
       <section className="bottom">
         {tab === 'warehouse' && <Warehouse s={s} />}
         {tab === 'exchange' && <Exchange s={s} act={act} />}
+        {tab === 'research' && <Research s={s} act={act} />}
         {tab === 'market' && <Demand s={s} />}
         {tab === 'log' && <ul className="log">{s.log.map((l, i) => <li key={i}>{l}</li>)}</ul>}
         {tab === 'changes' && <ul className="log">{CHANGELOG.map(c => <li key={c.id}><b>{c.date} · {c.title}</b> — {c.notes.join(' ')}</li>)}</ul>}

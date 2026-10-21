@@ -1,5 +1,25 @@
-# Cloudflare Worker config. `npx wrangler deploy` uploads dist/worker.js.
+# Cloudflare Worker config. `npm run deploy` builds and runs `wrangler deploy`
+# (needs CLOUDFLARE_API_TOKEN). Same bindings as tools/make-deploy-snippet.mjs.
 name = "ledgerworks"
 main = "dist/worker.js"
 compatibility_date = "2026-01-01"
 workers_dev = true
+# Build output is already bundled by tools/build-worker.mjs.
+no_bundle = true
+
+[[d1_databases]]
+binding = "DB"
+database_name = "ledgerworks"
+database_id = "f908ad9d-1a54-4718-999e-c9d4fc1ac769"
+
+[[durable_objects.bindings]]
+name = "MARKET"
+class_name = "MarketDO"
+
+# Already applied on the live Worker as tag v1.
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["MarketDO"]
+
+[triggers]
+crons = ["*/15 * * * *"]

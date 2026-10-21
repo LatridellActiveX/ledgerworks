@@ -4,6 +4,12 @@ export interface ChangeEntry { id: string; date: string; title: string; notes: s
 
 export const CHANGELOG: ChangeEntry[] = [
   {
+    id: 'stage8-research-patents-quality',
+    date: '2026-10-21',
+    title: 'Research labs and patents',
+    notes: ['New Research lab (level 6) makes notes in six fields: farm, kitchen, textile, energy, builder and tech.', 'Spend notes on a product: each has a 1-in-7 chance to become a patent. Patents unlock Q1 to Q12 (10, 50, 450, 2,050 ... patents).', 'You now make the best researched quality, capped at your lowest-quality input + 1. The old quality-by-level cap is gone.', 'wrangler.toml now carries the D1, Durable Object and cron settings.'],
+  },
+  {
     id: 'stage7-overhead-accounting-phases',
     date: '2026-10-21',
     title: 'Overhead, accounting and the business cycle',

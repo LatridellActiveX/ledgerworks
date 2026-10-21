@@ -50,7 +50,7 @@ export interface BuildingType {
 }
 
 // ---------------------------------------------------------------------------
-// Resources (41). Grouped by chain for readability.
+// Resources (47). Grouped by chain for readability.
 // ---------------------------------------------------------------------------
 export const RESOURCES: Resource[] = [
   // Utilities
@@ -101,6 +101,13 @@ export const RESOURCES: Resource[] = [
   { id: 'phone', name: 'Pocket phone', color: '#5d6bd4', basePrice: 220, ship: 0.5, store: 'gadget', dailyDemand: 20 },
   { id: 'lamp', name: 'Desk lamp', color: '#f2c94c', basePrice: 35, store: 'gadget', dailyDemand: 60 },
   { id: 'speaker', name: 'Speaker', color: '#e07a5f', basePrice: 70, store: 'gadget', dailyDemand: 35 },
+  // Research notes: spent on patents to raise the quality you can make.
+  { id: 'rn_farm', name: 'Farm notes', color: '#cde8b5', basePrice: 45, ship: 0 },
+  { id: 'rn_food', name: 'Kitchen notes', color: '#f8d3a8', basePrice: 50, ship: 0 },
+  { id: 'rn_textile', name: 'Textile notes', color: '#c9d9ea', basePrice: 40, ship: 0 },
+  { id: 'rn_energy', name: 'Energy notes', color: '#f3e3a1', basePrice: 70, ship: 0 },
+  { id: 'rn_build', name: 'Builder notes', color: '#e8cdb8', basePrice: 55, ship: 0 },
+  { id: 'rn_tech', name: 'Tech notes', color: '#bfe3d5', basePrice: 85, ship: 0 },
 ]
 
 // ---------------------------------------------------------------------------
@@ -147,6 +154,12 @@ export const RECIPES: Recipe[] = [
   { output: 'cell', perHour: 12, inputs: { metal: 1, resin: 1, power: 3 } },
   { output: 'phone', perHour: 2, inputs: { chip: 3, cell: 1, glass: 1, resin: 1 } },
   { output: 'lamp', perHour: 8, inputs: { metal: 1, glass: 1, power: 1 } },
+  { output: 'rn_farm', perHour: 4, inputs: { power: 20, seeds: 10 } },
+  { output: 'rn_food', perHour: 4, inputs: { power: 20, eggs: 5 } },
+  { output: 'rn_textile', perHour: 4, inputs: { power: 20, cotton: 5 } },
+  { output: 'rn_energy', perHour: 3, inputs: { power: 30, crude: 5 } },
+  { output: 'rn_build', perHour: 4, inputs: { power: 20, clay: 10 } },
+  { output: 'rn_tech', perHour: 2, inputs: { power: 40, metal: 2 } },
   { output: 'speaker', perHour: 5, inputs: { chip: 1, boards: 1, metal: 1, power: 1 } },
 ]
 
@@ -169,6 +182,7 @@ export const BUILDINGS: BuildingType[] = [
   { id: 'fab', name: 'Circuit lab', color: '#6dbf9e', kind: 'production', cost: 80000, wage: 220, recipes: ['chip', 'cell'], unlockLevel: 8 },
   { id: 'assembly', name: 'Gadget line', color: '#5d6bd4', kind: 'production', cost: 90000, wage: 240, recipes: ['phone', 'lamp', 'speaker'], unlockLevel: 8 },
   { id: 'crateyard', name: 'Crate yard', color: '#c8a46e', kind: 'production', cost: 15000, wage: 55, recipes: ['crates'], unlockLevel: 2 },
+  { id: 'lab', name: 'Research lab', color: '#bfe3d5', kind: 'production', cost: 50000, wage: 160, recipes: ['rn_farm', 'rn_food', 'rn_textile', 'rn_energy', 'rn_build', 'rn_tech'], unlockLevel: 6 },
   // Retail
   { id: 'market', name: 'Corner market', color: '#ef8a8a', kind: 'retail', cost: 10000, wage: 50, store: 'market', unlockLevel: 1 },
   { id: 'outfitter', name: 'Outfitter', color: '#7fb3d5', kind: 'retail', cost: 18000, wage: 70, store: 'outfitter', unlockLevel: 4 },

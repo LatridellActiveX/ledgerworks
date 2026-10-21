@@ -16,6 +16,7 @@ import { BLD, REC, RES } from './data'
 import { marketDay, npcHour, restockNpc, type Order } from './market'
 import { accountingFee, adminOverhead, isPhaseDay, nextPhase, PHASE_LABEL, productionMult, retailMult } from './economy'
 import { rand } from './rng'
+import { applyResearch, RESEARCH_LEVEL, researchable, researchedQ } from './research'
 
 export const GAME_SPEED = 4 // game hours per real hour
 export const MAX_QUALITY = 12
@@ -56,6 +57,8 @@ export interface GameState {
   // --- Server (stage 6) ---
   online?: boolean // true when prices come from the shared server market
   phase?: 'recession' | 'normal' | 'boom' // economy phase (stage 7)
+  // --- Research (stage 8) ---
+  patents: Record<string, number> // patents per product
 }
 
 // --------------------------------------------------------------------------
@@ -70,8 +73,6 @@ export function companyLevel(xp: number) {
 }
 /** Building plots grow with company level: 6 at level 1, up to 24. */
 export const plotCount = (lvl: number) => Math.min(24, 5 + lvl)
-/** Best quality you can produce right now (research arrives in a later stage). */
-export const qualityCap = (lvl: number) => Math.min(MAX_QUALITY, Math.floor((lvl - 1) / 2))
 
 // --------------------------------------------------------------------------
 // Helpers
@@ -110,7 +111,7 @@ export function newGame(company = 'My Company', now = Date.now()): GameState {
   const s: GameState = {
     version: 1, company, cash: START_CASH, xp: 0, hour: 8, lastReal: now, nextUid: 1,
     plots: Array(24).fill(null), stock: {}, saturation: {}, soldToday: {}, log: ['Welcome to Ledgerworks!'],
-    seed: 12345, ref: {}, asks: [], bidLeft: {}, exSold: {},
+    seed: 12345, ref: {}, asks: [], bidLeft: {}, exSold: {}, patents: {},
   }
   restockNpc(s)
   return s
@@ -188,11 +189,12 @@ export function startMake(s: GameState, plot: number, res: string, qty: number):
   const hours = makeHours(res, qty, bd.level, bd.type, s), wages = makeWages(bd.type, bd.level, hours, s)
   if (s.cash < wages) return 'Not enough cash for wages'
   for (const [inp, per] of Object.entries(rc.inputs)) if (haveQty(s, inp) + 1e-9 < per * qty) return `Need ${Math.ceil(per * qty)} ${RES[inp].name}`
-  // Output quality = lowest input quality, capped by the company's know-how.
-  let q = qualityCap(companyLevel(s.xp))
+  // Output quality: the product's researched quality, but at most the
+  // lowest input quality + 1 (inputs are taken best-first).
+  let q = Math.min(MAX_QUALITY, researchedQ(s, res))
   for (const [inp, per] of Object.entries(rc.inputs)) {
     const low = takeStock(s, inp, per * qty)
-    if (inp !== 'power' && inp !== 'water') q = Math.min(q, low) // utilities don't limit quality
+    q = Math.min(q, low + 1)
   }
   s.cash -= wages
   bd.job = { kind: 'make', res, qty, q, startH: s.hour, endH: s.hour + hours }
@@ -324,3 +326,18 @@ export function rush(s: GameState, plot: number): string | null {
   return null
 }
 export const rushCost = (s: GameState, bd: Building) => (bd.job ? Math.ceil(Math.max(0, bd.job.endH - s.hour)) * 250 : 0)
+
+/** Spend research notes on a product (see research.ts). Returns an error or null. */
+export function research(s: GameState, res: string, n: number, bonus = 1): string | null {
+  if (companyLevel(s.xp) < RESEARCH_LEVEL) return `Research unlocks at company level ${RESEARCH_LEVEL}`
+  if (!researchable(res)) return 'This good cannot be researched'
+  const before = researchedQ(s, res)
+  const r = applyResearch(s, res, n, (id, k) => takeStock(s, id, k) >= 0, bonus)
+  if (typeof r === 'string') return r
+  const after = researchedQ(s, res)
+  say(s, `Research: ${r} new patent${r === 1 ? '' : 's'} for ${RES[res].name}${after > before ? ` — now Q${after}!` : ''}.`)
+  return null
+}
+
+/** Patent chance multiplier from executives (CTO arrives in stage 9). */
+export const patentBonus = (_s: GameState) => 1
