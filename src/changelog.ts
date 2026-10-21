@@ -4,6 +4,12 @@ export interface ChangeEntry { id: string; date: string; title: string; notes: s
 
 export const CHANGELOG: ChangeEntry[] = [
   {
+    id: 'sell-power',
+    date: '2026-10-21',
+    title: 'Sell power to the grid',
+    notes: ["Surplus power in the warehouse can be sold to the grid. It needs no shipping crates, has no broker fee and no daily buyer cap. The grid pays 85% of the going power price."],
+  },
+  {
     id: 'notifications-digest',
     date: '2026-10-21',
     title: 'Quieter notifications',

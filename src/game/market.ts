@@ -154,6 +154,23 @@ export function quickSell(s: GameState, res: string, q: number, qty: number): st
   return null
 }
 
+/** The grid pays this share of the market reference price for power. */
+export const GRID_RATE = 0.85
+
+/**
+ * Sell surplus power straight to the grid: no crates, no broker fee, no daily
+ * buyer cap. The grid pays a set share of the reference price.
+ */
+export function sellPower(s: GameState, q: number, qty: number): string | null {
+  if (!Number.isInteger(qty) || qty < 1) return 'Pick a whole amount of at least 1'
+  if ((s.stock[key('power', q)] ?? 0) + 1e-9 < qty) return 'Not enough power in the warehouse'
+  const pay = qty * refPrice(s, 'power') * GRID_RATE
+  setWhy('sold to the grid')
+  addStock(s, 'power', q, -qty)
+  s.cash += pay
+  return null
+}
+
 /**
  * One game hour of NPC buying. For each good, buyers bring a budget of
  * units and a willingness price; they buy from the top of the book while the
