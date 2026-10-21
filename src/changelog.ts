@@ -4,6 +4,12 @@ export interface ChangeEntry { id: string; date: string; title: string; notes: s
 
 export const CHANGELOG: ChangeEntry[] = [
   {
+    id: 'wind-turbine-spacing',
+    date: '2026-10-21',
+    title: 'Wind turbine name and job bar spacing',
+    notes: ["The Windmill is now called the Wind turbine.", "The production and selling bar in a building's panel has more space above it."],
+  },
+  {
     id: 'sell-power',
     date: '2026-10-21',
     title: 'Sell power to the grid',

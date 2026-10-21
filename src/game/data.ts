@@ -167,7 +167,7 @@ export const RECIPES: Recipe[] = [
 // Buildings. Production buildings list recipes; retail ones list a store.
 // ---------------------------------------------------------------------------
 export const BUILDINGS: BuildingType[] = [
-  { id: 'generator', name: 'Windmill', color: '#f7d774', kind: 'production', cost: 9000, wage: 40, recipes: ['power'], unlockLevel: 1 },
+  { id: 'generator', name: 'Wind turbine', color: '#f7d774', kind: 'production', cost: 9000, wage: 40, recipes: ['power'], unlockLevel: 1 },
   { id: 'pump', name: 'Pump house', color: '#8ec9e8', kind: 'production', cost: 7000, wage: 35, recipes: ['water'], unlockLevel: 1 },
   { id: 'orchard', name: 'Orchard', color: '#9fd49a', kind: 'production', cost: 12000, wage: 60, recipes: ['seeds', 'wheat', 'apples', 'berries', 'greens', 'cotton'], unlockLevel: 1 },
   { id: 'barnyard', name: 'Barnyard', color: '#e9c9a3', kind: 'production', cost: 15000, wage: 70, recipes: ['feed', 'hens', 'eggs', 'milk', 'hide'], unlockLevel: 2 },

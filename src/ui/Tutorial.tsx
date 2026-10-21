@@ -16,7 +16,7 @@ export const saveTut = (t: TutState) => localStorage.setItem(TUT_KEY, JSON.strin
 /** The steps: what to spotlight (CSS selector) and what to say. */
 export const STEPS: { sel?: string; title: string; text: string }[] = [
   { title: 'Welcome to Ledgerworks!', text: 'Build factories and shops, make goods, sell them and grow your company. This quick tour shows you around.' },
-  { sel: '.campus-wrap', title: 'Build your first building', text: 'Tap an empty plot (marked +) to open the build menu. A Windmill or Pump house is a good, cheap start.' },
+  { sel: '.campus-wrap', title: 'Build your first building', text: 'Tap an empty plot (marked +) to open the build menu. A Wind turbine or Pump house is a good, cheap start.' },
   { sel: '.campus-wrap', title: 'Start production', text: 'Tap a building, pick a product and an amount, then press Start production. Wages are paid while it works.' },
   { sel: '.bubble, .act, .campus-wrap', title: 'Tap to collect', text: 'Every couple of minutes a bubble pops up over busy buildings. Tap it to collect goods or money early. Anything left is collected when the job ends.' },
   { sel: '.campus-wrap', title: 'Sell in a store', text: 'Build a shop (like a Corner market), tap it, pick goods from your warehouse, set a price and press Start selling.' },
