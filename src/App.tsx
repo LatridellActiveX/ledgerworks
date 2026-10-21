@@ -65,9 +65,13 @@ export default function App() {
   const [showLogin, setShowLogin] = useState(false)
   useEffect(() => { A.me().then(m => { if (m) setUser(m.name); else if (!A.isGuest()) setShowLogin(true) }) }, [])
   /** After sign-in: load the account's cloud save, or upload this company if it has none. */
-  const afterLogin = async (name: string | null) => {
+  const afterLogin = async (name: string | null, created = false) => {
     setShowLogin(false); setUser(name)
     if (!name) return
+    // Guest -> account: this device's company is the newest copy, so upload it
+    // first (an older guest cloud backup must never overwrite it). The trade
+    // floor account stays in this browser and links on its next open.
+    if (created) { await cloudSave(latest.current); setMsg(`Account ${name} created. All your progress is saved to it.`); return }
     try { const n = await cloudLoad(); setS(n); saveGame(n); setMsg(`Signed in as ${name}`) } catch { await cloudSave(latest.current); setMsg(`Signed in as ${name}. Company saved to your account.`) }
   }
   // First-time tutorial (progress in localStorage).

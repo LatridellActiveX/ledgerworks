@@ -667,3 +667,8 @@ button.link { background: none; border: 0; box-shadow: none; color: #6b7280; tex
 .bidline .bar { margin: 0 6px; vertical-align: middle }
 tr.bidrow td { color: #3c9a5f; font-weight: 600 }
 .chart.depth { display: block; width: 100%; margin: 6px 0 }
+
+/* Login: prominent guest option. */
+.login-card .or { display: flex; align-items: center; gap: 8px; color: #8a8f9a; font-size: 13px } .login-card .or::before, .login-card .or::after { content: ''; flex: 1; height: 1px; background: #0002 }
+.login-card button.guest { display: flex; flex-direction: column; align-items: center; gap: 2px; min-height: 58px; font-weight: 800; font-size: 17px; background: linear-gradient(#3f8f5e, #2f7a4c); color: #fff; border-color: #2f7a4c; border-radius: 12px }
+.login-card button.guest small { font-weight: 500; font-size: 12px; opacity: .9 }

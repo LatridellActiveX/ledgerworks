@@ -5,13 +5,13 @@ import { useState } from 'react'
 import * as A from '../game/auth'
 import { Logo } from './art'
 
-export function Login({ onDone, onClose }: { onDone: (name: string | null) => void; onClose?: () => void }) {
+export function Login({ onDone, onClose }: { onDone: (name: string | null, created?: boolean) => void; onClose?: () => void }) {
   const [mode, setMode] = useState<'in' | 'up'>('in')
   const [priv, setPriv] = useState(false) // privacy policy overlay
   const [name, setName] = useState(''), [pw, setPw] = useState(''), [err, setErr] = useState(''), [busy, setBusy] = useState(false)
   const go = async () => {
     setBusy(true); setErr('')
-    try { const j = mode === 'in' ? await A.login(name, pw) : await A.signup(name, pw); A.setGuest(false); onDone(j.name) }
+    try { const j = mode === 'in' ? await A.login(name, pw) : await A.signup(name, pw); A.setGuest(false); onDone(j.name, mode === 'up') }
     catch (e: any) { setErr(e.message) } finally { setBusy(false) }
   }
   return (
@@ -27,7 +27,11 @@ export function Login({ onDone, onClose }: { onDone: (name: string | null) => vo
           {err && <p className="err">{err}</p>}
           <button className="primary big" disabled={busy}>{busy ? '…' : mode === 'in' ? 'Sign in' : 'Create account'}</button>
         </form>
-        <button className="link" onClick={() => { A.setGuest(true); onDone(null) }}>Play as guest</button>
+        {/* Guest play is a first-class choice: big button, no sign-up needed.
+            Progress is kept on this device (and backed up under a random guest id);
+            creating an account later moves everything into it. */}
+        <div className="or"><span>or</span></div>
+        <button className="guest big" onClick={() => { A.setGuest(true); onDone(null) }}>▶ Play as guest<small>No sign-up. Create an account any time and keep all your progress.</small></button>
         <small className="muted legal">By signing up you agree to our <button type="button" className="link" onClick={() => setPriv(true)}>Privacy policy</button>.</small>
         <small className="muted">Have an old cloud key? Load it from Menu → Saves & account, then create an account here to give it a password.</small>
       </div>

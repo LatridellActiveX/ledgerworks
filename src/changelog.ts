@@ -8,6 +8,10 @@ export const CHANGELOG: ChangeEntry[] = [
     date: '2026-10-21',
     title: 'Buy orders on the Exchange',
     notes: ['The Exchange has a new Buy order box: pick an amount and the most you will pay per unit, and the order waits on the market until sellers come to you. Quick buttons set 5%, 10% or 15% under the going price.', 'The cash for the order is held when you place it (it still counts in your company value). If anything is already for sale at or below your price it is bought at once, cheapest first, at the seller’s lower price. The part that has to wait pays a 1% broker fee.', 'Every hour waiting orders check the market again, and passing traders sell to you when your price reaches what they want. Bids close to the going price fill within hours; deep bids may wait for a price dip or never fill.', 'Your buy orders list shows how much has filled, the cash held and when it expires (after 7 days). Cancel any time to get the unused cash back. Up to 8 at once, and they respect the minimum quality you picked.', 'A new market depth chart shows how much is wanted (green) and for sale (red) at each price, with your bids marked in gold, and your bids appear in the order book.', 'A filled order plays a new stamp-and-ticker sound (also in Settings → Test sounds) and finished or expired orders are noted in the event log.', 'Inspired by the buy orders with escrow and the market depth view in EVE Online.'],
+    id: 'guest-play',
+    date: '2026-10-21',
+    title: "Play as guest, keep everything later",
+    notes: ["The start screen now has a big Play as guest button. No sign-up needed.", "Creating an account later moves everything into it: your company, cloud backup and trade floor account. The company on your device is uploaded first, so an older backup can never overwrite it.", "Guest cloud backups that haven't been updated for 90 days are deleted automatically (see the privacy policy). Account saves are never deleted this way."],
   },
   {
     id: 'trade-routes',

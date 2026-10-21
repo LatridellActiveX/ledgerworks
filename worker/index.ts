@@ -17,9 +17,10 @@
 //    shared economy. Being one object means every price update is applied in
 //    order, with no races between players or the cron.
 // ============================================================================
+import { cleanupGuestSaves, isCleanupSlot } from './cleanup'
 import { privacyHtml } from '../src/legal/privacy'
 import { MarketDO } from './market-do'
-import { handleAuth, sessionUser } from './auth'
+import { handleAuth, sessionUser, ensureAuthSchema } from './auth'
 export { MarketDO }
 
 declare const __HTML__: string
@@ -108,5 +109,7 @@ export default {
   /** Cron trigger: step the shared economy. */
   async scheduled(_e: ScheduledEvent, env: Env) {
     await world(env).fetch('https://do/tick', { method: 'POST' })
+    // Once a day: delete guest cloud saves unused for 90+ days (see worker/cleanup.ts).
+    if (isCleanupSlot(Date.now())) { await ensureAuthSchema(env); await cleanupGuestSaves(env).catch(() => 0) }
   },
 }

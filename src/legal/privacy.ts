@@ -18,7 +18,7 @@ export const PRIVACY: PolicySection[] = [
     'Account (only if you create one): your username, a random salt, and a PBKDF2-SHA256 hash of your password (100,000 iterations). We never store your password itself. We also store when the account was created and which cloud save it owns.',
     'Sessions: when you sign in, your browser gets a random token in an HttpOnly cookie named lw_session that lasts 30 days. On the server we keep only a SHA-256 hash of that token, the username and the expiry time.',
     'Failed sign-ins: to stop password guessing, we count wrong passwords per username and briefly lock that username. We store the username, the number of failures and the lock time. Your IP address is not stored for this.',
-    'Game saves: if you are signed in or use Cloud save, your game state is stored in a Cloudflare D1 database. That includes your company name, level, cash, buildings, stock and history, plus the time of the last save. Guest cloud saves are tied to a random ID and a secret key kept in your browser (only a hash of the key is stored).',
+    'Game saves: if you are signed in or use Cloud save, your game state is stored in a Cloudflare D1 database. That includes your company name, level, cash, buildings, stock and history, plus the time of the last save. Guest cloud saves are tied to a random ID and a secret key kept in your browser (only a hash of the key is stored). Guest cloud saves that have not been updated for 90 days are deleted automatically.',
     'Trade floor (optional): if you register on the player trade floor, we store your trader name, a hash of your trader key, your company name and value (shown on the leaderboard), and your wallet, stock, listings and offers. Other players can see your trader name, company name, company value, and your public listings and offers.',
     'Shared market: the game reports the amount of each good sold on the exchange so that prices react. These reports are added to shared totals and don\'t include your name.',
   ] },
@@ -33,7 +33,7 @@ export const PRIVACY: PolicySection[] = [
     'The game is hosted by Cloudflare, which processes each request (including your IP address) to deliver the site and protect it from attacks. Cloudflare may keep short-term logs under its own privacy policy (cloudflare.com/privacypolicy). The game\'s code does not read or store your IP address.',
   ] },
   { h: 'How long we keep data', p: [
-    'Accounts, saves and trade floor data are kept until you delete them. A session stops working after 30 days or when you log out, and expired sessions are cleared when you next sign in. A failed sign-in lock lasts at most 15 minutes, and the counter is cleared after a successful sign-in.',
+    'Accounts, account saves and trade floor data are kept until you delete them. Guest cloud saves are deleted after 90 days without use. A session stops working after 30 days or when you log out, and expired sessions are cleared when you next sign in. A failed sign-in lock lasts at most 15 minutes, and the counter is cleared after a successful sign-in.',
   ] },
   { h: 'Deleting your data', p: [
     'Signed in: go to Menu → Settings → Delete my account and confirm with your password. This permanently deletes your account, its sessions, its cloud saves (classic and seasons) and its failed sign-in record. If this browser also holds a trade floor account, that is deleted too. Everything is then cleared from this browser.',
