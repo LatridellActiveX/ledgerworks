@@ -43,6 +43,8 @@ export function tickSfx(a: E.GameState, b: E.GameState): Sfx | null {
     if (p.job.kind === 'build') out = 'upgrade'
     else if (out !== 'upgrade') out = 'done'
   })
+  // A standing buy order filled on the Exchange (see game/bids.ts).
+  if (!out && (b.bidFills ?? 0) > (a.bidFills ?? 0)) return 'order'
   // A trade-route cart left or arrived (see game/routes.ts).
   if (!out && cartMoves(b) !== cartMoves(a)) return 'cart'
   // A new market news story broke while the clock ran (only when nothing louder played).

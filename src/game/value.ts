@@ -13,6 +13,7 @@
 import type { GameState } from './engine'
 import { RES } from './data'
 import * as F from './finance'
+import { escrowTotal } from './bids'
 
 export interface ValueBreakdown {
   cash: number; buildings: number; inventory: number; bondsHeld: number; liabilities: number
@@ -28,7 +29,7 @@ const lotValue = (s: GameState, k: string, n: number) => {
 
 /** Full breakdown of what the company is worth right now. */
 export function valueBreakdown(s: GameState): ValueBreakdown {
-  const cash = s.cash
+  const cash = s.cash + escrowTotal(s) // cash locked in buy orders is still yours
   const buildings = F.buildingValue(s)
   const inventory = Object.entries(s.stock).reduce((t, [k, n]) => t + lotValue(s, k, n), 0)
   const bondsHeld = F.heldValue(s)

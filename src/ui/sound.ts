@@ -32,7 +32,7 @@
 /** Every sound the game can play. */
 export type Sfx =
   | 'tap' | 'collect' | 'coin' | 'produce' | 'done' | 'build'
-  | 'upgrade' | 'buy' | 'sell' | 'levelup' | 'error' | 'news' | 'cart'
+  | 'upgrade' | 'buy' | 'sell' | 'levelup' | 'error' | 'news' | 'cart' | 'order'
 /** Old names from the first sound helper, still accepted. */
 type Legacy = 'pop' | 'buzz'
 
@@ -41,7 +41,7 @@ export const SFX_LIST: { id: Sfx; label: string }[] = [
   { id: 'tap', label: 'Tap' }, { id: 'collect', label: 'Collect' }, { id: 'coin', label: 'Coins' },
   { id: 'produce', label: 'Start job' }, { id: 'done', label: 'Job done' }, { id: 'build', label: 'Build' },
   { id: 'upgrade', label: 'Upgrade' }, { id: 'buy', label: 'Buy' }, { id: 'sell', label: 'Sell' },
-  { id: 'levelup', label: 'Level up' }, { id: 'error', label: 'Error' }, { id: 'news', label: 'News' }, { id: 'cart', label: 'Trade cart' },
+  { id: 'levelup', label: 'Level up' }, { id: 'error', label: 'Error' }, { id: 'news', label: 'News' }, { id: 'cart', label: 'Trade cart' }, { id: 'order', label: 'Order filled' },
 ]
 
 // ---------------------------------------------------------------------------
@@ -83,7 +83,7 @@ export const gainFor = (v: number) => Math.pow(clampVolume(v) / 100, 2) * 0.9
 // ---------------------------------------------------------------------------
 const GAP_MS: Record<Sfx, number> = {
   tap: 60, collect: 70, coin: 70, produce: 150, done: 300, build: 200,
-  upgrade: 250, buy: 120, sell: 120, levelup: 1200, error: 200, news: 1500, cart: 1200,
+  upgrade: 250, buy: 120, sell: 120, levelup: 1200, error: 200, news: 1500, cart: 1200, order: 900,
 }
 const LEN_MS = 700 // rough upper bound of a voice's length, for the voice cap
 export const MAX_VOICES = 6
@@ -300,6 +300,15 @@ const VOICES: Record<Sfx, (a: AudioContext, t: number, step: number) => void> = 
     noise(a, t, { dur: 0.36, freq: 180, q: 0.7, peak: 0.05, type: 'lowpass' })
     bell(a, t + 0.38, E5, 0.08, 0.18)
     bell(a, t + 0.47, G5, 0.09, 0.3)
+  },
+  // Buy order filled: a broker's rubber stamp (a low thump plus a short
+  // papery slap), then a quick three-note rising "ticker" blip (C, E, G
+  // on a soft square wave) to say the trade went through.
+  order: (a, t) => {
+    tone(a, t, 140, { type: 'sine', dur: 0.09, peak: 0.22, to: 70 })
+    noise(a, t, { dur: 0.06, freq: 1800, q: 1.2, peak: 0.16 })
+    ;[C5, E5, G5].forEach((f, i) => tone(a, t + 0.14 + i * 0.06, f, { type: 'square', dur: 0.05, peak: 0.035 }))
+    bell(a, t + 0.34, C6, 0.06, 0.22)
   },
 }
 

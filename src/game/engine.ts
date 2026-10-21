@@ -28,6 +28,7 @@ export { GAME_SPEED } from './engine-constants'
 import { GAME_SPEED } from './engine-constants'
 import * as SEA from './seasons'
 import * as R from './routes'
+import * as B from './bids'
 export const MAX_QUALITY = 12
 export const START_CASH = 60000
 
@@ -97,6 +98,11 @@ export interface GameState {
   // --- Trade routes (routes.ts) ---
   /** Standing cart routes to other towns. Missing in older saves = none. */
   routes?: R.Route[]
+  // --- Standing buy orders (bids.ts) ---
+  /** Open buy orders on the Exchange (cash in escrow). Missing in older saves = none. */
+  bids?: B.Bid[]
+  /** How many times a buy order has filled (drives the 'order filled' sound). */
+  bidFills?: number
   nextRouteId?: number
 }
 
@@ -475,6 +481,7 @@ export function advanceTo(s: GameState, toHour: number): GameState {
     else if (who) finishJob(s, who)
     else {
       npcHour(s, m => say(s, m))
+      B.bidHour(s) // standing buy orders check the book and passing sellers
       if (nextHour % 24 === 0) rollDay(s)
     }
   }
