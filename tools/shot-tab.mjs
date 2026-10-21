@@ -41,7 +41,19 @@ if (process.env.FOCUS) { await p.waitForTimeout(3500); const [i, z, t] = process
 if (process.env.ZOOM) { await p.waitForTimeout(4000); const c = await p.locator('.scene3d canvas').boundingBox(); await p.mouse.move(c.x + c.width * 0.55, c.y + c.height * 0.5); for (let i = 0; i < Number(process.env.ZOOM); i++) { await p.mouse.wheel(0, -200); await p.waitForTimeout(60) } }
 if (process.env.CLICK) { const c = await p.locator('.scene3d canvas').boundingBox(); const [fx, fy] = process.env.CLICK.split(',').map(Number); await p.mouse.click(c.x + c.width * fx, c.y + c.height * fy) }
 await p.waitForTimeout(Number(process.env.WAIT || 300))
-// TAP=selector: tap it, then shoot mid-animation (fly-to-HUD).
-if (process.env.TAP) { await p.locator(process.env.TAP).first().click({ force: true }); await p.waitForTimeout(Number(process.env.TAPWAIT || 350)) }
+// TAP=selector: verify a real tap. Records cash, stock and bubble count,
+// saves a "-before" shot, taps the bubble's center with the mouse (like a
+// finger; no waiting for "stable"), then prints before/after as JSON.
+if (process.env.TAP) {
+  const read = () => p.evaluate(sel => ({ cash: document.querySelector('.pill.cash')?.textContent, stock: document.querySelector('.tab-body, .warehouse')?.textContent?.length ?? 0, bubbles: document.querySelectorAll(sel).length, plot: document.querySelector(sel)?.getAttribute('data-plot') }), process.env.TAP)
+  const before = await read()
+  await p.screenshot({ path: `/workspace/${file.replace('.png', '-before.png')}`, fullPage: true })
+  const box = await p.locator(process.env.TAP).first().boundingBox()
+  await p.mouse.click(box.x + box.width / 2, box.y + box.height / 2)
+  await p.waitForTimeout(Number(process.env.TAPWAIT || 350))
+  const after = await read()
+  const gone = await p.evaluate(pl => !document.querySelector(`.bubble[data-plot="${pl}"]`), before.plot)
+  console.log('TAPRESULT ' + JSON.stringify({ before, after, bubbleGone: gone }))
+}
 await p.screenshot({ path: `/workspace/${file}`, fullPage: true })
 await b.close()

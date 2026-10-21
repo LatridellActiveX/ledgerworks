@@ -4,6 +4,7 @@
 //   top bar (cash, level, clock) | plot grid | side panel (selected plot)
 //   warehouse + exchange | event log | change log
 // ============================================================================
+import { activityOf, chipLabel, type ActState } from './game/activity'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import * as E from './game/engine'
 import { BLD, BUILDINGS, REC, RES, RESOURCES } from './game/data'
@@ -179,7 +180,7 @@ function BuildingPanel({ s, plot, act }: { s: E.GameState; plot: number; act: Ac
   const bd = s.plots[plot]!, bt = BLD[bd.type]
   return (
     <div>
-      <h3>{bt.name} · level {bd.level}</h3>
+      <h3>{bt.name} · level {bd.level} <StatusChip state={activityOf(s, bd)!.state} /></h3>
       <div className="hero"><BuildingArt type={bd.type} level={bd.level} busy={!!bd.job} /></div>
       {bd.job ? (
         <div className="card">
@@ -201,13 +202,44 @@ function BuildingPanel({ s, plot, act }: { s: E.GameState; plot: number; act: Ac
 }
 
 /** Progress of a running job, with collect-now and stop buttons. */
+/**
+ * Smoothly count a number up to its latest value (ease toward the target each
+ * frame) so output and revenue visibly tick upward. Reduced motion: jump.
+ */
+function useTicker(target: number) {
+  const [v, setV] = useState(target)
+  const cur = useRef(target)
+  useEffect(() => {
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches || target < cur.current) { cur.current = target; setV(target); return }
+    let raf = 0
+    const step = () => {
+      cur.current += (target - cur.current) * 0.15
+      if (Math.abs(target - cur.current) < 0.5) cur.current = target
+      setV(cur.current)
+      if (cur.current !== target) raf = requestAnimationFrame(step)
+    }
+    raf = requestAnimationFrame(step)
+    return () => cancelAnimationFrame(raf)
+  }, [target])
+  return v
+}
+
+/** Colored status chip: Producing (spinning gear) / Selling (walking cart) / Idle / Done / Building. */
+export function StatusChip({ state }: { state: ActState }) {
+  return <span className={`status ${state}`}>{state === 'make' ? <span className="gear">⚙</span> : state === 'sell' ? <span className="cart">🛒</span> : state === 'done' ? '✓' : state === 'build' ? '🏗' : '◌'} {chipLabel[state]}</span>
+}
+
 function JobProgress({ s, plot, act }: { s: E.GameState; plot: number; act: Act }) {
   const bd = s.plots[plot]!, j = bd.job!
-  if (j.kind === 'build') return null
-  const p = E.pending(s, bd)!, done = E.unitsDone(j, s.hour)
-  return <div className="jobprog">
-    <div className="bar wide"><i style={{ width: `${(100 * done) / j.qty}%` }} /></div>
-    <small>{num(done)} of {num(j.qty)} {j.kind === 'make' ? 'made' : 'sold'} · {num(j.got ?? 0)} collected</small>
+  const a = activityOf(s, bd)
+  const doneT = useTicker(a?.done ?? 0), centsT = useTicker(a?.cents ?? 0)
+  if (j.kind === 'build' || !a) return null
+  const p = E.pending(s, bd)!
+  return <div className={`jobprog ${j.kind}`}>
+    <div className="row"><StatusChip state={a.state} />
+      <span className="ticker">{num(Math.floor(doneT))} / {num(j.qty)} {j.kind === 'make' ? 'made' : 'sold'}{j.kind === 'sell' ? ` · ${money(Math.floor(centsT) / 100)} earned` : ''}</span></div>
+    <div className="bar wide"><i style={{ width: `${100 * a.prog}%` }} /></div>
+    <small>{num(j.got ?? 0)} collected so far</small>
     <div className="row">
       <button className="primary" disabled={p.units < 1} onClick={e => {
         const r = e.currentTarget.getBoundingClientRect()

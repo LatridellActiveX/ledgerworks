@@ -238,3 +238,56 @@ select.realm { border-radius: 999px; padding: 4px 10px; font: inherit; font-size
 .jobprog { display: flex; flex-direction: column; gap: 4px }
 .bar.wide { display: block; width: 100%; height: 8px; border-radius: 6px; background: #0001; overflow: hidden }
 .bar.wide i { display: block; height: 100%; background: linear-gradient(90deg, #7bd389, #3c9a5f) }
+
+/* ---- Activity badges (both campus views). Pointer-transparent. */
+.acts { position: absolute; inset: 0; pointer-events: none; z-index: 3; overflow: hidden }
+.act { position: absolute; left: 0; top: 0; display: flex; flex-direction: column; align-items: center; transition: opacity .4s }
+.act .ring { filter: drop-shadow(0 2px 3px #0003) }
+.act .ring .bg { fill: #fffdf8ee }
+.act .ring .track { fill: none; stroke: #0001; stroke-width: 4 }
+.act .ring .fill { fill: none; stroke: #3c9a5f; stroke-width: 4; stroke-linecap: round; transition: stroke-dashoffset .8s linear }
+.act.sell .ring .fill { stroke: #e0a81c }
+.act.done .ring .fill { stroke: #7b61ff }
+.act .ic { position: absolute; top: 11px; display: grid; place-items: center; width: 18px; height: 18px }
+.act.make .ic { animation: work 1.2s ease-in-out infinite }
+.act .chip { margin-top: 2px; font: 700 10px/1 system-ui; padding: 3px 7px; border-radius: 9px; color: #fff; background: #3c9a5f; box-shadow: 0 1px 3px #0003 }
+.act.sell .chip { background: #d4930f } .act.done .chip { background: #7b61ff } .act.idle .chip { background: #8a8f98 }
+.act .kaching { position: absolute; top: -12px; left: 28px; font: 800 9px system-ui; color: #b07a00; white-space: nowrap; animation: kaching 2.4s ease-out infinite }
+.act.sell .ring { animation: ka 2.4s ease-out infinite }
+.act .zz { font: 800 13px system-ui; color: #6b7280aa; animation: zz 2.6s ease-in-out infinite; padding: 4px 6px; background: #fff8; border-radius: 10px }
+.act .zz small { font-size: 9px }
+.coin.sm { width: 16px; height: 16px; font-size: 10px; line-height: 16px }
+.burst { position: absolute; left: 0; top: 0; width: 10px; height: 10px; pointer-events: none }
+.burst::before, .burst::after { content: ''; position: absolute; inset: -30px; border-radius: 50%;
+  background: radial-gradient(circle, #ffe27a 0 18%, #ffb34788 30%, transparent 62%); animation: burst 1.2s ease-out forwards }
+.burst::after { inset: -40px; background: conic-gradient(from 0deg, #ffd166, transparent 8%, #06d6a0 12%, transparent 20%, #ef476f 25%, transparent 33%, #ffd166 37%, transparent 45%, #118ab2 50%, transparent 58%, #ffd166 62%, transparent 70%, #06d6a0 75%, transparent 83%, #ef476f 87%, transparent 95%);
+  mask: radial-gradient(circle, transparent 35%, #000 40%, transparent 70%); -webkit-mask: radial-gradient(circle, transparent 35%, #000 40%, transparent 70%) }
+@keyframes work { 50% { transform: rotate(-12deg) scale(1.1) } }
+@keyframes ka { 0%, 70%, 100% { transform: scale(1) } 78% { transform: scale(1.15) } 86% { transform: scale(.97) } }
+@keyframes kaching { 0%, 68% { opacity: 0; transform: translateY(4px) } 76% { opacity: 1; transform: none } 100% { opacity: 0; transform: translateY(-6px) } }
+@keyframes zz { 0%, 100% { opacity: .5; transform: translateY(0) } 50% { opacity: 1; transform: translateY(-4px) } }
+@keyframes burst { from { opacity: 1; transform: scale(.2) rotate(0) } to { opacity: 0; transform: scale(1.6) rotate(40deg) } }
+
+/* Collect bubble: big fixed hit box; only the inner face bobs. */
+.bubble { min-width: 76px; min-height: 64px; padding: 0; background: transparent !important; border: 0 !important; box-shadow: none !important; animation: none !important; display: grid; place-items: end center }
+.bubble::after { display: none }
+.bubble .face { position: relative; display: flex; align-items: center; gap: 5px; padding: 6px 12px 8px; border-radius: 18px; background: #fffdf8; box-shadow: 0 4px 12px #0003, 0 0 0 2px #fff;
+  animation: bob 1.6s ease-in-out infinite, bubble-in .35s cubic-bezier(.3,1.6,.5,1); pointer-events: none }
+.bubble .face::after { content: ''; position: absolute; left: 50%; bottom: -6px; width: 12px; height: 12px; background: inherit; transform: translateX(-50%) rotate(45deg); border-radius: 3px }
+.bubble:active .face { scale: .92 }
+
+/* Panel: status chip, shimmering progress, spinning gear / walking cart, ticking counters. */
+.status { display: inline-flex; align-items: center; gap: 5px; font: 700 11px system-ui; padding: 3px 9px; border-radius: 10px; color: #fff; background: #3c9a5f; transition: background .4s }
+.status.sell { background: #d4930f } .status.idle { background: #8a8f98 } .status.done { background: #7b61ff } .status.build { background: #c8553d }
+.status .gear { display: inline-block; animation: spin 2.4s linear infinite }
+.status .cart { display: inline-block; animation: cartwalk 1s ease-in-out infinite }
+.bar.wide i { position: relative; transition: width .8s linear; overflow: hidden }
+.bar.wide i::after { content: ''; position: absolute; inset: 0; background: linear-gradient(100deg, transparent 20%, #fff8 50%, transparent 80%); animation: shimmer 1.6s linear infinite; transform: translateX(-100%) }
+.jobprog.sell .bar.wide i { background: linear-gradient(90deg, #ffd166, #d4930f) }
+.ticker { font-variant-numeric: tabular-nums; font-weight: 700 }
+@keyframes shimmer { to { transform: translateX(100%) } }
+@keyframes cartwalk { 50% { transform: translateX(3px) rotate(-6deg) } }
+
+@media (prefers-reduced-motion: reduce) {
+  .act *, .act, .bubble .face, .burst::before, .burst::after, .status .gear, .status .cart, .bar.wide i::after, .fly, .num-pop { animation: none !important; transition: none !important }
+}

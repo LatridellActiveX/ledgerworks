@@ -8,41 +8,99 @@ import { Campus } from './campus'
 import * as E from '../game/engine'
 import { ResIcon } from './art'
 import { money, num } from './fmt'
+import { activityOf, chipLabel } from '../game/activity'
 
 /** A collect bubble the campus shows above a building. */
 export interface Bubble { i: number; kind: 'goods' | 'cash'; res: string; units: number; cents: number }
 
 /**
- * Collect bubbles drawn as HTML over the campus (3D canvas or 2D SVG). The
- * overlay ignores the pointer, so drags still pan the camera; only the
- * bubbles themselves (48px+ targets) take taps. Positions follow the camera
- * every frame.
+ * Follow plots on screen: every animation frame, move each registered element
+ * to its plot's screen position (rounded to whole pixels so hit targets stay
+ * still while the camera is still). Elements whose plot is off-screen hide.
  */
-function Bubbles({ list, posOf, onCollect }: { list: Bubble[]; posOf: (i: number) => { x: number; y: number } | null; onCollect: (i: number, r: DOMRect) => void }) {
-  const refs = useRef(new Map<number, HTMLButtonElement>())
+function useFollow<T extends HTMLElement>(posOf: (i: number) => { x: number; y: number } | null, dy = 0) {
+  const refs = useRef(new Map<number, T>())
   const pos = useRef(posOf); pos.current = posOf
   useEffect(() => {
     let raf = 0
     const loop = () => {
       for (const [i, el] of refs.current) {
-        const p = pos.current(i)
+        const p = pos.current(i % 1000)
         if (!p) { el.style.display = 'none'; continue }
         el.style.display = ''
-        el.style.transform = `translate(${p.x}px, ${p.y}px) translate(-50%, -100%)`
+        el.style.transform = `translate(${Math.round(p.x)}px, ${Math.round(p.y + dy)}px) translate(-50%, -100%)`
       }
       raf = requestAnimationFrame(loop)
     }
     raf = requestAnimationFrame(loop)
     return () => cancelAnimationFrame(raf)
-  }, [])
+  }, [dy])
+  return (i: number) => (el: T | null) => { if (el) refs.current.set(i, el); else refs.current.delete(i) }
+}
+
+/**
+ * Collect bubbles drawn as HTML over the campus (3D canvas or 2D SVG). The
+ * overlay ignores the pointer, so drags still pan the camera; only the
+ * bubbles take taps. Tap reliability: the <button> is a large fixed-size hit
+ * box (76x64) that never animates; only the inner .face bobs, so the target
+ * under the finger does not move.
+ */
+function Bubbles({ list, posOf, onCollect }: { list: Bubble[]; posOf: (i: number) => { x: number; y: number } | null; onCollect: (i: number, r: DOMRect) => void }) {
+  const reg = useFollow<HTMLButtonElement>(posOf, -58)
   return <div className="bubbles">{list.map(b => (
-    <button key={b.i} className={`bubble ${b.kind}`} ref={el => { if (el) refs.current.set(b.i, el); else refs.current.delete(b.i) }}
+    <button key={b.i} data-plot={b.i} className={`bubble ${b.kind}`} ref={reg(b.i)}
       onPointerDown={e => e.stopPropagation()}
       onClick={e => { e.stopPropagation(); onCollect(b.i, e.currentTarget.getBoundingClientRect()) }}
       title={b.kind === 'goods' ? 'Collect goods' : 'Collect money'}>
-      {b.kind === 'goods' ? <ResIcon id={b.res} size={22} /> : <span className="coin">$</span>}
-      <b>{b.kind === 'goods' ? `+${num(b.units)}` : `+${money(b.cents / 100)}`}</b>
+      <span className="face">
+        {b.kind === 'goods' ? <ResIcon id={b.res} size={22} /> : <span className="coin">$</span>}
+        <b>{b.kind === 'goods' ? `+${num(b.units)}` : `+${money(b.cents / 100)}`}</b>
+      </span>
     </button>))}</div>
+}
+
+/**
+ * Activity badges over each building (both views): a circular progress ring
+ * with the product icon (producing) or a coin (selling) plus a status chip,
+ * a sleepy "zZ" for idle buildings, and a burst when a job finishes. HTML,
+ * so it stays crisp and readable at every zoom level (the LOD never hides it).
+ */
+function ActivityBadges({ s, posOf }: { s: GameState; posOf: (i: number) => { x: number; y: number } | null }) {
+  const reg = useFollow<HTMLDivElement>(posOf, 0)
+  // Remember which plots were busy so a finished job can show a burst.
+  const prev = useRef<(string | null)[]>([])
+  const [bursts, setBursts] = useState<{ i: number; k: number }[]>([])
+  const now = s.plots.map(bd => (bd?.job && bd.job.kind !== 'build' ? bd.job.kind : null))
+  useEffect(() => {
+    const fin = now.flatMap((k, i) => (prev.current[i] && !k ? [i] : []))
+    prev.current = now
+    if (fin.length) {
+      const k = Date.now()
+      setBursts(b => [...b, ...fin.map(i => ({ i, k }))])
+      setTimeout(() => setBursts(b => b.filter(x => x.k !== k)), 1400)
+    }
+  })
+  return <div className="acts">
+    {s.plots.map((bd, i) => {
+      const a = activityOf(s, bd)
+      if (!a || a.state === 'build') return null
+      const busy = a.state === 'make' || a.state === 'sell' || a.state === 'done'
+      const R = 15, C = 2 * Math.PI * R
+      return <div key={i} className={`act ${a.state}`} ref={reg(i)}>
+        {busy ? <>
+          <svg className="ring" viewBox="0 0 40 40" width="40" height="40">
+            <circle cx="20" cy="20" r="18" className="bg" />
+            <circle cx="20" cy="20" r={R} className="track" />
+            <circle cx="20" cy="20" r={R} className="fill" strokeDasharray={C} strokeDashoffset={C * (1 - a.prog)} transform="rotate(-90 20 20)" />
+          </svg>
+          <span className="ic">{a.state === 'sell' ? <span className="coin sm">$</span> : <ResIcon id={a.res} size={18} />}</span>
+          {a.state === 'sell' && <span className="kaching">ka-ching!</span>}
+          <span className="chip">{chipLabel[a.state]}</span>
+        </> : <span className="zz" title="Idle: tap the building to start a job">z<small>Z</small></span>}
+      </div>
+    })}
+    {bursts.map(b => <div key={`${b.i}-${b.k}`} className="burst" ref={reg(1000 + b.i)} />)}
+  </div>
 }
 
 /** Ready bubbles for every busy building. */
@@ -80,7 +138,7 @@ export function Campus3D({ s, slots, sel, onPick, mode, onCollect }: { s: GameSt
   // Push a light snapshot of the state into the scene every render.
   useEffect(() => {
     handle.current?.update({
-      plots: s.plots.map(b => b ? { type: b.type, level: b.level, busy: !!b.job && b.job.kind !== 'build', building: b.job?.kind === 'build' } : null),
+      plots: s.plots.map(b => b ? { type: b.type, level: b.level, busy: !!b.job && b.job.kind !== 'build', building: b.job?.kind === 'build', act: activityOf(s, b)?.state ?? 'idle' } : null),
       slots, hour: s.hour, sel,
     })
   })
@@ -93,10 +151,11 @@ export function Campus3D({ s, slots, sel, onPick, mode, onCollect }: { s: GameSt
       const r = pad.getBoundingClientRect(), o = root.getBoundingClientRect()
       return { x: r.left + r.width / 2 - o.left, y: r.top - o.top + r.height * 0.1 - 24 }
     }
-    return <div className="flat-wrap" ref={flat}><Campus s={s} slots={slots} sel={sel} onPick={onPick} /><Bubbles list={bubbles} posOf={pos2d} onCollect={onCollect} /></div>
+    return <div className="flat-wrap" ref={flat}><Campus s={s} slots={slots} sel={sel} onPick={onPick} /><ActivityBadges s={s} posOf={pos2d} /><Bubbles list={bubbles} posOf={pos2d} onCollect={onCollect} /></div>
   }
   return (
     <div className="scene3d" ref={box}>
+      {state === 'ready' && <ActivityBadges s={s} posOf={i => handle.current?.screenPos?.(i) ?? null} />}
       {state === 'ready' && <Bubbles list={bubbles} posOf={i => handle.current?.screenPos?.(i) ?? null} onCollect={onCollect} />}
       {state === 'loading' && <div className="scene-loading"><span className="spinner" /> Building your campus…</div>}
       {/* Turn the isometric view in 90-degree steps (also Q / E). */}

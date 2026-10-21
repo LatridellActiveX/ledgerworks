@@ -30,7 +30,7 @@ import { buildModel, plotGround, type Emitter } from './models'
 // --------------------------------------------------------------------------
 // Public types
 // --------------------------------------------------------------------------
-export interface PlotSnap { type: string; level: number; busy: boolean; building: boolean }
+export interface PlotSnap { type: string; level: number; busy: boolean; building: boolean; act?: 'make' | 'sell' | 'idle' | 'build' | 'done' }
 export interface Snapshot { plots: (PlotSnap | null)[]; slots: number; hour: number; sel: number | null }
 export interface SceneHandle { update(s: Snapshot): void; dispose(): void; snapshot(): string; rotate(dir: 1 | -1): void; screenPos(i: number): { x: number; y: number } | null }
 
@@ -346,6 +346,74 @@ export function mount(el: HTMLElement, opts: { onPick: (i: number) => void }): S
     const { x, z } = plotXZ(i); controls.target.set(x, 0, z); camera.zoom = zoom; camera.updateProjectionMatrix(); azGoal = az = Math.PI / 4 + turn * Math.PI / 2
   }
 
+  // ---- Activity effects (busy buildings). All capped and shared:
+  //  * a soft pulsing ground ring per plot (one shared geometry, 2 materials),
+  //  * sparkle Points (gold coins over selling shops, orange sparks at mills),
+  //  * shoppers: one InstancedMesh walking between shop doors and the street.
+  const calm = typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches
+  const ringGeo = new THREE.RingGeometry(TILE * 0.36, TILE * 0.44, 48).rotateX(-Math.PI / 2)
+  const ringMake = new THREE.MeshBasicMaterial({ color: '#6fd08c', transparent: true, opacity: 0.5, depthWrite: false })
+  const ringSell = new THREE.MeshBasicMaterial({ color: '#ffc845', transparent: true, opacity: 0.5, depthWrite: false })
+  const rings = Array.from({ length: COLS * ROWS }, (_, i) => {
+    const r = new THREE.Mesh(ringGeo, ringMake), { x, z } = plotXZ(i)
+    r.position.set(x, 0.26, z); r.visible = false; r.renderOrder = 2; scene.add(r); return r
+  })
+  const SN = mobile ? 60 : 140 // sparkle cap
+  const sPos = new Float32Array(SN * 3), sCol = new Float32Array(SN * 3), sLife = new Float32Array(SN)
+  const sGeo = new THREE.BufferGeometry()
+  sGeo.setAttribute('position', new THREE.BufferAttribute(sPos, 3)); sGeo.setAttribute('color', new THREE.BufferAttribute(sCol, 3))
+  const sparkles = new THREE.Points(sGeo, new THREE.PointsMaterial({ size: 0.55, vertexColors: true, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }))
+  sparkles.frustumCulled = false; scene.add(sparkles)
+  let si = 0, sAcc = 0
+  const SHOP_N = mobile ? 24 : 48 // shopper cap (3 per shop)
+  const shopperGeo = new THREE.CapsuleGeometry(0.16, 0.42, 3, 6).translate(0, 0.38, 0)
+  const shoppers = new THREE.InstancedMesh(shopperGeo, new THREE.MeshStandardMaterial({ roughness: 0.7 }), SHOP_N)
+  const tint = ['#e07a5f', '#3d85c6', '#81b29a', '#f2cc8f', '#9b5de5', '#f15bb5'].map(c => new THREE.Color(c))
+  for (let k = 0; k < SHOP_N; k++) shoppers.setColorAt(k, tint[k % tint.length])
+  shoppers.count = 0; scene.add(shoppers)
+  const tmpM = new THREE.Matrix4(), tmpQ = new THREE.Quaternion(), tmpS = new THREE.Vector3(1, 1, 1), tmpV = new THREE.Vector3(), upY = new THREE.Vector3(0, 1, 0)
+  /** Per-frame activity effects. */
+  function animateActivity(dt: number, t: number) {
+    const pulse = calm ? 0.5 : 0.35 + 0.25 * Math.sin(t * 3)
+    ringMake.opacity = ringSell.opacity = pulse
+    let shopK = 0
+    const spawn: { x: number; y: number; z: number; gold: boolean }[] = []
+    for (let i = 0; i < COLS * ROWS; i++) {
+      const a = snap.plots[i]?.act, b = built[i], on = !!b && (a === 'make' || a === 'sell' || a === 'done')
+      rings[i].visible = on
+      if (!on || !b) continue
+      rings[i].material = a === 'sell' ? ringSell : ringMake
+      rings[i].scale.setScalar(calm ? 1 : 1 + 0.04 * Math.sin(t * 3 + i))
+      const { x, z } = plotXZ(i)
+      if (a === 'sell') {
+        spawn.push({ x, y: b.top + 0.4, z, gold: true })
+        // Shoppers walk from the sidewalk to the door and back (3 per shop).
+        for (let n = 0; n < 3 && shopK < SHOP_N; n++, shopK++) {
+          const ph = (t * 0.22 + n / 3 + i * 0.37) % 1, k = ph < 0.5 ? ph * 2 : 2 - ph * 2
+          const sx = x + (n - 1) * 0.9, sz = z + TILE * 0.45 - k * TILE * 0.25
+          tmpV.set(sx, 0.22 + (calm ? 0 : Math.abs(Math.sin(t * 8 + n)) * 0.06), sz)
+          tmpQ.setFromAxisAngle(upY, ph < 0.5 ? Math.PI : 0)
+          shoppers.setMatrixAt(shopK, tmpM.compose(tmpV, tmpQ, tmpS))
+        }
+      } else if (/steel|smelter|foundry|mill/.test(snap.plots[i]!.type)) spawn.push({ x, y: 1.2, z: z + 1, gold: false })
+    }
+    shoppers.count = shopK; shoppers.instanceMatrix.needsUpdate = true
+    // Sparkles: spawn a few per second per source, drift, fade (capped ring buffer).
+    sAcc += calm ? 0 : dt * spawn.length * 5
+    while (sAcc > 1 && spawn.length) {
+      sAcc -= 1
+      const e = spawn[Math.floor(Math.random() * spawn.length)]; si = (si + 1) % SN
+      sPos.set([e.x + (Math.random() - 0.5) * 2, e.y, e.z + (Math.random() - 0.5) * 2], si * 3)
+      sCol.set(e.gold ? [1, 0.82, 0.25] : [1, 0.5, 0.1], si * 3); sLife[si] = 1
+    }
+    for (let k = 0; k < SN; k++) {
+      if (sLife[k] <= 0) { sPos[k * 3 + 1] = -99; continue }
+      sLife[k] -= dt * 0.9; sPos[k * 3 + 1] += dt * 1.4
+      const f = Math.max(0, sLife[k]); sCol[k * 3] *= 0.995; sCol[k * 3 + 1] *= 0.99 * (f > 0 ? 1 : 0)
+    }
+    sGeo.attributes.position.needsUpdate = true; sGeo.attributes.color.needsUpdate = true
+  }
+
   // ---- State from React
   let snap: Snapshot = { plots: [], slots: 0, hour: 12, sel: null }
   function update(s: Snapshot) {
@@ -426,6 +494,8 @@ export function mount(el: HTMLElement, opts: { onPick: (i: number) => void }): S
       if (b.swing && busy) b.swing.rotation.y = Math.sin(t * 0.6) * 0.8
       for (const o of b.lod) o.visible = showDetail
       if (b.nod && busy) b.nod.rotation.z = Math.sin(t * 2.2) * 0.22
+      // Producing: a gentle 'working' pulse so busy buildings read as active.
+      b.g.scale.y = b.g.userData.grow >= 1 && snap.plots[i]?.act === 'make' && !calm ? 1 + Math.sin(t * 6 + i) * 0.012 : b.g.scale.y
       if (snap.sel === i) b.g.position.y = 0.22 + Math.sin(t * 4) * 0.08
       else b.g.position.y = 0.22
     })
@@ -462,6 +532,7 @@ export function mount(el: HTMLElement, opts: { onPick: (i: number) => void }): S
       w.position.set(p.x, Math.abs(Math.sin(t * 7 + k)) * 0.12, p.z); w.rotation.y = p.a + (dir < 0 ? Math.PI : 0)
     })
 
+    animateActivity(dt, t)
     composer.render(dt)
   })
 

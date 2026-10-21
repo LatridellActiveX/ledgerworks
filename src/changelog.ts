@@ -4,6 +4,12 @@ export interface ChangeEntry { id: string; date: string; title: string; notes: s
 
 export const CHANGELOG: ChangeEntry[] = [
   {
+    id: 'activity-animations-busy-states',
+    date: '2026-10-21',
+    title: 'Busy buildings come alive',
+    notes: ['Every building now shows what it is doing. Producing: a progress ring with the product icon, a green Producing chip, a pulsing ground ring and a gentle working motion, plus smoke, turning blades and nodding pumpjacks. Mills throw sparks.', 'Selling: a gold ring with a coin and a ka-ching pulse, shoppers walking in and out, and coin sparkles above the shop. Idle buildings stay calm with a sleepy zZ. A finished job pops a small celebration.', 'The building panel has a colored status chip (Producing, Selling, Idle, Done), a shimmering progress bar and live counters for output and revenue.', 'Collect bubbles now have a larger tap area that stays still while the bubble bobs, so taps land reliably.', 'If your device is set to reduce motion, these animations are turned off.'],
+  },
+  {
     id: 'collect-bubbles-partial-collection',
     date: '2026-10-21',
     title: 'Tap to collect',
