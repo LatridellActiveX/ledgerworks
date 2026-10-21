@@ -4,6 +4,12 @@ export interface ChangeEntry { id: string; date: string; title: string; notes: s
 
 export const CHANGELOG: ChangeEntry[] = [
   {
+    id: 'update-popup-company-value-fullscreen-buildings',
+    date: '2026-10-21',
+    title: 'Update pop-up, Company value screen, full-screen building menus',
+    notes: ['When a new version of Ledgerworks is out, a pop-up offers to update. Update now saves your company and reloads; Later hides it until the next version.', 'New Company value screen (tap your company badge or find it in the menu). It shows your total value and how it adds up: cash, buildings including upgrades, inventory at market prices and bonds you hold, minus bonds you owe. It also has a daily value chart and your rank on the trade-floor leaderboard.', 'Building menus for producing, selling and building now open full screen with a back arrow, on phones and desktop. The amount picker, live preview, progress and collect buttons are all still there.', 'Ledgerworks has its own icon: a little factory on an open ledger with a gold coin. It shows in the browser tab and when you add the game to your home screen on Android or iPhone, where it opens as a full-screen app.'],
+  },
+  {
     id: 'hud-fullscreen-map-layout',
     date: '2026-10-21',
     title: 'Full-screen map with a floating HUD',

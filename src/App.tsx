@@ -11,6 +11,8 @@ import { BLD, BUILDINGS, REC, RES, RESOURCES } from './game/data'
 import { loadGame, saveGame, exportCode, importCode, freshGame } from './game/save'
 import * as SEA from './game/seasons'
 import { companyValue } from './game/trade'
+import { CompanyValue } from './ui/CompanyValue'
+import { UpdatePrompt } from './ui/UpdatePrompt'
 import { BuildingArt, Logo, ResIcon } from './ui/art'
 import { Campus3D } from './ui/Campus3D'
 import { Ticker } from './ui/Ticker'
@@ -96,13 +98,13 @@ export default function App() {
     <div className="app hud-app">
       {/* The map is the whole screen; everything else floats over it. */}
       <section className="campus-wrap full">
-        <Campus3D s={s} slots={slots} sel={sel} onPick={i => { setSel(i); setScreen('map') }} mode={view} onCollect={collectAt} />
+        <Campus3D s={s} slots={slots} sel={sel} onPick={i => { setSel(i); setScreen('building') }} mode={view} onCollect={collectAt} />
       </section>
 
       {/* Top HUD: menu + company badge (left); cash, level, bell, info (right). */}
       <div className="hud-top">
         <button className="hud-btn burger" aria-label="Menu" onClick={() => setMenu(true)}><span /><span /><span /></button>
-        <button className="hud-badge" title={s.company} aria-label="Company" onClick={() => open('finance')}><Logo /></button>
+        <button className="hud-badge" title={s.company} aria-label="Company" onClick={() => open('value')}><Logo /></button>
         <span className="grow" />
         <button className="hud-btn bell" aria-label="Notifications" onClick={() => open('log')}>🔔{unseen > 0 && <i>{unseen > 99 ? '99+' : unseen}</i>}</button>
         <div className="hud-stats">
@@ -124,23 +126,17 @@ export default function App() {
       {msg && <div key={msg} className="toast" onClick={() => setMsg('')}>{msg}</div>}
 
       {/* Bottom-left idle info; tap to jump to an idle building. */}
-      {screen === 'map' && sel === null && <button className="idle-box" onClick={() => idle.length && setSel(idle[0])}>
+      {screen === 'map' && sel === null && <button className="idle-box" onClick={() => { if (idle.length) { setSel(idle[0]); setScreen('building') } }}>
         <span>Idle buildings: <b>{idle.length}</b></span>
         <span>Next idle: <b>{nextIdle < Infinity ? clock(nextIdle) : '—'}</b></span>
       </button>}
 
-      {/* Building panel as a bottom sheet over the map. */}
-      {screen === 'map' && sel !== null && <div className="sheet" role="dialog">
-        <div className="sheet-grip" onClick={() => setSel(null)} />
-        <button className="sheet-close" aria-label="Close" onClick={() => setSel(null)}>✕</button>
-        <div className="sheet-body panel">{s.plots[sel] ? <BuildingPanel s={s} plot={sel} act={act} /> : <BuildMenu s={s} plot={sel} act={act} />}</div>
-      </div>}
-
+      {/* Building menu (produce / sell / build) opens as its own full screen; see screen 'building'. */}
       {/* Full-screen menu screens, sliding in over the map. */}
       {screen !== 'map' && <section key={screen} className="screen">
         <header className="screen-head">
-          <button className="hud-btn" aria-label="Back to map" onClick={() => setScreen('map')}>‹</button>
-          <h2>{SCREEN_TITLE[screen]}</h2>
+          <button className="hud-btn" aria-label="Back to map" onClick={() => { setScreen('map'); if (screen === 'building') setSel(null) }}>‹</button>
+          <h2>{screen === 'building' && sel !== null ? (s.plots[sel] ? `${BLD[s.plots[sel]!.type].name} · level ${s.plots[sel]!.level}` : `Build on plot ${sel + 1}`) : SCREEN_TITLE[screen]}</h2>
           {(screen === 'exchange' || screen === 'trade') && <div className="seg"><button className={screen === 'exchange' ? 'on' : ''} onClick={() => setScreen('exchange')}>Exchange</button><button className={screen === 'trade' ? 'on' : ''} onClick={() => setScreen('trade')}>Trade floor</button></div>}
           {(screen === 'research' || screen === 'board') && <div className="seg"><button className={screen === 'research' ? 'on' : ''} onClick={() => setScreen('research')}>Research</button><button className={screen === 'board' ? 'on' : ''} onClick={() => setScreen('board')}>Board & goals</button></div>}
         </header>
@@ -151,6 +147,8 @@ export default function App() {
           {screen === 'research' && <Research s={s} act={act} />}
           {screen === 'board' && <Board s={s} act={act} />}
           {screen === 'finance' && <Finance s={s} act={act} />}
+          {screen === 'value' && <CompanyValue s={s} />}
+          {screen === 'building' && sel !== null && (s.plots[sel] ? <BuildingPanel s={s} plot={sel} act={act} /> : <BuildMenu s={s} plot={sel} act={act} />)}
           {screen === 'market' && <Demand s={s} />}
           {screen === 'log' && <ul className="log">{s.log.map((l, i) => <li key={i}>{l}</li>)}</ul>}
           {screen === 'changes' && <ul className="log">{CHANGELOG.map(c => <li key={c.id}><b>{c.date} · {c.title}</b> — {c.notes.join(' ')}</li>)}</ul>}
@@ -176,9 +174,11 @@ export default function App() {
       {/* Hamburger drawer: the less-used screens and settings. */}
       {menu && <div className="drawer-bg" onClick={() => setMenu(false)}><nav className="drawer" onClick={e => e.stopPropagation()}>
         <div className="drawer-head"><Logo /><b>{s.company}</b></div>
-        {(['market', 'log', 'changes', 'account', 'settings'] as const).map(t => <button key={t} onClick={() => open(t)}>{SCREEN_ICON[t]} {SCREEN_TITLE[t]}</button>)}
+        {(['value', 'market', 'log', 'changes', 'account', 'settings'] as const).map(t => <button key={t} onClick={() => open(t)}>{SCREEN_ICON[t]} {SCREEN_TITLE[t]}</button>)}
         <button onClick={() => { toggleView(); setMenu(false) }}>{view === '3d' ? '▦ Switch to 2D map' : '◈ Switch to 3D map'}</button>
       </nav></div>}
+
+      <UpdatePrompt save={() => saveGame(latest.current)} />
 
       {/* Bottom tab bar: five main screens. */}
       <nav className="tabs tabbar">
@@ -192,9 +192,9 @@ export default function App() {
 }
 
 /** Every screen the HUD can open. 'map' is the plain map. */
-type Screen = 'map' | 'warehouse' | 'exchange' | 'trade' | 'research' | 'board' | 'finance' | 'market' | 'log' | 'changes' | 'account' | 'settings'
-const SCREEN_TITLE: Record<Screen, string> = { map: 'Map', warehouse: 'Warehouse', exchange: 'Market', trade: 'Market', research: 'Research', board: 'Research', finance: 'Finance', market: 'Public demand', log: 'Events', changes: 'Change log', account: 'Saves & account', settings: 'Settings' }
-const SCREEN_ICON: Partial<Record<Screen, string>> = { market: '📈', log: '🔔', changes: '📝', account: '💾', settings: '⚙' }
+type Screen = 'map' | 'value' | 'building' | 'warehouse' | 'exchange' | 'trade' | 'research' | 'board' | 'finance' | 'market' | 'log' | 'changes' | 'account' | 'settings'
+const SCREEN_TITLE: Record<Screen, string> = { map: 'Map', value: 'Company value', building: 'Building', warehouse: 'Warehouse', exchange: 'Market', trade: 'Market', research: 'Research', board: 'Research', finance: 'Finance', market: 'Public demand', log: 'Events', changes: 'Change log', account: 'Saves & account', settings: 'Settings' }
+const SCREEN_ICON: Partial<Record<Screen, string>> = { value: '💹', market: '📈', log: '🔔', changes: '📝', account: '💾', settings: '⚙' }
 /** The bottom tab bar (original simple glyphs). */
 const TABS: [Screen, string, string][] = [['map', 'Map', '🗺'], ['warehouse', 'Warehouse', '📦'], ['exchange', 'Market', '⇄'], ['research', 'Research', '🔬'], ['finance', 'Finance', '🏦']]
 

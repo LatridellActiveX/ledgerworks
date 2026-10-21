@@ -393,3 +393,27 @@ html, body { height: 100%; overflow: hidden; overscroll-behavior: none }
   .idle-box { bottom: 24px } .rot-tools { bottom: 24px !important }
 }
 @media (prefers-reduced-motion: reduce) { .screen, .sheet, .drawer, .drawer-bg { animation: none !important } }
+
+/* Update pop-up: centred card above everything (z 30), slides in. */
+.update-prompt { position: fixed; z-index: 30; left: 50%; top: 18%; transform: translateX(-50%); width: min(380px, calc(100vw - 32px)); padding: 18px 18px 14px; border-radius: 20px;
+  background: #1f2430f5; color: #fff; box-shadow: 0 18px 50px #0006; animation: up-in .35s cubic-bezier(.2,1.4,.4,1); text-align: left }
+.update-prompt h3 { margin: 0 0 6px; font-size: 19px }
+.update-prompt p { margin: 0 0 10px; line-height: 1.4; color: #dfe2e8 }
+.update-prompt .muted { color: #9aa1ad }
+.update-prompt .warn { color: #ffb36b }
+.update-prompt .up-new { background: #ffffff12; border-radius: 10px; padding: 8px 10px; font-size: 13px }
+.update-prompt .up-icon { position: absolute; right: 16px; top: 12px; font-size: 26px; color: #7ccf4a; animation: spin 3s linear infinite }
+.update-prompt .row { display: flex; gap: 8px; justify-content: flex-end }
+.update-prompt button { min-height: 46px; padding: 0 18px; border-radius: 12px }
+@keyframes up-in { from { opacity: 0; transform: translate(-50%, -16px) scale(.96) } }
+@media (prefers-reduced-motion: reduce) { .update-prompt, .update-prompt .up-icon { animation: none } }
+
+/* Company value screen */
+.cvalue { display: grid; gap: 12px; max-width: 760px }
+.cv-total { text-align: center } .cv-total b { display: block; font-size: 32px; color: #2e8b57 } .cv-total .up { color: #2e8b57 } .cv-total .down { color: #c8553d }
+.cv-row { display: grid !important; grid-template-columns: 1fr 90px auto; gap: 10px; align-items: center; padding: 7px 0; border-bottom: 1px solid #0000000d }
+.cv-row i { height: 8px; border-radius: 4px; display: block } .cv-row b.neg { color: #c8553d } .cv-row.total { border: 0; font-size: 16px }
+.vchart { width: 100%; height: 180px; display: block; margin-top: 8px }
+.cv-rank { margin: 6px 0 0; padding-left: 22px } .cv-rank li { display: flex; justify-content: space-between; padding: 4px 0 } .cv-rank li.me { font-weight: 800; color: #2e8b57 }
+/* Building menu as a full screen: the hero art stays compact. */
+.screen .hero { max-height: 180px }

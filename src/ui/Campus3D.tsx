@@ -135,7 +135,7 @@ export function Campus3D({ s, slots, sel, onPick, mode, onCollect }: { s: GameSt
       if (!m.webglOK()) { setState('failed'); return }
       handle.current = m.mount(box.current, { onPick: (i: number) => pick.current(i) })
       setState('ready')
-    }).catch(() => setState('failed'))
+    }).catch(() => { setState('failed'); dispatchEvent(new Event('lw:chunk-error')) /* maybe a newer deploy replaced the 3D bundle */ })
     return () => { dead = true; handle.current?.dispose(); handle.current = null }
   }, [mode])
 

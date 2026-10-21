@@ -22,6 +22,9 @@ export { MarketDO }
 declare const __HTML__: string
 declare const __SCENE__: string
 declare const __BUILD__: string
+declare const __BUILD_ID__: string
+/** Icons + manifest embedded at build time: path -> { content type, base64 bytes }. */
+declare const __ASSETS__: Record<string, { type: string; b64: string }> // matches the id baked into the page
 
 export interface Env { DB: D1Database; MARKET: DurableObjectNamespace }
 
@@ -37,7 +40,13 @@ async function sha(t: string) {
 export default {
   async fetch(req: Request, env: Env): Promise<Response> {
     const url = new URL(req.url)
-    if (url.pathname === '/version.json') return json({ build: __BUILD__ })
+    if (url.pathname === '/version.json') return new Response(JSON.stringify({ build: __BUILD__, buildId: __BUILD_ID__, version: __BUILD__.slice(0, 16).replace('T', ' ') }), {
+      // Never cached, so open tabs always see a new deploy (update pop-up).
+      headers: { 'content-type': 'application/json', 'cache-control': 'no-store, max-age=0' },
+    })
+    // Favicon, app icons and the web app manifest (cached for a day).
+    const asset = __ASSETS__[url.pathname]
+    if (asset) return new Response(Uint8Array.from(atob(asset.b64), c => c.charCodeAt(0)), { headers: { 'content-type': asset.type, 'cache-control': 'public, max-age=86400' } })
     // Lazy 3D campus bundle; the URL carries a build stamp so it can cache for a year.
     if (url.pathname === '/scene3d.js') return new Response(__SCENE__, { headers: { 'content-type': 'text/javascript; charset=utf-8', 'cache-control': 'public, max-age=31536000, immutable' } })
 

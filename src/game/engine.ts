@@ -13,6 +13,7 @@
 //  - Shop revenue is paid when the sale job finishes.
 // ============================================================================
 import { BLD, REC, RES } from './data'
+import * as V from './value'
 import { marketDay, npcHour, restockNpc, seedHistory, type Order } from './market'
 import { ACCOUNTING_FREE, accountingFee, adminOverhead, isPhaseDay, nextPhase, PHASE_LABEL, productionMult, retailMult } from './economy'
 import { rand } from './rng'
@@ -76,6 +77,7 @@ export interface GameState {
   ach: Record<string, number> // tiers reached per achievement
   // --- Finance (stage 10) ---
   bonds?: F.Bond[] // bonds you issued (debt)
+  valueHist?: V.ValuePoint[] // daily company value (Company Value chart)
   holdings?: F.Holding[] // bonds you bought
   bondOffers?: F.Holding[] // NPC bonds for sale this week
   gov?: F.GovOrder // current government order
@@ -302,6 +304,8 @@ export function rollDay(s: GameState) {
   // Accounting base: cash plus bonds you hold.
   const fee = accountingFee(s.cash + F.heldValue(s), ACCOUNTING_FREE + X.cashLineBonus(s))
   if (fee > 0) { s.cash -= fee; say(s, `Accounting fee: $${fee.toLocaleString()}.`) }
+  // Company value history: one point per game day.
+  V.recordValue(s)
   // Weekly economy roll (offline only; online the server decides).
   const day = Math.floor(s.hour / 24)
   if (!s.online && isPhaseDay(day)) {

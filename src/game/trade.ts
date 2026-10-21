@@ -5,8 +5,7 @@
 // applies the change. See src/game/p2p.ts for the rules.
 // ============================================================================
 import type { GameState } from './engine'
-import { BLD, RES } from './data'
-import { parseKey } from './engine'
+import { valueBreakdown } from './value'
 
 const ACC_KEY = 'ledgerworks-account'
 export interface Acc { name: string; key: string }
@@ -27,10 +26,5 @@ export async function p2p(op: string, body: Record<string, unknown> = {}): Promi
   return j
 }
 
-/** Company value for the leaderboard: cash + buildings at cost + stock at the going price. */
-export function companyValue(s: GameState) {
-  let v = s.cash
-  for (const b of s.plots) if (b) v += (BLD[b.type]?.cost ?? 0) * b.level
-  for (const [k, n] of Object.entries(s.stock)) { const { res } = parseKey(k); v += n * (s.ref[res] ?? RES[res]?.basePrice ?? 0) }
-  return Math.round(v)
-}
+/** Company value (same formula everywhere; see game/value.ts). */
+export const companyValue = (s: GameState) => valueBreakdown(s).total

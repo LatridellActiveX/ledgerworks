@@ -42,6 +42,8 @@ if (process.env.FOCUS) { await p.waitForTimeout(3500); const [i, z, t] = process
 if (process.env.ZOOM) { await p.waitForTimeout(4000); const c = await p.locator('.scene3d canvas').boundingBox(); await p.mouse.move(c.x + c.width * 0.55, c.y + c.height * 0.5); for (let i = 0; i < Number(process.env.ZOOM); i++) { await p.mouse.wheel(0, -200); await p.waitForTimeout(60) } }
 if (process.env.CLICK) { const c = await p.locator('.scene3d canvas').boundingBox(); const [fx, fy] = process.env.CLICK.split(',').map(Number); await p.mouse.click(c.x + c.width * fx, c.y + c.height * fy) }
 await p.waitForTimeout(Number(process.env.WAIT || 300))
+// EVAL=js: run code in the page before the shot (e.g. show the update pop-up).
+if (process.env.EVAL) { await p.evaluate(c => eval(c), process.env.EVAL); await p.waitForTimeout(600) }
 // VB='x y w h': zoom the 2D campus SVG to that viewBox (close-ups).
 if (process.env.VB) { await p.evaluate(vb => document.querySelector('svg.campus')?.setAttribute('viewBox', vb), process.env.VB); await p.waitForTimeout(300) }
 // TAP=selector: verify a real tap. Records cash, stock and bubble count,
