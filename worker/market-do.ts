@@ -11,6 +11,7 @@ import { RESOURCES } from '../src/game/data'
 import { rand } from '../src/game/rng'
 import { GAME_SPEED } from '../src/game/engine'
 import { depth } from '../src/game/market'
+import * as P from '../src/game/p2p'
 import { isPhaseDay, nextPhase, priceTrend, type Phase } from '../src/game/economy'
 
 /** Real-world moment that counts as "game hour 0" of the shared world. */
@@ -53,8 +54,48 @@ export class MarketDO {
     return w
   }
 
+  // ---- stage 11: player-to-player ledger (accounts, wallet, depot, board, contracts) ----
+  private async ledger(): Promise<P.Ledger> { return (await this.state.storage.get<P.Ledger>('ledger')) ?? P.emptyLedger() }
+
+  /** One /p2p/<op> call. Runs inside the object, so calls never interleave. */
+  private async p2p(op: string, b: any): Promise<Response> {
+    const L = await this.ledger()
+    const now = Date.now()
+    const err = (e: string, st = 400) => Response.json({ error: e }, { status: st })
+    if (op === 'board') return Response.json({ orders: P.board(L, b.res).slice(0, 50), leaders: P.leaderboard(L) })
+    if (op === 'register') {
+      // The server makes the key; only its hash is kept. Shown to the player once.
+      const key = [...crypto.getRandomValues(new Uint8Array(18))].map(x => x.toString(16).padStart(2, '0')).join('')
+      const r = P.register(L, String(b.name ?? ''), await sha(key), String(b.company ?? ''), now)
+      if (r !== true) return err(r)
+      await this.state.storage.put('ledger', L)
+      return Response.json({ name: String(b.name).toLowerCase(), key, me: P.view(L, L.accounts[String(b.name).toLowerCase()]) })
+    }
+    const a = P.auth(L, b.name, await sha(String(b.key ?? '')))
+    if (typeof a === 'string') return err(a, 403)
+    let r: any = true
+    const n = (x: any) => Number(x)
+    switch (op) {
+      case 'me': break
+      case 'value': a.value = Math.max(0, Math.min(1e12, n(b.value) || 0)); a.company = String(b.company ?? a.company).slice(0, 40); break
+      case 'deposit': r = P.deposit(a, n(b.cash) || 0, Array.isArray(b.goods) ? b.goods.map((g: any) => ({ res: String(g.res), q: n(g.q), qty: n(g.qty) })) : []); break
+      case 'withdrawCash': r = P.withdrawCash(a, n(b.cash)); break
+      case 'withdrawGoods': r = P.withdrawGoods(a, String(b.res), n(b.q), n(b.qty)); break
+      case 'list': r = P.list(L, a, String(b.res), n(b.q), n(b.qty), n(b.price), now); break
+      case 'cancel': r = P.cancel(L, a, n(b.id)); break
+      case 'buy': r = P.buy(L, a, n(b.id), n(b.qty)); break
+      case 'offer': r = P.offer(L, a, String(b.to), String(b.res), n(b.q), n(b.qty), n(b.price), now); break
+      case 'answer': r = P.answer(L, a, n(b.id), b.how); break
+      default: return err('unknown op', 404)
+    }
+    if (typeof r === 'string') return err(r)
+    await this.state.storage.put('ledger', L)
+    return Response.json({ ok: true, result: r, me: P.view(L, a) })
+  }
+
   async fetch(req: Request): Promise<Response> {
     const path = new URL(req.url).pathname
+    if (path.startsWith('/p2p/')) return this.p2p(path.slice(5), await req.json<any>().catch(() => ({})))
     if (path === '/report') {
       // { sold: { resId: units } } -- capped per call so one client can't crash prices.
       const { sold } = await req.json<any>()
@@ -66,4 +107,9 @@ export class MarketDO {
     const w = await this.step()
     return Response.json({ day: w.day, hour: worldHour(), ref: w.ref, phase: w.phase ?? 'normal' })
   }
+}
+
+async function sha(t: string) {
+  const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(t))
+  return [...new Uint8Array(b)].map(x => x.toString(16).padStart(2, '0')).join('')
 }

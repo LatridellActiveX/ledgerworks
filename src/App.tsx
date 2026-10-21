@@ -19,6 +19,7 @@ import { Exchange } from './ui/Exchange'
 import { Research } from './ui/Research'
 import { Board } from './ui/Board'
 import { Finance } from './ui/Finance'
+import { TradeFloor } from './ui/TradeFloor'
 import { cashLineBonus, checkAchievements } from './game/execs'
 import { PHASE_LABEL, accountingFee, productionMult } from './game/economy'
 import { cloudKey, cloudLoad, cloudSave, syncWorld, useCloudKey } from './game/cloud'
@@ -30,7 +31,7 @@ export default function App() {
   const [msg, setMsg] = useState('')
   const [view, setView] = useState<'3d' | '2d'>(() => (localStorage.getItem('ledgerworks-view') as '3d' | '2d') || '3d')
   const [sound, setSnd] = useState(soundOn())
-  const [tab, setTab] = useState<'warehouse' | 'exchange' | 'research' | 'board' | 'finance' | 'market' | 'log' | 'changes'>('warehouse')
+  const [tab, setTab] = useState<'warehouse' | 'exchange' | 'trade' | 'research' | 'board' | 'finance' | 'market' | 'log' | 'changes'>('warehouse')
 
   /** Run a mutating engine action on a copy, show its error if any. */
   const act = (f: (st: E.GameState) => string | null | void) => {
@@ -106,11 +107,12 @@ export default function App() {
       </main>
 
       <nav className="tabs">
-        {(['warehouse', 'exchange', 'research', 'board', 'finance', 'market', 'log', 'changes'] as const).map(t => <button key={t} className={tab === t ? 'on' : ''} onClick={() => setTab(t)}>{t === 'warehouse' ? 'Warehouse' : t === 'exchange' ? 'Exchange' : t === 'research' ? 'Research' : t === 'board' ? 'Board & goals' : t === 'finance' ? 'Finance' : t === 'market' ? 'Public demand' : t === 'log' ? 'Events' : 'Change log'}</button>)}
+        {(['warehouse', 'exchange', 'trade', 'research', 'board', 'finance', 'market', 'log', 'changes'] as const).map(t => <button key={t} className={tab === t ? 'on' : ''} onClick={() => setTab(t)}>{t === 'warehouse' ? 'Warehouse' : t === 'exchange' ? 'Exchange' : t === 'trade' ? 'Trade floor' : t === 'research' ? 'Research' : t === 'board' ? 'Board & goals' : t === 'finance' ? 'Finance' : t === 'market' ? 'Public demand' : t === 'log' ? 'Events' : 'Change log'}</button>)}
       </nav>
       <section className="bottom">
         {tab === 'warehouse' && <Warehouse s={s} />}
         {tab === 'exchange' && <Exchange s={s} act={act} />}
+        {tab === 'trade' && <TradeFloor s={s} act={act} />}
         {tab === 'research' && <Research s={s} act={act} />}
         {tab === 'board' && <Board s={s} act={act} />}
         {tab === 'finance' && <Finance s={s} act={act} />}

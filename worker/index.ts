@@ -7,6 +7,7 @@
 //  POST /api/report       a player reports exchange volume sold today
 //  POST /api/save         cloud save   { id, token, state }
 //  POST /api/load         cloud load   { id, token }
+//  POST /api/p2p/<op>     player-to-player trading (see src/game/p2p.ts)
 //  cron (every 15 min)    advances the shared market one step
 //
 // Storage:
@@ -43,6 +44,8 @@ export default {
     if (url.pathname === '/api/world') return world(env).fetch('https://do/world')
     if (url.pathname === '/api/report' && req.method === 'POST') return world(env).fetch('https://do/report', { method: 'POST', body: await req.text() })
 
+    // Stage 11: player accounts and trading all live in the market object.
+    if (url.pathname.startsWith('/api/p2p/') && req.method === 'POST') return world(env).fetch('https://do/p2p/' + url.pathname.slice(9), { method: 'POST', body: await req.text() })
     if (url.pathname === '/api/save' && req.method === 'POST') {
       const { id, token, state } = await req.json<any>()
       if (typeof id !== 'string' || typeof token !== 'string' || id.length > 64 || !state) return json({ error: 'bad request' }, 400)

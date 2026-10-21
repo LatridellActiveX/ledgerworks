@@ -4,6 +4,12 @@ export interface ChangeEntry { id: string; date: string; title: string; notes: s
 
 export const CHANGELOG: ChangeEntry[] = [
   {
+    id: 'stage11-accounts-p2p-trading',
+    date: '2026-10-21',
+    title: 'Trade with other players',
+    notes: ['New Trade floor tab. Create an account with a username; the server gives you a secret key you can use to sign in on other devices.', 'A trading wallet and depot are kept on the server. Move cash and goods in from your company and take them back home at any time.', 'A shared player board: list goods from your depot, and buy from other players (sellers pay a 3% fee).', 'Contracts: offer goods to a named player at your price. They can accept or decline, and you can withdraw the offer.', 'A company rating (AAA to C) from company value and trading, plus a leaderboard.'],
+  },
+  {
     id: 'gfx2-3d-campus-premium-ui',
     date: '2026-10-21',
     title: 'A real 3D campus',

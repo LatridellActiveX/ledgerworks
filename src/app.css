@@ -182,3 +182,9 @@ select, input { border-radius: 10px; border: 1px solid #e6dac4; background: #fff
 .panel { animation: slidein .3s cubic-bezier(.2,.9,.3,1.2) }
 @keyframes slidein { from { opacity: 0; transform: translateX(10px) } }
 @media (max-width: 800px) { .campus-wrap { height: 52vh } header { gap: 6px } .pill { font-size: 12px } }
+
+/* Stage 11: trade floor */
+.trade .row { display: flex; gap: 6px }
+.grade { display: inline-block; padding: 1px 7px; border-radius: 8px; background: linear-gradient(135deg, #ffd56b, #f39a4a); color: #4a2a00; font-weight: 700; font-size: 12px }
+.trade code { word-break: break-all; font-size: 11px; background: #0001; padding: 2px 4px; border-radius: 4px }
+.err { color: #c0392b }
