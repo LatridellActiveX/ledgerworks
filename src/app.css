@@ -605,3 +605,57 @@ button.link { background: none; border: 0; box-shadow: none; color: #6b7280; tex
 .ns-text > span { display: inline-block; padding-left: 4px; animation: ns-scroll 16s linear infinite }
 @keyframes ns-scroll { 0%, 15% { transform: translateX(0) } 85%, 100% { transform: translateX(min(0px, calc(-100% + 60vw))) } }
 @media (prefers-reduced-motion: reduce) { .ns-text > span { animation: none } }
+
+/* ===== Trade routes (src/ui/Routes.tsx) ===== */
+.rt { max-width: 640px; margin: 0 auto; min-width: 0 }
+.rt-help { font-size: 13px; margin: 0 0 10px }
+.rt-sum { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 14px; margin-bottom: 10px }
+.rt .up { color: #1f7a50 } .rt .down { color: #a83b28 }
+.rt-new { width: 100%; min-height: 48px; border-radius: 12px; font-size: 16px; margin-bottom: 8px }
+.rt-empty { text-align: center; color: var(--muted); padding: 16px 8px }
+.rt-card { background: #fffaf2; border-radius: 14px; padding: 12px; margin: 10px 0; box-shadow: inset 0 0 0 1px #eadfca, 0 3px 10px #6b4a2a12; border-left: 5px solid #a8643a; min-width: 0 }
+.rt-card.paused { opacity: .7; border-left-color: #8a8296 }
+.rt-top { display: flex; gap: 10px; align-items: center } .rt-top > div { display: flex; flex-direction: column; min-width: 0 }
+.rt-top b { font-size: 15.5px; overflow-wrap: anywhere }
+.rt-card p { margin: 6px 0 0; font-size: 13.5px }
+.rt-status { font-weight: 600 }
+.rt-road small { font-size: 13px }
+.rt-track { position: relative; height: 34px; margin: 8px 18px 2px 4px; border-bottom: 3px dashed #c9b28a }
+.rt-track > i { position: absolute; left: 0; bottom: -3px; height: 3px; background: #a8643a; transition: width 1s linear }
+.rt-track > span { position: absolute; bottom: -2px; transform: translateX(-50%); transition: left 1s linear }
+.rt-btns { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 10px }
+.rt-btns button { min-height: 44px; border-radius: 10px; font-size: 14px; padding: 0 4px }
+.rt-sec { margin: 18px 0 6px }
+.rt-towns { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px }
+.rt-town { display: flex; flex-direction: column; gap: 3px; background: #fff; border-radius: 12px; padding: 10px; box-shadow: inset 0 0 0 1px #eadfca; font-size: 13px; min-width: 0 }
+.rt-town small { color: #5d5866; font-size: 12px }
+.rt-form { background: #fff; border-radius: 14px; padding: 12px; margin: 6px 0 12px; box-shadow: inset 0 0 0 1px #eadfca, 0 6px 18px #6b4a2a18; min-width: 0 }
+.rt-form h4 { margin: 0 0 6px }
+.rt-lbl { display: block; font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); font-weight: 700; margin: 10px 0 4px }
+.rt-towns.pick { grid-template-columns: 1fr 1fr }
+.rt-towns.pick button { display: flex; flex-direction: column; align-items: flex-start; gap: 1px; padding: 8px; border-radius: 10px; min-height: 60px; text-align: left; min-width: 0 }
+.rt-towns.pick button span { font-size: 18px } .rt-towns.pick button b { font-size: 14px } .rt-towns.pick small { font-size: 12px; opacity: .8 }
+.rt-towns.pick button.on { box-shadow: inset 0 0 0 2px #a8643a; background: #fbefe2 }
+.rt-good { display: flex; gap: 8px; align-items: center } .rt-good select { flex: 1; min-width: 0; min-height: 44px; font-size: 15px }
+.rt-seg { display: grid; grid-template-columns: 1fr 1fr; gap: 6px } .rt-seg button { min-height: 42px; border-radius: 10px; font-size: 14px }
+.rt-seg button.on { background: #a8643a; color: #fff }
+.rt-amt { display: flex; gap: 8px; align-items: center; margin-top: 6px } .rt-amt input { width: 96px; min-height: 44px; font-size: 16px; flex: none } .rt-amt small { font-size: 12px; min-width: 0 }
+.rt-every { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px } .rt-every button { min-height: 40px; padding: 0; border-radius: 10px }
+.rt-every button.on { background: #a8643a; color: #fff }
+.rt-est { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 10px; background: #f8f1e4; border-radius: 10px; padding: 10px; margin-top: 12px; font-size: 13.5px }
+.rt-est small { grid-column: 1 / -1; font-size: 12px }
+.rt-actions { display: grid; grid-template-columns: 1fr 1.6fr; gap: 8px; margin-top: 12px } .rt-actions button { min-height: 48px; border-radius: 12px; font-size: 15px }
+/* The cart drawing: wheels spin and the body bobs while it moves. */
+.wagon.moving .spokes { animation: wg-spin .6s linear infinite; transform-box: fill-box; transform-origin: center }
+.wagon.moving { animation: wg-bob .3s ease-in-out infinite alternate }
+@keyframes wg-spin { to { transform: rotate(360deg) } }
+@keyframes wg-bob { from { transform: translateY(0) } to { transform: translateY(-1.5px) } }
+@media (prefers-reduced-motion: reduce) { .wagon.moving, .wagon.moving .spokes { animation: none } }
+/* Map lane: under the HUD, or under the news strip when a story runs. */
+.route-lane { cursor: pointer; position: absolute; z-index: 5; top: calc(var(--sat) + 104px); left: calc(var(--sal) + 10px); right: calc(var(--sar) + 10px); max-width: 520px; margin: 0 auto; display: flex; flex-direction: column; gap: 0; border: 0; border-radius: 12px; padding: 4px 10px 6px; background: #1f2430b8; color: #fff; backdrop-filter: blur(6px); text-align: left; box-shadow: 0 6px 16px #0003; overflow: hidden }
+.route-lane.below { top: calc(var(--sat) + 152px) }
+.rl-road { position: relative; display: block; height: 26px; border-bottom: 2px dashed #ffffff66 }
+.rl-cart { position: absolute; bottom: -3px; transition: left 1s linear }
+.route-lane small { font-size: 12.5px; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+.rl-dest { position: absolute; right: -2px; bottom: 1px; font-size: 16px }
+.rl-road { margin-right: 22px }

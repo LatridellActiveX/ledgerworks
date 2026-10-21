@@ -4,6 +4,12 @@ export interface ChangeEntry { id: string; date: string; title: string; notes: s
 
 export const CHANGELOG: ChangeEntry[] = [
   {
+    id: 'trade-routes',
+    date: '2026-10-21',
+    title: 'Trade routes',
+    notes: ['New Trade routes screen (menu → 🛒 Trade routes). Set up to 6 standing routes that send a cart with one good from your warehouse to another town on a timer: every 1, 2, 3, 6 or 12 hours, or once a day.', 'Four towns to trade with: Millbrook (close and cheap, small), Saltmarsh Quay (river barges, big loads, likes food), Copperridge (a mining town that likes building materials) and Lanternfall (a far-off city that pays more for electronics and textiles). Each has its own travel time, cart size and transport fee.', 'Each town pays its own price for every good. It is based on the Exchange price, goes up for the kinds of goods the town likes, and drifts up and down over the day. A town buys a set amount per trip at full price; any extra sells for 60%.', 'Ship a fixed amount per trip, or keep a reserve and ship everything above it. Routes can be paused, edited or deleted. Each shows its next departure or the cart on its way, the last trip (amount, sale, transport, profit) and its total profit, plus an estimate before you start it.', 'Carts on the road appear in a lane at the top of the map with their own little animated wagon; tap it to open Trade routes. Departures and deliveries play a new clip-clop-and-bell sound (also in Settings → Test sounds) and are noted in the event log.', 'Routes are part of your save, including cloud saves. After a long time away, up to 12 missed trips per route are made up and older ones are skipped.', 'Inspired by the trade routes in Patrician and the standing logistics rules in Factorio.'],
+  },
+  {
     id: 'market-news',
     date: '2026-10-21',
     title: 'Market news',

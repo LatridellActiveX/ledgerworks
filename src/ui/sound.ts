@@ -32,7 +32,7 @@
 /** Every sound the game can play. */
 export type Sfx =
   | 'tap' | 'collect' | 'coin' | 'produce' | 'done' | 'build'
-  | 'upgrade' | 'buy' | 'sell' | 'levelup' | 'error' | 'news'
+  | 'upgrade' | 'buy' | 'sell' | 'levelup' | 'error' | 'news' | 'cart'
 /** Old names from the first sound helper, still accepted. */
 type Legacy = 'pop' | 'buzz'
 
@@ -41,7 +41,7 @@ export const SFX_LIST: { id: Sfx; label: string }[] = [
   { id: 'tap', label: 'Tap' }, { id: 'collect', label: 'Collect' }, { id: 'coin', label: 'Coins' },
   { id: 'produce', label: 'Start job' }, { id: 'done', label: 'Job done' }, { id: 'build', label: 'Build' },
   { id: 'upgrade', label: 'Upgrade' }, { id: 'buy', label: 'Buy' }, { id: 'sell', label: 'Sell' },
-  { id: 'levelup', label: 'Level up' }, { id: 'error', label: 'Error' }, { id: 'news', label: 'News' },
+  { id: 'levelup', label: 'Level up' }, { id: 'error', label: 'Error' }, { id: 'news', label: 'News' }, { id: 'cart', label: 'Trade cart' },
 ]
 
 // ---------------------------------------------------------------------------
@@ -83,7 +83,7 @@ export const gainFor = (v: number) => Math.pow(clampVolume(v) / 100, 2) * 0.9
 // ---------------------------------------------------------------------------
 const GAP_MS: Record<Sfx, number> = {
   tap: 60, collect: 70, coin: 70, produce: 150, done: 300, build: 200,
-  upgrade: 250, buy: 120, sell: 120, levelup: 1200, error: 200, news: 1500,
+  upgrade: 250, buy: 120, sell: 120, levelup: 1200, error: 200, news: 1500, cart: 1200,
 }
 const LEN_MS = 700 // rough upper bound of a voice's length, for the voice cap
 export const MAX_VOICES = 6
@@ -286,6 +286,20 @@ const VOICES: Record<Sfx, (a: AudioContext, t: number, step: number) => void> = 
     for (let i = 0; i < 5; i++) noise(a, t + 0.16 + i * 0.045, { dur: 0.012, freq: 4200, q: 6, peak: 0.14 })
     bell(a, t + 0.42, G5, 0.1, 0.2)
     bell(a, t + 0.54, C6, 0.11, 0.4)
+  },
+  // Trade cart (a route's cart leaving or arriving): four hollow "clip-clop"
+  // knocks (low band-passed noise with a short pitched body, alternating
+  // high/low like two hooves), a soft wheel rattle under them, then a small
+  // two-note hand bell (E then G) as the delivery bell.
+  cart: (a, t) => {
+    for (let i = 0; i < 4; i++) {
+      const at = t + i * 0.085, f = i % 2 ? 520 : 700
+      noise(a, at, { dur: 0.035, freq: f, q: 4, peak: 0.22 })
+      tone(a, at, f * 0.5, { type: 'triangle', dur: 0.04, peak: 0.06, to: f * 0.4 })
+    }
+    noise(a, t, { dur: 0.36, freq: 180, q: 0.7, peak: 0.05, type: 'lowpass' })
+    bell(a, t + 0.38, E5, 0.08, 0.18)
+    bell(a, t + 0.47, G5, 0.09, 0.3)
   },
 }
 

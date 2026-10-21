@@ -8,6 +8,8 @@ import { Boot } from './ui/Boot'
 import { Warehouse } from './ui/Warehouse'
 import { Chains } from './ui/Chains'
 import { News, NewsStrip } from './ui/News'
+import { Routes, RouteLane } from './ui/Routes'
+import { activeStories, dayOf } from './game/news'
 import { PrivacyBody } from './ui/Privacy'
 import { activityOf, chipLabel, type ActState } from './game/activity'
 import { useEffect, useMemo, useRef, useState } from 'react'
@@ -166,6 +168,8 @@ export default function App() {
 
       {/* Market news headline strip under the top HUD (src/ui/News.tsx). */}
       {screen === 'map' && sel === null && <NewsStrip s={s} onOpen={() => open('news')} />}
+      {/* Trade-route carts on the road, in a lane under the HUD (or under the news strip). */}
+      {screen === 'map' && sel === null && <RouteLane s={s} onOpen={() => open('routes')} below={activeStories(dayOf(s.hour)).length > 0} />}
 
       {/* Bottom-left idle info; tap to jump to an idle building. */}
       {screen === 'map' && sel === null && <button className="idle-box" onClick={() => { if (idle.length) { setSel(idle[0]); setScreen('building') } }}>
@@ -186,6 +190,7 @@ export default function App() {
           {screen === 'warehouse' && <Warehouse s={s} act={act} openPlot={i => { setSel(i); setScreen('building') }} initialOpen={whOpen}
             openChain={r => { sfx('tap'); setChainRes(r); setChainFrom(r); setScreen('chains') }} />}
           {screen === 'news' && <News s={s} />}
+          {screen === 'routes' && <Routes s={s} act={act} />}
           {screen === 'chains' && <Chains s={s} res={chainRes} onPick={setChainRes} />}
           {screen === 'exchange' && <Exchange s={s} act={act} />}
           {screen === 'trade' && <TradeFloor s={s} act={act} />}
@@ -243,7 +248,7 @@ export default function App() {
       {/* Hamburger drawer: the less-used screens and settings. */}
       {menu && <div className="drawer-bg" onClick={() => setMenu(false)}><nav className="drawer" onClick={e => e.stopPropagation()}>
         <div className="drawer-head"><Logo /><b>{s.company}</b></div>
-        {(['value', 'news', 'chains', 'market', 'log', 'changes', 'account', 'settings', 'privacy'] as const).map(t => <button key={t} onClick={() => open(t)}>{SCREEN_ICON[t]} {SCREEN_TITLE[t]}</button>)}
+        {(['value', 'news', 'routes', 'chains', 'market', 'log', 'changes', 'account', 'settings', 'privacy'] as const).map(t => <button key={t} onClick={() => open(t)}>{SCREEN_ICON[t]} {SCREEN_TITLE[t]}</button>)}
         <button onClick={() => { toggleView(); setMenu(false) }}>{view === '3d' ? '▦ Switch to 2D map' : '◈ Switch to 3D map'}</button>
       </nav></div>}
 
@@ -265,9 +270,9 @@ export default function App() {
 }
 
 /** Every screen the HUD can open. 'map' is the plain map. */
-type Screen = 'map' | 'value' | 'building' | 'warehouse' | 'exchange' | 'trade' | 'research' | 'board' | 'finance' | 'market' | 'log' | 'changes' | 'account' | 'settings' | 'privacy' | 'chains' | 'news'
-const SCREEN_TITLE: Record<Screen, string> = { map: 'Map', value: 'Company value', building: 'Building', warehouse: 'Warehouse', exchange: 'Market', trade: 'Market', research: 'Research', board: 'Research', finance: 'Finance', market: 'Public demand', log: 'Events', changes: 'Change log', account: 'Saves & account', settings: 'Settings', privacy: 'Privacy policy', chains: 'Production chains', news: 'Market news' }
-const SCREEN_ICON: Partial<Record<Screen, string>> = { value: '💹', market: '📈', log: '🔔', changes: '📝', account: '💾', settings: '⚙', privacy: '🔒', chains: '🔗', news: '📰' }
+type Screen = 'map' | 'value' | 'building' | 'warehouse' | 'exchange' | 'trade' | 'research' | 'board' | 'finance' | 'market' | 'log' | 'changes' | 'account' | 'settings' | 'privacy' | 'chains' | 'news' | 'routes'
+const SCREEN_TITLE: Record<Screen, string> = { map: 'Map', value: 'Company value', building: 'Building', warehouse: 'Warehouse', exchange: 'Market', trade: 'Market', research: 'Research', board: 'Research', finance: 'Finance', market: 'Public demand', log: 'Events', changes: 'Change log', account: 'Saves & account', settings: 'Settings', privacy: 'Privacy policy', chains: 'Production chains', news: 'Market news', routes: 'Trade routes' }
+const SCREEN_ICON: Partial<Record<Screen, string>> = { value: '💹', market: '📈', log: '🔔', changes: '📝', account: '💾', settings: '⚙', privacy: '🔒', chains: '🔗', news: '📰', routes: '🛒' }
 /** The bottom tab bar (original simple glyphs). */
 const TABS: [Screen, string, string][] = [['map', 'Map', '🗺'], ['warehouse', 'Warehouse', '📦'], ['exchange', 'Market', '⇄'], ['research', 'Research', '🔬'], ['finance', 'Finance', '🏦']]
 

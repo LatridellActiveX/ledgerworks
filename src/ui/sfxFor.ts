@@ -4,6 +4,8 @@ import * as E from '../game/engine'
 import type { Sfx } from './sound'
 import { dayOf, storyStarting } from '../game/news'
 
+/** Departures + arrivals so far: carts on the road count once, finished trips twice. */
+const cartMoves = (s: E.GameState) => (s.routes ?? []).reduce((n, r) => n + 2 * r.trips + (r.trip ? 1 : 0), 0)
 const stockTotal = (s: E.GameState) => Object.values(s.stock ?? {}).reduce((a, n) => a + (Number(n) || 0), 0)
 const leveledUp = (a: E.GameState, b: E.GameState) => E.companyLevel(b.xp) === E.companyLevel(a.xp) + 1
 
@@ -41,6 +43,8 @@ export function tickSfx(a: E.GameState, b: E.GameState): Sfx | null {
     if (p.job.kind === 'build') out = 'upgrade'
     else if (out !== 'upgrade') out = 'done'
   })
+  // A trade-route cart left or arrived (see game/routes.ts).
+  if (!out && cartMoves(b) !== cartMoves(a)) return 'cart'
   // A new market news story broke while the clock ran (only when nothing louder played).
   if (!out && dayOf(b.hour) > dayOf(a.hour) && storyStarting(dayOf(b.hour))) return 'news'
   return out

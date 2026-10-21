@@ -27,6 +27,7 @@ import { applyResearch, RESEARCH_LEVEL, researchable, researchedQ } from './rese
 export { GAME_SPEED } from './engine-constants'
 import { GAME_SPEED } from './engine-constants'
 import * as SEA from './seasons'
+import * as R from './routes'
 export const MAX_QUALITY = 12
 export const START_CASH = 60000
 
@@ -93,6 +94,10 @@ export interface GameState {
   realm?: SEA.Realm
   season?: number // season number this company plays in (seasons realm only)
   seasonPhase?: SEA.SeasonPhase // current phase, refreshed from the world clock
+  // --- Trade routes (routes.ts) ---
+  /** Standing cart routes to other towns. Missing in older saves = none. */
+  routes?: R.Route[]
+  nextRouteId?: number
 }
 
 // --------------------------------------------------------------------------
@@ -166,6 +171,8 @@ export function takeStock(s: GameState, res: string, n: number): number {
 }
 
 const say = (s: GameState, msg: string) => { s.log.unshift(`Day ${Math.floor(s.hour / 24) + 1}: ${msg}`); s.log.length = Math.min(s.log.length, 40) }
+/** Add a line to the event log (used by other game modules, e.g. trade routes). */
+export const logMsg = say
 
 export function newGame(company = 'My Company', now = Date.now()): GameState {
   const s: GameState = {
@@ -452,14 +459,20 @@ function finishJob(s: GameState, bd: Building) {
  * Mutates and returns the state.
  */
 export function advanceTo(s: GameState, toHour: number): GameState {
+  // Trade routes: after a long time away, only the last few missed trips are made up.
+  R.capCatchUp(s, toHour)
   while (true) {
-    // Next event: earliest job end, the next whole hour (NPC buyers), or midnight.
+    // Next event: earliest job end, a trade-route cart (departure/arrival),
+    // the next whole hour (NPC buyers), or midnight.
     const nextHour = Math.floor(s.hour + 1e-9) + 1
-    let next = nextHour, who: Building | null = null
+    let next = nextHour, who: Building | null = null, route: R.Route | null = null
     for (const bd of s.plots) if (bd?.job && bd.job.endH < next) { next = bd.job.endH; who = bd }
+    const re = R.nextRouteEvent(s)
+    if (re && re.h < next) { next = Math.max(s.hour, re.h); who = null; route = re.r }
     if (next > toHour) break
     s.hour = next
-    if (who) finishJob(s, who)
+    if (route) R.runRoute(s, route)
+    else if (who) finishJob(s, who)
     else {
       npcHour(s, m => say(s, m))
       if (nextHour % 24 === 0) rollDay(s)
