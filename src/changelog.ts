@@ -4,6 +4,12 @@ export interface ChangeEntry { id: string; date: string; title: string; notes: s
 
 export const CHANGELOG: ChangeEntry[] = [
   {
+    id: 'loading-real',
+    date: '2026-10-22',
+    title: 'Faster, honest loading screen',
+    notes: ["The loading screen no longer waits 5 seconds or shows library bars for show. One bar tracks what is really loading: fonts, your account and the 3D map.", "It closes with a short fade as soon as the game is ready, and doesn't appear at all when loading is near-instant."],
+  },
+  {
     id: 'no-day-night',
     date: '2026-10-22',
     title: 'Always daytime on the map',
