@@ -782,3 +782,4 @@ tr.bidrow td { color: #3c9a5f; font-weight: 600 }
 .vcat summary b { margin-left: auto; font-variant-numeric: tabular-nums }
 .vcat-body { padding: 6px 0 2px 18px; display: grid; gap: 4px; font-size: 13px }
 .vline { display: flex; justify-content: space-between; gap: 8px; font-variant-numeric: tabular-nums }
+.wh-sum { display: flex; flex-wrap: wrap; gap: 4px 14px; justify-content: space-between; margin: 4px 0 10px; font-size: 13px; color: #6b6470 }

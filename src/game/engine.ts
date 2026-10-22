@@ -39,7 +39,7 @@ export const START_CASH = 60000
 // --------------------------------------------------------------------------
 export type Job =
   | { kind: 'build'; endH: number } // construction or upgrade in progress
-  | { kind: 'make'; res: string; qty: number; q: number; startH: number; endH: number; got?: number; lastH?: number; uc?: number /* cost per unit (inputs + wages), for average cost */; ripeH?: number /* farm crops: hour they ripened (waiting for harvest) */; tends?: number; tendH?: number /* farm crops: tending */ }
+  | { kind: 'make'; res: string; qty: number; q: number; startH: number; endH: number; got?: number; lastH?: number; uc?: number /* cost per unit (inputs + wages), for average cost */; src?: number /* sourcing value: what the run's inputs cost, $ */; wg?: number /* wages for the run, $ */; ripeH?: number /* farm crops: hour they ripened (waiting for harvest) */; tends?: number; tendH?: number /* farm crops: tending */ }
   | { kind: 'sell'; res: string; qty: number; q: number; price: number; startH: number; endH: number; got?: number; gotC?: number; lastH?: number }
 // Partial collection (see collect()): `got` = whole units already handed
 // over (made goods, or sold units already paid), `gotC` = cents already paid
@@ -300,7 +300,7 @@ export function startMake(s: GameState, plot: number, res: string, qty: number):
   // A graft lifts the next crop from this plot one quality step, once.
   if (bd.graft && FM.isFarm(bd.type)) { q = Math.min(MAX_QUALITY, q + 1); bd.graft = false }
   s.cash -= wages
-  bd.job = { kind: 'make', res, qty, q, startH: s.hour, endH: s.hour + hours, uc: (inCost + wages) / qty }
+  bd.job = { kind: 'make', res, qty, q, startH: s.hour, endH: s.hour + hours, uc: (inCost + wages) / qty, src: inCost, wg: wages }
   return null
 }
 

@@ -4,6 +4,12 @@ export interface ChangeEntry { id: string; date: string; title: string; notes: s
 
 export const CHANGELOG: ChangeEntry[] = [
   {
+    id: 'sourcing-value',
+    date: '2026-10-21',
+    title: 'Sourcing value on production',
+    notes: ["A building that is making goods shows the sourcing value of its run: what the inputs cost, and what that is per unit. With wages included, the unit cost is shown too.", "The Warehouse's Incoming list adds up every run in production: how many buildings and units, the total sourcing value, and the average unit cost."],
+  },
+  {
     id: 'wind-turbine-spacing',
     date: '2026-10-21',
     title: 'Wind turbine name and job bar spacing',

@@ -412,6 +412,7 @@ function JobProgress({ s, plot, act }: { s: E.GameState; plot: number; act: Act 
       <span className="ticker">{num(Math.floor(doneT))} / {num(j.qty)} {j.kind === 'make' ? 'made' : 'sold'}{j.kind === 'sell' ? ` · ${money(Math.floor(centsT) / 100)} earned` : ''}</span></div>
     <div className="bar wide"><i style={{ width: `${100 * a.prog}%` }} /></div>
     <small>{num(j.got ?? 0)} collected so far</small>
+    {j.kind === 'make' && j.src !== undefined && <small>Sourcing value {money(j.src)} · {money(j.src / j.qty)} per unit in inputs{j.wg !== undefined ? `, ${money((j.src + j.wg) / j.qty)} per unit with wages` : ''}</small>}
     {/* Store earnings breakdown (matches the "$x / $y" pill on the map). */}
     {j.kind === 'sell' && (() => {
       const total = E.saleCents(j) / 100, got = (j.gotC ?? 0) / 100, wait = p.cents / 100

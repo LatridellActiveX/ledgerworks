@@ -163,15 +163,22 @@ function Tile({ r, i, onOpen }: { r: GoodRow; i: number; onOpen: () => void }) {
 function Incoming({ s, openPlot }: { s: E.GameState; openPlot: (i: number) => void }) {
   const jobs = s.plots.map((bd, i) => ({ bd, i })).filter(x => x.bd?.job && x.bd.job.kind === 'make')
   if (!jobs.length) return <p className="muted">Nothing is being made right now.</p>
-  return <div className="wh-list">{jobs.map(({ bd, i }) => {
+  // Totals across every building: units in production, what their inputs are worth, and the unit cost.
+  const made = jobs.map(x => x.bd!.job as Extract<E.Job, { kind: 'make' }>)
+  const units = made.reduce((t, j) => t + j.qty, 0)
+  const src = made.reduce((t, j) => t + (j.src ?? 0), 0), wg = made.reduce((t, j) => t + (j.wg ?? 0), 0)
+  return <div><div className="wh-sum"><span>{jobs.length} {jobs.length === 1 ? 'building' : 'buildings'}, {num(units)} units in production</span>
+    <span>Sourcing value {money(src)} · {units ? `${money(src / units)} per unit in inputs, ${money((src + wg) / units)} with wages` : '—'}</span></div>
+  <div className="wh-list">{jobs.map(({ bd, i }) => {
     const j = bd!.job as Extract<E.Job, { kind: 'make' }>, p = E.pending(s, bd!)!, done = E.unitsDone(j, s.hour)
     return <button key={i} className="wh-li" onClick={() => openPlot(i)}>
       <GoodArt id={j.res} size={40} />
       <span><b>{RES[j.res].name}</b> <small>at {BLD[bd!.type].name}</small><br />
         <small>{num(p.units)} ready to collect · {num(j.qty - done)} still to make · done in {dur(Math.max(0, j.endH - s.hour))}</small>
-        <span className="bar"><i style={{ width: `${(100 * done) / j.qty}%` }} /></span></span>
+        <span className="bar"><i style={{ width: `${(100 * done) / j.qty}%` }} /></span>
+        <small>Sourcing {j.src !== undefined ? `${money(j.src)} · ${money(j.src / j.qty)} per unit` : '—'}{j.wg !== undefined ? ` · wages ${money(j.wg / j.qty)} per unit` : ''}</small></span>
     </button>
-  })}</div>
+  })}</div></div>
 }
 
 function Contracts({ s, act }: { s: E.GameState; act: Act }) {
