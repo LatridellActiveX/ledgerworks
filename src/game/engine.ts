@@ -464,8 +464,7 @@ export function rollDay(s: GameState) {
   // Accounting base: cash plus bonds you hold.
   const fee = accountingFee(s.cash + F.heldValue(s), ACCOUNTING_FREE + X.cashLineBonus(s))
   if (fee > 0) { s.cash -= fee; say(s, `Accounting fee: $${fee.toLocaleString()}.`) }
-  // Company value history: one point per game day.
-  V.recordValue(s)
+  // Company value history is now snapshotted every V.SNAP_H hours in advanceTo.
   // Weekly economy roll (offline only; online the server decides).
   const day = Math.floor(s.hour / 24)
   if (!s.online && isPhaseDay(day)) {
@@ -659,6 +658,8 @@ export function advanceTo(s: GameState, toHour: number): GameState {
       npcHour(s, m => say(s, m))
       B.bidHour(s) // standing buy orders check the book and passing sellers
       X.payHour(s) // executives draw 1/24 of their daily salary every game hour
+      // Company value timeline: a snapshot every few hours (thinned with age, see value.ts).
+      if (nextHour % V.SNAP_H === 0) V.recordValue(s)
       if (nextHour % 24 === 0) { rollDay(s); const [r, n] = rand(s.seed); s.seed = n; for (const line of FM.farmDay(s, r)) say(s, line) }
     }
   }

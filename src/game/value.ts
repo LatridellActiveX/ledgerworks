@@ -41,16 +41,42 @@ export function valueBreakdown(s: GameState): ValueBreakdown {
 
 /** One point of value history: game hour and total value. */
 export interface ValuePoint { h: number; v: number }
-/** Keep about four months of daily points. */
-export const HIST_MAX = 120
+/**
+ * Whole-timeline history (founding -> now). Snapshots are taken every
+ * SNAP_H game hours; thinHist() then downsamples older points so the save
+ * stays small and the chart smooth:
+ *   - last 3 days: every snapshot (4h apart)
+ *   - 3..60 days old: one point per day
+ *   - older than 60 days: one point per week
+ * HIST_MAX is a hard safety cap (oldest go first) on top of that.
+ */
+export const SNAP_H = 4
+export const HIST_MAX = 600
 
-/** Record today's value (called once per game day by rollDay). */
+/** Downsample old points in place (keeps the first point = earliest history). */
+export function thinHist(hist: ValuePoint[], nowH: number) {
+  const out: ValuePoint[] = []
+  for (let i = 0; i < hist.length; i++) {
+    const p = hist[i], age = nowH - p.h
+    // Bucket size for this point's age: 0 = keep every point.
+    const bucket = age <= 72 ? 0 : age <= 60 * 24 ? 24 : 24 * 7
+    const prev = out[out.length - 1]
+    // Same bucket as the point before it: keep only the later one (latest value of that day/week),
+    // but never drop the very first point (the start of the timeline).
+    if (bucket && prev && out.length > 1 && Math.floor(prev.h / bucket) === Math.floor(p.h / bucket)) out[out.length - 1] = p
+    else out.push(p)
+  }
+  if (out.length > HIST_MAX) out.splice(1, out.length - HIST_MAX) // keep point 0
+  hist.length = 0; hist.push(...out)
+}
+
+/** Record a value snapshot (called every SNAP_H game hours from advanceTo). */
 export function recordValue(s: GameState) {
   const hist = (s.valueHist ??= [])
   const v = valueBreakdown(s).total
   if (hist.length && hist[hist.length - 1].h === s.hour) hist[hist.length - 1].v = v
   else hist.push({ h: s.hour, v })
-  if (hist.length > HIST_MAX) hist.splice(0, hist.length - HIST_MAX)
+  thinHist(hist, s.hour)
 }
 
 // ---- Detail for the Company Value breakdown --------------------------------

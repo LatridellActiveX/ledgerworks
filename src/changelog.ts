@@ -4,6 +4,12 @@ export interface ChangeEntry { id: string; date: string; title: string; notes: s
 
 export const CHANGELOG: ChangeEntry[] = [
   {
+    id: 'value-timeline-cash-pill',
+    date: '2026-10-22',
+    title: 'Value timeline and cash shortcut',
+    notes: ["Tap the cash pill at the top to open Company Value.", "The value chart now covers your whole company, from founding to now, with real dates along the bottom. Value is saved every 4 hours. Older points are thinned to one a day, then one a week, so the line stays smooth."],
+  },
+  {
     id: 'store-left-to-collect',
     date: '2026-10-22',
     title: 'Store label counts down',
