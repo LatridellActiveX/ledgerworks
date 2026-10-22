@@ -4,6 +4,12 @@ export interface ChangeEntry { id: string; date: string; title: string; notes: s
 
 export const CHANGELOG: ChangeEntry[] = [
   {
+    id: 'no-day-night',
+    date: '2026-10-22',
+    title: 'Always daytime on the map',
+    notes: ["The map no longer gets dark at night. It stays in bright daylight all the time, with no night sky, glowing windows or lit street lamps.", "The clock and days still run as before, so production, news and daily events are unchanged."],
+  },
+  {
     id: 'value-timeline-cash-pill',
     date: '2026-10-22',
     title: 'Value timeline and cash shortcut',

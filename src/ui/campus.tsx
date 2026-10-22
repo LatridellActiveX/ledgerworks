@@ -8,7 +8,7 @@
 //  - Buildings grow with level: taller, more window rows, extra props.
 //  - Busy buildings animate (smoke, spinning blades, conveyor, nodding
 //    pumpjack); trucks drive the ring road; the sky and windows follow the
-//    game clock (day / dusk / night).
+//    game clock (day / dusk / night). [Removed Oct 2026: always daylight now.]
 // All animation is CSS or SVG <animate>, so it costs almost no JS.
 // ============================================================================
 import type { GameState } from '../game/engine'
@@ -26,18 +26,13 @@ export const tilePos = (i: number) => {
 
 // Building drawings live in ./campus2d (detailed models matching the iso view).
 
-/** Sky tint for the hour: 0 at midday, up to ~0.45 at night, warm at dusk. */
-export function skyTint(hour: number) {
-  const h = hour % 24
-  if (h >= 7 && h < 18) return { fill: '#fff6d6', op: 0 }
-  if (h >= 18 && h < 20) return { fill: '#f0956b', op: 0.18 }
-  if (h >= 5 && h < 7) return { fill: '#f6b48b', op: 0.15 }
-  return { fill: '#1d2a5a', op: 0.42 }
-}
+// (Day/night sky tint removed: the map is always in daylight. The game clock
+// still runs; it just no longer changes how the map looks.)
 
 export function Campus({ s, slots, sel, onPick }: { s: GameState; slots: number; sel: number | null; onPick: (i: number) => void }) {
-  const tint = skyTint(s.hour)
-  const night = tint.op > 0.3
+  // Always daytime: buildings and ground are drawn with night=false (no dark
+  // surfaces, lit windows or glowing lamps).
+  const night = false
   const W = OX * 2 + (COLS - ROWS) * TW, H = OY + (COLS + ROWS - 2) * TH + 90
   // Ring road path around the grid (for trucks).
   const c0 = tilePos(0), c5 = tilePos(COLS - 1), c18 = tilePos((ROWS - 1) * COLS), c23 = tilePos(COLS * ROWS - 1)
@@ -64,8 +59,7 @@ export function Campus({ s, slots, sel, onPick }: { s: GameState; slots: number;
           <animateMotion dur={`${26 + i * 7}s`} begin={`${-i * 9}s`} repeatCount="indefinite" path={road} rotate="auto" />
         </g>
       ))}
-      {/* Day / night tint over sky and ground (buildings darken themselves so lit windows glow) */}
-      <rect x="0" y="0" width={W} height={H} fill={tint.fill} opacity={tint.op} pointerEvents="none" style={{ transition: 'opacity 2s, fill 2s' }} />
+      {/* (The day/night tint overlay was removed: always daylight.) */}
       {order.map(i => {
         const { x, y } = tilePos(i)
         const bd = s.plots[i], locked = i >= slots

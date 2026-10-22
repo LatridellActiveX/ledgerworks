@@ -447,15 +447,16 @@ export function mount(el: HTMLElement, opts: { onPick: (i: number) => void; qual
 
   // ---- Time of day
   const C = (h: string) => new THREE.Color(h)
-  /** 0 = noon … 1 = midnight darkness, plus warm dusk factor. */
-  function timeOfDay(hour: number) {
-    const h = ((hour % 24) + 24) % 24
-    const sunAng = ((h - 6) / 12) * Math.PI // 0 at 6:00, PI at 18:00
-    const elev = Math.sin(sunAng) // >0 while the sun is up
-    const night = THREE.MathUtils.clamp(-elev * 2.2 + 0.15, 0, 1)
-    const dusk = THREE.MathUtils.clamp(1 - Math.abs(elev) * 3.5, 0, 1)
-    return { sunAng, elev, night, dusk }
-  }
+  // Day/night cycle removed (Parker, Oct 2026): the map is always lit as a
+  // bright late morning. The game clock still runs (production, news, days);
+  // only the visuals ignore it. The lighting code below still reads
+  // `td.night` / `td.dusk`, so with both pinned to 0 it gives full daylight,
+  // no stars, no glowing windows and dark (unlit) street lamp bulbs.
+  const DAY_HOUR = 11 // sun position used for shadows (11:00 = high, slightly angled)
+  const DAYLIGHT = (() => {
+    const sunAng = ((DAY_HOUR - 6) / 12) * Math.PI // 0 at 6:00, PI at 18:00
+    return { sunAng, elev: Math.sin(sunAng), night: 0, dusk: 0 }
+  })()
 
   // ---- Animation loop
   const clock = new THREE.Clock()
@@ -474,7 +475,7 @@ export function mount(el: HTMLElement, opts: { onPick: (i: number) => void; qual
     controls.target.z = THREE.MathUtils.clamp(controls.target.z, -50, 50)
 
     // Sky, sun, moon, lights.
-    const td = timeOfDay(snap.hour)
+    const td = DAYLIGHT // fixed daylight; see DAYLIGHT above (no day/night cycle)
     const sx = Math.cos(td.sunAng) * 200, sy = Math.sin(td.sunAng) * 160, sz = -80
     sunDisc.position.set(sx, sy, sz); moonDisc.position.set(-sx, -sy, -sz)
     const up = td.elev > -0.05
