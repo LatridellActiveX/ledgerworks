@@ -4,6 +4,12 @@ export interface ChangeEntry { id: string; date: string; title: string; notes: s
 
 export const CHANGELOG: ChangeEntry[] = [
   {
+    id: 'store-left-to-collect',
+    date: '2026-10-22',
+    title: 'Store label counts down',
+    notes: ["The earnings pill over a store now shows ready to collect / still left to collect. Each time you collect, the right number drops by what you took and the left number starts again from $0.", "When a sale is fully sold and collected, the pill goes away.", "The selling panel shows the same Left to collect number."],
+  },
+  {
     id: 'sourcing-value',
     date: '2026-10-21',
     title: 'Sourcing value on production',

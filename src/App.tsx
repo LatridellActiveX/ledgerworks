@@ -420,6 +420,8 @@ function JobProgress({ s, plot, act }: { s: E.GameState; plot: number; act: Act 
         <div><span>Uncollected earnings</span><b>{money(wait)}</b></div>
         <div><span>Already collected</span><b>{money(got)}</b></div>
         <div><span>Still to earn ({num(j.qty - E.unitsDone(j, s.hour))} left to sell)</span><b>{money(total - got - wait)}</b></div>
+        {/* Same right-hand number as the map pill: drops by each collect. */}
+        <div><span>Left to collect (matches the map)</span><b>{money(total - got)}</b></div>
         <div><span>Total for this sale ({num(j.qty)} × {money(j.price)})</span><b>{money(total)}</b></div>
       </div>
     })()}

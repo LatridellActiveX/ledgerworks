@@ -114,9 +114,17 @@ function ActivityBadges({ s, posOf }: { s: GameState; posOf: (i: number) => { x:
 /** "$uncollected / $total" pill over a selling building. */
 function StoreValue({ s, bd }: { s: GameState; bd: NonNullable<GameState['plots'][number]> }) {
   const j = bd.job as any, p = E.pending(s, bd)
-  const total = E.saleCents(j) / 100, waiting = (p?.cents ?? 0) / 100
+  // Left number: cash sitting in the store, ready to collect right now.
+  // It resets to $0 on each collect and climbs again as units sell.
+  const waiting = (p?.cents ?? 0) / 100
+  // Right number: everything this sale can still pay out = whole sale minus
+  // what was already collected (j.gotC, cents). Saves from before this change
+  // already track gotC, so old saves need no migration (missing = 0).
+  const left = Math.max(0, E.saleCents(j) - (j.gotC ?? 0)) / 100
+  // Batch fully sold AND collected: nothing left, so hide the pill.
+  if (left < 0.005) return null
   const m = (v: number) => '$' + (v >= 1e4 ? Math.round(v / 1000) + 'k' : v >= 1000 ? (v / 1000).toFixed(1) + 'k' : Math.floor(v).toLocaleString())
-  return <span className="spill" title="Uncollected earnings / total for this sale"><b>{m(waiting)}</b> / {m(total)}</span>
+  return <span className="spill" title="Ready to collect / still left to collect from this sale"><b>{m(waiting)}</b> / {m(left)}</span>
 }
 
 /** Ready bubbles for every busy building. */
