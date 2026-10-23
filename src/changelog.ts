@@ -4,6 +4,12 @@ export interface ChangeEntry { id: string; date: string; title: string; notes: s
 
 export const CHANGELOG: ChangeEntry[] = [
   {
+    id: 'job-detail-rows',
+    date: '2026-10-23',
+    title: 'Tidier production and selling details',
+    notes: ["Running production and sales now show a PRODUCTION / SELLING header with the product, then one row per figure (producing now, sourcing value, quality, cost per unit, and the store earnings), followed by the buttons, the time left and when it finishes."],
+  },
+  {
     id: 'market-l2-cheaper',
     date: '2026-10-23',
     title: 'Cheaper first Corner market upgrade',

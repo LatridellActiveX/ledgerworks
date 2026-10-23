@@ -794,3 +794,23 @@ tr.bidrow td { color: #3c9a5f; font-weight: 600 }
 /* Tooltip anchored above the tapped Sell button. */
 .tip-anchor { position: relative; display: inline-block }
 .sell-tip { position: absolute; right: 0; bottom: calc(100% + 6px); white-space: nowrap; background: #1f2633; color: #fff; font-size: 11px; padding: 5px 8px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,.25); z-index: 5; pointer-events: none }
+
+/* ===== Running job card: stacked label/value rows =====
+   Layout (copied from Parker's reference, art not copied): centred caps
+   header + product name, then a two-column table where the bold label is
+   right-aligned and the value left-aligned so both meet at the centre line.
+   Rows alternate a faint tint (zebra). Colours come from the theme vars. */
+.jobcard { display: flex; flex-direction: column; gap: 10px }
+.jc-head { display: flex; flex-direction: column; align-items: center; text-align: center; line-height: 1.25 }
+.jc-head b { letter-spacing: .6px; font-size: 1.05em }
+.jc-head span { display: inline-flex; align-items: center; gap: 6px; color: var(--ink) }
+/* 1fr 1fr keeps the meeting point dead centre; minmax(0,..) lets long text
+   wrap instead of widening the card at 390px / 130% text size. */
+.kv { display: grid; grid-template-columns: minmax(0, 1fr); border-radius: 8px; overflow: hidden }
+.kv-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; padding: 5px 10px; align-items: baseline }
+.kv-row:nth-child(even) { background: color-mix(in srgb, var(--line) 45%, transparent) }
+.kv-k { text-align: right; font-weight: 700; overflow-wrap: anywhere }
+.kv-v { text-align: left; overflow-wrap: anywhere; font-variant-numeric: tabular-nums }
+.kv-v small { display: block }
+.jc-acts { justify-content: center; flex-wrap: wrap }
+.jc-time { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 2px }

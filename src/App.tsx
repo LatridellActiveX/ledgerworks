@@ -16,7 +16,7 @@ import { News } from './ui/News'
 import { Routes, RouteLane } from './ui/Routes'
 import { PrivacyBody } from './ui/Privacy'
 import { activityOf, chipLabel, type ActState } from './game/activity'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import * as E from './game/engine'
 import { BLD, BUILDINGS, REC, RES, RESOURCES } from './game/data'
 import { loadGame, saveGame, exportCode, importCode, freshGame } from './game/save'
@@ -34,6 +34,7 @@ import { Ticker } from './ui/Ticker'
 import { setSound, setVolume, sfx, soundOn, testSounds, unlockAudio, volume, SFX_LIST } from './ui/sound'
 import { actionSfx, tickSfx } from './ui/sfxFor'
 import { clock, dur, money, num } from './ui/fmt'
+import { GAME_SPEED } from './game/engine-constants'
 import { CHANGELOG } from './changelog'
 import { Crest } from './ui/Crest'
 import { LevelScreen } from './ui/Levels'
@@ -355,15 +356,15 @@ function BuildingPanel({ s, plot, act }: { s: E.GameState; plot: number; act: Ac
       <h3>{bt.name} · level {bd.level} <StatusChip state={activityOf(s, bd)!.state} /></h3>
       <div className="hero"><BuildingArt type={bd.type} level={bd.level} busy={!!bd.job} /></div>
       {isFarm(bd.type) && <FarmPlot s={s} plot={plot} act={act} />}
-      {bd.job ? (
+      {/* Construction keeps its simple card. Making and selling use the
+          stacked label/value layout (JobCard below). */}
+      {bd.job ? (bd.job.kind === 'build' ? (
         <div className="card">
-          <span>{bd.job.kind === 'build' ? 'Under construction' : bd.job.kind === 'make'
-            ? <>Making {num(bd.job.qty)} <ResIcon id={bd.job.res} /> {RES[bd.job.res].name} Q{bd.job.q}</>
-            : <>Selling {num(bd.job.qty)} <ResIcon id={bd.job.res} /> {RES[bd.job.res].name} at {money(bd.job.price)}</>}</span>
-          {E.ripeOf(bd.job) !== undefined ? <div>Ripe. Harvest it from the plot above.</div> : <div>Done in {dur(bd.job.endH - s.hour)}</div>}
-          {bd.job.kind !== 'build' && <JobProgress s={s} plot={plot} act={act} />}
-          {E.ripeOf(bd.job) === undefined && <button onClick={() => act(st => E.rush(st, plot))}>Rush for {money(E.rushCost(s, bd))}</button>}
+          <span>Under construction</span>
+          <div>Done in {dur(bd.job.endH - s.hour)}</div>
+          <button onClick={() => act(st => E.rush(st, plot))}>Rush for {money(E.rushCost(s, bd))}</button>
         </div>
+      ) : <JobCard s={s} plot={plot} act={act} />
       ) : null}
       {/* A selling store still lists its other goods, locked until this sale ends. */}
       {bd.job?.kind === 'sell' && <OtherGoods s={s} plot={plot} />}
@@ -405,37 +406,89 @@ export function StatusChip({ state }: { state: ActState }) {
   return <span className={`status ${state}`}>{state === 'make' ? <span className="gear">⚙</span> : state === 'sell' ? <span className="cart">🛒</span> : state === 'done' ? '✓' : state === 'build' ? '🏗' : '◌'} {chipLabel[state]}</span>
 }
 
-function JobProgress({ s, plot, act }: { s: E.GameState; plot: number; act: Act }) {
+/**
+ * Wall-clock moment a job finishes. Game hours run at GAME_SPEED x real time
+ * (1x now), so the remaining game hours map straight to real milliseconds.
+ */
+function finishAt(hoursLeft: number) {
+  const d = new Date(Date.now() + Math.max(0, hoursLeft) * 3600e3 / GAME_SPEED)
+  // Short numeric date plus time, e.g. "10/23/26 8:22 PM", in the player's locale/zone.
+  return d.toLocaleString(undefined, { year: '2-digit', month: 'numeric', day: 'numeric', hour: 'numeric', minute: '2-digit' })
+}
+
+/**
+ * One row of the stacked details table: bold label right-aligned, value
+ * left-aligned, the two meeting at the centre line (see .kv in app.css).
+ */
+function KV({ k, children }: { k: ReactNode; children: ReactNode }) {
+  return <div className="kv-row"><span className="kv-k">{k}</span><span className="kv-v">{children}</span></div>
+}
+
+/**
+ * Running make/sell job, laid out like a classic "PRODUCTION" card:
+ *   1. centred header (PRODUCTION / SELLING) with the product name under it,
+ *   2. zebra-striped label/value rows (all the old figures, nothing dropped),
+ *   3. progress bar, then the Collect / Stop / Rush actions,
+ *   4. remaining time, with "Finishes at <date time>" muted beneath.
+ */
+function JobCard({ s, plot, act }: { s: E.GameState; plot: number; act: Act }) {
   const bd = s.plots[plot]!, j = bd.job!
   const a = activityOf(s, bd)
+  // Tickers ease the counters upward each frame so progress visibly moves.
   const doneT = useTicker(a?.done ?? 0), centsT = useTicker(a?.cents ?? 0)
   if (j.kind === 'build' || !a) return null
   const p = E.pending(s, bd)!
-  return <div className={`jobprog ${j.kind}`}>
-    <div className="row jp-head"><StatusChip state={a.state} />
-      <span className="ticker">{num(Math.floor(doneT))} / {num(j.qty)} {j.kind === 'make' ? 'made' : 'sold'}{j.kind === 'sell' ? ` · ${money(Math.floor(centsT) / 100)} earned` : ''}</span></div>
+  const ripe = E.ripeOf(j) !== undefined
+  const left = j.endH - s.hour
+  return <div className={`card jobcard jobprog ${j.kind}`}>
+    {/* 1. Header: section title in caps, product name below. */}
+    <div className="jc-head">
+      <b>{j.kind === 'make' ? 'PRODUCTION' : 'SELLING'}</b>
+      <span><ResIcon id={j.res} size={18} /> {RES[j.res].name}</span>
+    </div>
+    {/* 2. Stacked details. Production rows first, then the store breakdown. */}
+    <div className="kv">
+      {j.kind === 'make' ? <>
+        <KV k="Producing right now">{num(j.qty)}</KV>
+        <KV k="Made so far"><span className="ticker">{num(Math.floor(doneT))} / {num(j.qty)}</span></KV>
+        <KV k="Collected so far">{num(j.got ?? 0)}</KV>
+        {j.src !== undefined && <KV k="Sourcing value">{money(j.src)}</KV>}
+        <KV k="Quality">{j.q}</KV>
+        {j.src !== undefined && <KV k="Cost per unit">{money(j.wg !== undefined ? (j.src + j.wg) / j.qty : j.src / j.qty)}</KV>}
+        {/* Inputs-only figure kept from the old one-line summary. */}
+        {j.src !== undefined && j.wg !== undefined && <KV k="Inputs per unit">{money(j.src / j.qty)}</KV>}
+      </> : (() => {
+        // Store breakdown: same content as before, now one row per figure.
+        const total = E.saleCents(j) / 100, got = (j.gotC ?? 0) / 100, wait = p.cents / 100
+        return <>
+          <KV k="Selling right now">{num(j.qty)}</KV>
+          <KV k="Price">{money(j.price)}</KV>
+          <KV k="Sold so far"><span className="ticker">{num(Math.floor(doneT))} / {num(j.qty)} · {money(Math.floor(centsT) / 100)}</span></KV>
+          <KV k="Uncollected earnings">{money(wait)}</KV>
+          <KV k="Already collected">{money(got)}</KV>
+          {/* Merged row: drops with each collect; muted note splits out what's still selling. */}
+          <KV k="Left to collect">{money(total - got)} <small className="muted">({money(total - got - wait)} still selling · {num(j.qty - E.unitsDone(j, s.hour))} left)</small></KV>
+          <KV k="Total for this sale">{money(total)} <small className="muted">({num(j.qty)} × {money(j.price)})</small></KV>
+        </>
+      })()}
+    </div>
+    {/* 3. Progress and actions. */}
     <div className="bar wide"><i style={{ width: `${100 * a.prog}%` }} /></div>
-    <small>{num(j.got ?? 0)} collected so far</small>
-    {j.kind === 'make' && j.src !== undefined && <small>Sourcing value {money(j.src)} · {money(j.src / j.qty)} per unit in inputs{j.wg !== undefined ? `, ${money((j.src + j.wg) / j.qty)} per unit with wages` : ''}</small>}
-    {/* Store earnings breakdown for the current sale. */}
-    {j.kind === 'sell' && (() => {
-      const total = E.saleCents(j) / 100, got = (j.gotC ?? 0) / 100, wait = p.cents / 100
-      return <div className="preview store-break">
-        <div><span>Uncollected earnings</span><b>{money(wait)}</b></div>
-        <div><span>Already collected</span><b>{money(got)}</b></div>
-        {/* One merged row (was "Still to earn" + "Left to collect"): the
-            left-to-collect value drops with each collect; the note splits out what's still selling. */}
-        <div><span>Left to collect <small className="muted">({money(total - got - wait)} still selling · {num(j.qty - E.unitsDone(j, s.hour))} left)</small></span><b>{money(total - got)}</b></div>
-        <div><span>Total for this sale ({num(j.qty)} × {money(j.price)})</span><b>{money(total)}</b></div>
-      </div>
-    })()}
-    <div className="row">
+    <div className="row jc-acts">
       <button className="primary" disabled={p.units < 1} onClick={e => {
         const r = e.currentTarget.getBoundingClientRect()
         act(st => E.collect(st, plot))
         flyTo(r, p.kind, p.kind === 'goods' ? `+${num(p.units)} ${RES[p.res].name}` : `+${money(p.cents / 100)}`, p.kind === 'cash' ? '<span class="coin">$</span>' : '<span class="coin goods">+</span>')
       }}>{p.units < 1 ? 'Nothing ready yet' : p.kind === 'goods' ? `Collect ${num(p.units)} ${RES[p.res].name}` : `Collect ${money(p.cents / 100)}`}</button>
-      <button className="danger" onClick={() => confirm(j.kind === 'make' ? 'Stop now? You keep what is made so far. Wages and used inputs are not refunded.' : 'Stop selling? You keep the money so far and unsold goods go back to the warehouse.') && act(st => E.cancelJob(st, plot))}>Stop</button>
+      <button className="danger" onClick={() => confirm(j.kind === 'make' ? 'Stop now? You keep what is made so far. Wages and used inputs are not refunded.' : 'Stop selling? You keep the money so far and unsold goods go back to the warehouse.') && act(st => E.cancelJob(st, plot))}>{j.kind === 'make' ? 'Cancel production' : 'Stop selling'}</button>
+      {!ripe && <button onClick={() => act(st => E.rush(st, plot))}>Rush for {money(E.rushCost(s, bd))}</button>}
+    </div>
+    {/* 4. Time left, with the wall-clock finish muted underneath. */}
+    <div className="jc-time">
+      {ripe ? <span>Ripe. Harvest it from the plot above.</span> : <>
+        <span>{dur(left)}</span>
+        <small className="muted">Finishes at {finishAt(left)}</small>
+      </>}
     </div>
   </div>
 }
