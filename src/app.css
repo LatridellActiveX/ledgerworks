@@ -814,3 +814,9 @@ tr.bidrow td { color: #3c9a5f; font-weight: 600 }
 .kv-v small { display: block }
 .jc-acts { justify-content: center; flex-wrap: wrap }
 .jc-time { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 2px }
+/* `.card > div { display:block }` (line ~54) beat the flex rules above, which
+   put the header and time on one line; these higher-specificity rules restore
+   the centred stacks and centre the action buttons. */
+.card.jobcard > .jc-head, .card.jobcard > .jc-time { display: flex; flex-direction: column; align-items: center }
+.card.jobcard > .kv { display: grid }
+.card.jobcard > .row.jc-acts { display: flex; justify-content: center; flex-wrap: wrap; gap: 6px }

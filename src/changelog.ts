@@ -4,6 +4,12 @@ export interface ChangeEntry { id: string; date: string; title: string; notes: s
 
 export const CHANGELOG: ChangeEntry[] = [
   {
+    id: 'job-detail-rows-fix',
+    date: '2026-10-23',
+    title: 'Production card alignment',
+    notes: ["The PRODUCTION header, buttons and finish time on running jobs are centred again."],
+  },
+  {
     id: 'job-detail-rows',
     date: '2026-10-23',
     title: 'Tidier production and selling details',
