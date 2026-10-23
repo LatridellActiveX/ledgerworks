@@ -366,7 +366,7 @@ function BuildingPanel({ s, plot, act }: { s: E.GameState; plot: number; act: Ac
         </div>
       ) : null}
       {/* A selling store still lists its other goods, locked until this sale ends. */}
-      {bd.job?.kind === 'sell' && <OtherGoods s={s} plot={plot} act={act} />}
+      {bd.job?.kind === 'sell' && <OtherGoods s={s} plot={plot} />}
       {bd.job ? null : bt.kind === 'production' ? <MakeForm s={s} plot={plot} act={act} /> : <RetailPanel s={s} plot={plot} act={act} />}
       <div className="row">
         <button disabled={!!bd.job} onClick={() => act(st => E.upgrade(st, plot))}>Upgrade to L{bd.level + 1} ({money(E.upgradeCost(bd.type, bd.level + 1))})</button>

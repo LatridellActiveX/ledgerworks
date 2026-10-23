@@ -4,6 +4,12 @@ export interface ChangeEntry { id: string; date: string; title: string; notes: s
 
 export const CHANGELOG: ChangeEntry[] = [
   {
+    id: 'store-busy-list-fix',
+    date: '2026-10-23',
+    title: 'Store list tidy-up',
+    notes: ["Behind-the-scenes cleanup for the busy-store goods list. Nothing changes in play."],
+  },
+  {
     id: 'store-busy-list',
     date: '2026-10-23',
     title: 'See what else a store can sell while it is busy',

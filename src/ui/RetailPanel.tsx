@@ -116,7 +116,7 @@ export function RetailPanel({ s, plot, act }: { s: E.GameState; plot: number; ac
  * routes through act() a tap only opens a tooltip with the reason; the engine
  * check (E.SELL_BUSY_MSG) independently blocks a second sale.
  */
-export function OtherGoods({ s, plot, act }: { s: E.GameState; plot: number; act: Act }) {
+export function OtherGoods({ s, plot }: { s: E.GameState; plot: number }) {
   const bd = s.plots[plot]!, store = BLD[bd.type].store
   const cur = bd.job?.kind === 'sell' ? E.key(bd.job.res, bd.job.q) : ''
   // Every lot in the warehouse this store can sell, minus the one on sale now.
