@@ -417,15 +417,14 @@ function JobProgress({ s, plot, act }: { s: E.GameState; plot: number; act: Act 
     <div className="bar wide"><i style={{ width: `${100 * a.prog}%` }} /></div>
     <small>{num(j.got ?? 0)} collected so far</small>
     {j.kind === 'make' && j.src !== undefined && <small>Sourcing value {money(j.src)} · {money(j.src / j.qty)} per unit in inputs{j.wg !== undefined ? `, ${money((j.src + j.wg) / j.qty)} per unit with wages` : ''}</small>}
-    {/* Store earnings breakdown (matches the "$x / $y" pill on the map). */}
+    {/* Store earnings breakdown for the current sale. */}
     {j.kind === 'sell' && (() => {
       const total = E.saleCents(j) / 100, got = (j.gotC ?? 0) / 100, wait = p.cents / 100
       return <div className="preview store-break">
         <div><span>Uncollected earnings</span><b>{money(wait)}</b></div>
         <div><span>Already collected</span><b>{money(got)}</b></div>
         {/* One merged row (was "Still to earn" + "Left to collect"): the
-            left-to-collect value matches the map pill's right number and
-            drops by each collect; the note splits out what's still selling. */}
+            left-to-collect value drops with each collect; the note splits out what's still selling. */}
         <div><span>Left to collect <small className="muted">({money(total - got - wait)} still selling · {num(j.qty - E.unitsDone(j, s.hour))} left)</small></span><b>{money(total - got)}</b></div>
         <div><span>Total for this sale ({num(j.qty)} × {money(j.price)})</span><b>{money(total)}</b></div>
       </div>

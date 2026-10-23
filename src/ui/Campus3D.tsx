@@ -101,9 +101,9 @@ function ActivityBadges({ s, posOf }: { s: GameState; posOf: (i: number) => { x:
           <span className="ic">{a.state === 'sell' ? <span className="coin sm">$</span> : <ResIcon id={a.res} size={18} />}</span>
           {a.state === 'sell' && <span className="kaching">ka-ching!</span>}
           <span className="tpill" title={chipLabel[a.state]}><i className={`dot ${a.state}`} />{a.state === 'done' ? 'Done' : dur(left)}</span>
-          {/* Shops: uncollected earnings / the whole sale's revenue, e.g. "$120 / $900".
-              Same overlay in 2.5D and 2D (this component serves both modes). */}
-          {bd?.job?.kind === 'sell' && <StoreValue s={s} bd={bd} />}
+          {/* The "$x / $y" earnings pill over selling stores was removed
+              (Oct 2026) in both 2D and 2.5D; the coin bubble and timer above
+              stay, and the full breakdown lives in the store's panel. */}
         </> : <span className="zz" title="Idle: tap the building to start a job">z<small>Z</small></span>}
       </div>
     })}
@@ -111,21 +111,6 @@ function ActivityBadges({ s, posOf }: { s: GameState; posOf: (i: number) => { x:
   </div>
 }
 
-/** "$uncollected / $total" pill over a selling building. */
-function StoreValue({ s, bd }: { s: GameState; bd: NonNullable<GameState['plots'][number]> }) {
-  const j = bd.job as any, p = E.pending(s, bd)
-  // Left number: cash sitting in the store, ready to collect right now.
-  // It resets to $0 on each collect and climbs again as units sell.
-  const waiting = (p?.cents ?? 0) / 100
-  // Right number: everything this sale can still pay out = whole sale minus
-  // what was already collected (j.gotC, cents). Saves from before this change
-  // already track gotC, so old saves need no migration (missing = 0).
-  const left = Math.max(0, E.saleCents(j) - (j.gotC ?? 0)) / 100
-  // Batch fully sold AND collected: nothing left, so hide the pill.
-  if (left < 0.005) return null
-  const m = (v: number) => '$' + (v >= 1e4 ? Math.round(v / 1000) + 'k' : v >= 1000 ? (v / 1000).toFixed(1) + 'k' : Math.floor(v).toLocaleString())
-  return <span className="spill" title="Ready to collect / still left to collect from this sale"><b>{m(waiting)}</b> / {m(left)}</span>
-}
 
 /** Ready bubbles for every busy building. */
 export const bubblesFor = (s: GameState): Bubble[] => s.plots.flatMap((bd, i) => { const p = E.bubbleReady(s, bd); return p ? [{ i, ...p }] : [] })

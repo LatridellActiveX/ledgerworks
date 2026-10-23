@@ -4,6 +4,12 @@ export interface ChangeEntry { id: string; date: string; title: string; notes: s
 
 export const CHANGELOG: ChangeEntry[] = [
   {
+    id: 'no-map-earnings-pill',
+    date: '2026-10-23',
+    title: 'Cleaner map over selling stores',
+    notes: ["The '$x / $y' earnings label above selling stores is gone from the map, in 2D and 3D. The coin bubble and countdown stay, and the full breakdown is still in the store's panel."],
+  },
+  {
     id: 'grocery-shop-line',
     date: '2026-10-23',
     title: 'Grocery prices: eggs, cheese, coffee, chocolate, pie, pizza, juice',
