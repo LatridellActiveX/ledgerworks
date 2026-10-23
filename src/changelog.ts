@@ -4,6 +4,15 @@ export interface ChangeEntry { id: string; date: string; title: string; notes: s
 
 export const CHANGELOG: ChangeEntry[] = [
   {
+    id: 'market-rebase',
+    date: '2026-10-23',
+    title: 'Markets catch up with the new fruit prices',
+    notes: [
+      "The Market, city trade routes and computer traders now use the new apple, berry, juice and jam prices straight away, instead of creeping up over weeks.",
+      "Price charts are scaled to match, so there's no sudden cliff. Your own orders keep the prices you set.",
+    ],
+  },
+  {
     id: 'no-game-time-suffix',
     date: '2026-10-23',
     title: 'Shorter timers',

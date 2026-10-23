@@ -1,3 +1,4 @@
+import { currentBases } from './rebase'
 // ============================================================================
 // Ledgerworks simulation engine (pure functions, no React, easy to test).
 //
@@ -80,6 +81,7 @@ export interface GameState {
   patents: Record<string, number> // patents per product
   /** Daily going price per good, last 30 days (for charts). */
   priceHist?: Record<string, number[]>
+  refBase?: Record<string, number> // basePrice each ref was anchored to (see rebase.ts)
   // --- Executives & achievements (stage 9) ---
   execs: Partial<Record<X.Seat, X.Exec>>
   candidates: X.Exec[]
@@ -189,7 +191,7 @@ export function newGame(company = 'My Company', now = Date.now()): GameState {
   const s: GameState = {
     version: 1, clock: 1, company, cash: START_CASH, xp: 0, hour: 8, lastReal: now, nextUid: 1,
     plots: Array(24).fill(null), stock: {}, saturation: {}, soldToday: {}, log: ['Welcome to Ledgerworks!'],
-    seed: 12345, ref: {}, asks: [], bidLeft: {}, exSold: {}, patents: {}, execs: {}, candidates: [], stats: X.emptyStats(), ach: {},
+    seed: 12345, ref: {}, refBase: currentBases() /* new games start on today's bases */, asks: [], bidLeft: {}, exSold: {}, patents: {}, execs: {}, candidates: [], stats: X.emptyStats(), ach: {},
   }
   restockNpc(s)
   X.newCandidates(s)

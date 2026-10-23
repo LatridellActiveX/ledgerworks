@@ -11,21 +11,34 @@ import { RESOURCES } from '../src/game/data'
 import { rand } from '../src/game/rng'
 import { depth } from '../src/game/market'
 import * as P from '../src/game/p2p'
+import { currentBases, rebaseFactors, rebaseRef } from '../src/game/rebase'
 import { isPhaseDay, nextPhase, priceTrend, type Phase } from '../src/game/economy'
 
 // The shared world clock lives in src/game/seasons.ts (the client uses it too).
 import { worldHour } from '../src/game/seasons'
 
-interface World { phase?: Phase; day: number; seed: number; ref: Record<string, number>; sold: Record<string, number> }
+interface World { phase?: Phase; day: number; seed: number; ref: Record<string, number>; sold: Record<string, number>; refBase?: Record<string, number> }
 
 export class MarketDO {
   constructor(private state: DurableObjectState) {}
 
   private async load(): Promise<World> {
     const w = await this.state.storage.get<World>('world')
-    if (w) return w
+    if (w) {
+      // Shared market re-base: if a good's basePrice changed since this world
+      // was saved, scale its price once (new/old) so every client sees the new
+      // level at once instead of a slow daily crawl. Saved straight away so it
+      // only ever happens once per change. Player listings live in the ledger
+      // and are not touched.
+      const f = rebaseFactors(w.refBase)
+      if (Object.keys(f).length || !w.refBase) {
+        rebaseRef(w.ref, f); w.refBase = currentBases()
+        await this.state.storage.put('world', w)
+      }
+      return w
+    }
     const ref = Object.fromEntries(RESOURCES.map(r => [r.id, r.basePrice]))
-    return { day: Math.floor(worldHour() / 24), seed: 777, ref, sold: {} }
+    return { day: Math.floor(worldHour() / 24), seed: 777, ref, sold: {}, refBase: currentBases() }
   }
 
   /** Apply every game day that has passed since the last step. */

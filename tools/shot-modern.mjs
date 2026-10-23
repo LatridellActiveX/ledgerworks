@@ -24,7 +24,7 @@ async function page(view) {
 const shot = (p, n) => p.screenshot({ path: `/workspace/ledgerworks-modern-${n}.png` })
 const p2 = await page('2d')
 // Close-up: zoom the 2D map in on the built corner before the shot.
-await p2.mouse.move(200, 420); await p2.keyboard.down('Control'); for (let i = 0; i < 8; i++) { await p2.mouse.wheel(0, -240); await p2.waitForTimeout(150) }; await p2.keyboard.up('Control')
+await p2.mouse.move(200, 420); for (let i = 0; i < 8; i++) { await p2.mouse.wheel(0, -240); await p2.waitForTimeout(150) }
 await p2.waitForTimeout(800); await shot(p2, 'map')
 // Menu screens: news and routes, via the burger menu.
 for (const [scr, n] of [[/Business Live/, 'news'], [/routes/i, 'routes']]) {
@@ -35,7 +35,7 @@ for (const [scr, n] of [[/Business Live/, 'news'], [/routes/i, 'routes']]) {
 }
 // Store panel: reload to the default view and tap the selling store.
 await p2.reload(); await p2.waitForTimeout(3000)
-await p2.mouse.click(160, 337); await p2.waitForTimeout(1500)
+await p2.touchscreen.tap(158, 352); await p2.waitForTimeout(1500)
 await p2.locator('.jobprog').first().scrollIntoViewIfNeeded({ timeout: 3000 }).catch(() => console.log('no jobprog'))
 await p2.screenshot({ path: '/workspace/ledgerworks-sell-panel.png' })
 // Busy store's other-goods list, with the tooltip from tapping a greyed-out Sell.

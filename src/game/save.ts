@@ -1,3 +1,4 @@
+import { currentBases, rebaseFactors, rebaseRef } from './rebase'
 // Browser saves: the whole GameState is JSON in localStorage, plus a
 // copy/paste save code (base64 of the JSON) for moving between browsers.
 import { CLOCK_VERSION, LEGACY_SPEED } from './engine-constants'
@@ -61,6 +62,18 @@ export function migrate(s: any): GameState {
   toRealTime(s)
   const fresh = newGame(s.company ?? 'My Company')
   const out = { ...fresh, ...s, version: 1 } as GameState
+  // Re-base anything priced off an old basePrice (see rebase.ts): reference
+  // prices, the chart history (so the line doesn't cliff-jump) and the
+  // computer traders' asks. The player's own orders keep their prices.
+  const f = rebaseFactors(s.refBase)
+  if (Object.keys(f).length) {
+    rebaseRef(out.ref, f)
+    for (const [id, k] of Object.entries(f)) {
+      const h = out.priceHist?.[id]; if (h) out.priceHist![id] = h.map(p => Math.round(p * k * 100) / 100)
+    }
+    for (const o of out.asks ?? []) if (o.owner !== 'me' && f[o.res]) o.price = Math.round(o.price * f[o.res] * 100) / 100
+  }
+  out.refBase = currentBases() // remember the bases these prices now sit on
   seedHistory(out) // older saves get a chart history too
   return out
 }
