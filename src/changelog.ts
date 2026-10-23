@@ -4,6 +4,12 @@ export interface ChangeEntry { id: string; date: string; title: string; notes: s
 
 export const CHANGELOG: ChangeEntry[] = [
   {
+    id: 'no-game-time-suffix',
+    date: '2026-10-23',
+    title: 'Shorter timers',
+    notes: ["Production and selling timers now just say 'Done in 4h 14m', without '(game time)' on the end."],
+  },
+  {
     id: 'store-busy-list-fix',
     date: '2026-10-23',
     title: 'Store list tidy-up',

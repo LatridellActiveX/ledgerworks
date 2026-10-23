@@ -14,6 +14,7 @@ async function page(view) {
     const types = ['market', 'bakery', 'farm', 'factory', 'gadget', 'warehouse']
     s.plots = s.plots.map((_, i) => i === 0 ? { uid: 990, type: 'market', level: 1, job: { kind: 'sell', res: 'berries', qty: 89, q: 1, price: 3, startH: s.hour - 0.6, endH: s.hour + 0.62, got: 54, gotC: 16200 } }
       : i < 6 ? { uid: 991 + i, type: types[i], level: 3 } : null)
+    s.stock = { ...s.stock, 'apples|1': 240, 'berries|2': 120 }
     s.cash = Math.max(s.cash ?? 0, 50000)
     localStorage.setItem(k, JSON.stringify(s))
   })
@@ -37,4 +38,9 @@ await p2.reload(); await p2.waitForTimeout(3000)
 await p2.mouse.click(160, 337); await p2.waitForTimeout(1500)
 await p2.locator('.jobprog').first().scrollIntoViewIfNeeded({ timeout: 3000 }).catch(() => console.log('no jobprog'))
 await p2.screenshot({ path: '/workspace/ledgerworks-sell-panel.png' })
+// Busy store's other-goods list, with the tooltip from tapping a greyed-out Sell.
+await p2.locator('.other-goods').scrollIntoViewIfNeeded({ timeout: 3000 }).catch(() => console.log('no other-goods'))
+await p2.locator('.other-goods button.locked').first().click({ timeout: 3000 }).catch(() => {})
+await p2.waitForTimeout(300)
+await p2.screenshot({ path: '/workspace/ledgerworks-store-list.png' })
 await b.close()

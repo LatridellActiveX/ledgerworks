@@ -360,7 +360,7 @@ function BuildingPanel({ s, plot, act }: { s: E.GameState; plot: number; act: Ac
           <span>{bd.job.kind === 'build' ? 'Under construction' : bd.job.kind === 'make'
             ? <>Making {num(bd.job.qty)} <ResIcon id={bd.job.res} /> {RES[bd.job.res].name} Q{bd.job.q}</>
             : <>Selling {num(bd.job.qty)} <ResIcon id={bd.job.res} /> {RES[bd.job.res].name} at {money(bd.job.price)}</>}</span>
-          {E.ripeOf(bd.job) !== undefined ? <div>Ripe. Harvest it from the plot above.</div> : <div>Done in {dur(bd.job.endH - s.hour)} (game time)</div>}
+          {E.ripeOf(bd.job) !== undefined ? <div>Ripe. Harvest it from the plot above.</div> : <div>Done in {dur(bd.job.endH - s.hour)}</div>}
           {bd.job.kind !== 'build' && <JobProgress s={s} plot={plot} act={act} />}
           {E.ripeOf(bd.job) === undefined && <button onClick={() => act(st => E.rush(st, plot))}>Rush for {money(E.rushCost(s, bd))}</button>}
         </div>
