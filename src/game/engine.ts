@@ -204,7 +204,15 @@ export function newGame(company = 'My Company', now = Date.now()): GameState {
 // Construction
 // --------------------------------------------------------------------------
 /** Cost to bring a building from level-1 to `toLevel`. */
-export const upgradeCost = (type: string, toLevel: number) => BLD[type].cost * toLevel
+/**
+ * Cost to build (toLevel 1) or upgrade to `toLevel`: cost x level for every
+ * building, with per-type overrides in UPGRADE_OVERRIDE. The Corner market's
+ * L2 is $10,000 (Oct 2026, was $20,000); its L3+ keep the formula.
+ */
+const UPGRADE_OVERRIDE: Record<string, Record<number, number>> = { market: { 2: 10000 } }
+export const upgradeCost = (type: string, toLevel: number) => UPGRADE_OVERRIDE[type]?.[toLevel] ?? BLD[type].cost * toLevel
+/** Total spent to reach `level` (build + every upgrade); used by valuations. */
+export const investedCost = (type: string, level: number) => { let t = 0; for (let l = 1; l <= level; l++) t += upgradeCost(type, l); return t }
 /** Construction time in game hours: grows with level. */
 export const buildHours = (toLevel: number) => 2 + 2 * (toLevel - 1)
 

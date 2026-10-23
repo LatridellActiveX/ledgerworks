@@ -4,6 +4,12 @@ export interface ChangeEntry { id: string; date: string; title: string; notes: s
 
 export const CHANGELOG: ChangeEntry[] = [
   {
+    id: 'market-l2-cheaper',
+    date: '2026-10-23',
+    title: 'Cheaper first Corner market upgrade',
+    notes: ["Upgrading a Corner market to level 2 now costs $10,000 (it was $20,000). Later levels and other buildings cost the same as before, and company value counts the lower price."],
+  },
+  {
     id: 'no-map-earnings-pill',
     date: '2026-10-23',
     title: 'Cleaner map over selling stores',

@@ -23,7 +23,7 @@
 // ============================================================================
 import { BLD, RES, RESOURCES } from './data'
 import { rand } from './rng'
-import { addStock, setWhy, companyLevel, parseKey, key, type GameState, type Building } from './engine'
+import { investedCost, addStock, setWhy, companyLevel, parseKey, key, type GameState, type Building } from './engine'
 
 function rnd(s: GameState) { const [r, n] = rand(s.seed); s.seed = n; return r }
 
@@ -61,7 +61,7 @@ export interface Bond { id: number; amount: number; rate: number; soldH: number 
 export interface Holding { id: number; issuer: string; rating: Rating; amount: number; rate: number; boughtH: number }
 
 /** Value of all buildings at construction cost. */
-export const buildingValue = (s: GameState) => s.plots.reduce((t, b) => t + (b ? BLD[b.type].cost * (b.level * (b.level + 1)) / 2 : 0), 0)
+export const buildingValue = (s: GameState) => s.plots.reduce((t, b) => t + (b ? investedCost(b.type, b.level) /* build + upgrades, incl. overrides */ : 0), 0)
 export const debt = (s: GameState) => (s.bonds ?? []).reduce((t, b) => t + b.amount, 0)
 export const heldValue = (s: GameState) => (s.holdings ?? []).reduce((t, b) => t + b.amount, 0)
 

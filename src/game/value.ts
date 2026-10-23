@@ -11,6 +11,7 @@
 // Patents are listed (count) but valued at $0: they raise product quality
 // and can't be sold, so counting them as money would overstate the company.
 import type { GameState } from './engine'
+import { investedCost } from './engine'
 import { BLD, RES } from './data'
 import * as F from './finance'
 import { escrowTotal } from './bids'
@@ -93,7 +94,7 @@ export interface ValueDetail {
 }
 
 export function valueDetail(s: GameState): ValueDetail {
-  const buildings = s.plots.flatMap(b => (b ? [{ name: BLD[b.type].name, level: b.level, value: BLD[b.type].cost * (b.level * (b.level + 1)) / 2 }] : []))
+  const buildings = s.plots.flatMap(b => (b ? [{ name: BLD[b.type].name, level: b.level, value: investedCost(b.type, b.level) /* build + upgrades, incl. overrides */ }] : []))
   const byRes: Record<string, number> = {}
   for (const [k, n] of Object.entries(s.stock)) { const r = k.split('|')[0]; byRes[r] = (byRes[r] ?? 0) + n }
   const inventory = Object.entries(byRes).map(([res, units]) => ({ res, name: RES[res]?.name ?? res, units, value: units * (s.ref?.[res] ?? RES[res]?.basePrice ?? 0) }))
