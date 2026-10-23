@@ -13,12 +13,6 @@ export const CHANGELOG: ChangeEntry[] = [
     ],
   },
   {
-    id: 'market-wages',
-    date: '2026-10-23',
-    title: 'Corner market staff are paid more',
-    notes: ["Corner market wages are now about $138 per game hour at level 1 (it was $51.10), admin overhead included. Higher levels scale the same way as before."],
-  },
-  {
     id: 'market-rebase',
     date: '2026-10-23',
     title: 'Markets catch up with the new fruit prices',

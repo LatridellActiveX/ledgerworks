@@ -193,7 +193,7 @@ export const BUILDINGS: BuildingType[] = [
   { id: 'crateyard', name: 'Crate yard', color: '#c8a46e', kind: 'production', cost: 15000, wage: 55, recipes: ['crates'], unlockLevel: 2 },
   { id: 'lab', name: 'Research lab', color: '#bfe3d5', kind: 'production', cost: 50000, wage: 160, recipes: ['rn_farm', 'rn_food', 'rn_textile', 'rn_energy', 'rn_build', 'rn_tech'], unlockLevel: 6 },
   // Retail
-  { id: 'market', name: 'Corner market', color: '#ef8a8a', kind: 'retail', cost: 10000, wage: 135 /* ~$138/h at level 1 with ~2.2% admin overhead; was 50 */, store: 'market', unlockLevel: 1 },
+  { id: 'market', name: 'Corner market', color: '#ef8a8a', kind: 'retail', cost: 10000, wage: 50, store: 'market', unlockLevel: 1 },
   { id: 'outfitter', name: 'Outfitter', color: '#7fb3d5', kind: 'retail', cost: 18000, wage: 70, store: 'outfitter', unlockLevel: 4 },
   { id: 'fuelstop', name: 'Fuel stop', color: '#e3b23c', kind: 'retail', cost: 20000, wage: 60, store: 'fuelstop', unlockLevel: 5 },
   { id: 'buildmart', name: 'Build mart', color: '#d7b48a', kind: 'retail', cost: 16000, wage: 60, store: 'buildmart', unlockLevel: 3 },
