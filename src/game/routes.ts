@@ -1,5 +1,8 @@
 // ============================================================================
-// Trade routes: standing orders that ship goods to other towns by cart.
+// Trade routes: standing orders that ship goods to other cities by truck.
+// (Modernised Oct 2026: carts -> box trucks, towns -> cities. Only names,
+// icons and text changed; ids, prices, capacities and timings are the same,
+// so saves and balance are untouched. Code identifiers still say town/cart.)
 //
 // Ideas borrowed (mechanics only) from:
 //  - Patrician / The Patrician series: Hanseatic trade routes. You tell a
@@ -58,10 +61,10 @@ export interface Town {
 }
 
 export const TOWNS: Town[] = [
-  { id: 'millbrook', name: 'Millbrook', icon: '🌾', blurb: 'A farming village just down the lane. Close and cheap, but small.', travelH: 0.25, cap: 120, fee: 25, perUnit: 0.05, size: 0.25, likes: ['tech', 'textile'], dislikes: ['farm'] },
-  { id: 'saltmarsh', name: 'Saltmarsh Quay', icon: '⚓', blurb: 'A river port. Barges carry big loads; sailors pay well for food.', travelH: 0.75, cap: 400, fee: 90, perUnit: 0.04, size: 0.6, likes: ['food', 'farm'], dislikes: ['build'] },
-  { id: 'copperridge', name: 'Copperridge', icon: '⛏️', blurb: 'A mining town in the hills that is always building something.', travelH: 0.5, cap: 200, fee: 60, perUnit: 0.08, size: 0.4, likes: ['build', 'energy', 'food'], dislikes: ['tech'] },
-  { id: 'lanternfall', name: 'Lanternfall', icon: '🏙️', blurb: 'A bright city with deep pockets for gadgets and fashion. Far and pricey to reach.', travelH: 1, cap: 250, fee: 150, perUnit: 0.12, size: 0.8, likes: ['tech', 'textile'], dislikes: ['farm', 'energy'] },
+  { id: 'millbrook', name: 'Millbrook Park', icon: '🏘️', blurb: 'A suburban business park just off the ring road. Close and cheap, but small.', travelH: 0.25, cap: 120, fee: 25, perUnit: 0.05, size: 0.25, likes: ['tech', 'textile'], dislikes: ['farm'] },
+  { id: 'saltmarsh', name: 'Saltmarsh Port City', icon: '🚢', blurb: 'A container port with a busy waterfront district. Semis haul big loads; dock crews pay well for food.', travelH: 0.75, cap: 400, fee: 90, perUnit: 0.04, size: 0.6, likes: ['food', 'farm'], dislikes: ['build'] },
+  { id: 'copperridge', name: 'Copperridge', icon: '🏗️', blurb: 'A fast-growing city in the hills with cranes on every block. Always building something.', travelH: 0.5, cap: 200, fee: 60, perUnit: 0.08, size: 0.4, likes: ['build', 'energy', 'food'], dislikes: ['tech'] },
+  { id: 'lanternfall', name: 'Lanternfall', icon: '🏙️', blurb: 'A downtown of glass towers with deep pockets for gadgets and fashion. Far and pricey to reach.', travelH: 1, cap: 250, fee: 150, perUnit: 0.12, size: 0.8, likes: ['tech', 'textile'], dislikes: ['farm', 'energy'] },
 ]
 export const TOWN: Record<string, Town> = Object.fromEntries(TOWNS.map(t => [t.id, t]))
 
@@ -166,7 +169,7 @@ function checkSpec(sp: RouteSpec): string | null {
   if (!RES[sp.res]) return 'Pick a good'
   if (sp.mode !== 'amount' && sp.mode !== 'reserve') return 'Pick how much to send'
   if (!Number.isInteger(sp.amount) || sp.amount < (sp.mode === 'amount' ? 1 : 0)) return sp.mode === 'amount' ? 'Send at least 1 unit per trip' : 'Keep a whole number in reserve'
-  if (sp.mode === 'amount' && sp.amount > TOWN[sp.town].cap) return `A cart to ${TOWN[sp.town].name} carries at most ${TOWN[sp.town].cap}`
+  if (sp.mode === 'amount' && sp.amount > TOWN[sp.town].cap) return `A truck to ${TOWN[sp.town].name} carries at most ${TOWN[sp.town].cap}`
   if (!EVERY_OPTIONS.includes(sp.every)) return 'Pick how often to send it'
   return null
 }
@@ -198,7 +201,7 @@ export function togglePause(s: GameState, id: number): string | null {
   r.paused = !r.paused
   // Resuming keeps the rhythm, but a long-missed departure leaves right now.
   if (!r.paused) r.nextH = Math.max(r.nextH, s.hour)
-  logMsg(s, `🛒 Route to ${TOWN[r.town]?.name ?? r.town} ${r.paused ? 'paused' : 'resumed'}.`)
+  logMsg(s, `🚚 Route to ${TOWN[r.town]?.name ?? r.town} ${r.paused ? 'paused' : 'resumed'}.`)
   return null
 }
 
@@ -254,7 +257,7 @@ export function runRoute(s: GameState, r: Route) {
     r.trips++; r.units += t.qty; r.revenue += revenue; r.costs += t.cost
     r.last = { h: s.hour, qty: t.qty, revenue, cost: t.cost }
     r.trip = undefined
-    logMsg(s, `🛒 Cart sold ${t.qty} ${RES[r.res].name} in ${town.name} for $${Math.round(revenue).toLocaleString()} (profit after transport $${Math.round(revenue - t.cost).toLocaleString()}).`)
+    logMsg(s, `🚚 Truck sold ${t.qty} ${RES[r.res].name} in ${town.name} for $${Math.round(revenue).toLocaleString()} (profit after transport $${Math.round(revenue - t.cost).toLocaleString()}).`)
     return
   }
   // ---- Departure ----

@@ -1,4 +1,5 @@
-/* Ledgerworks UI: pastel "paper ledger" look, one coral accent. */
+/* Ledgerworks UI: clean modern pastel look, one coral accent. (--paper is just
+   the name of the light background token; kept so selectors don't change.) */
 :root { --ink:#2d2a32; --paper:#f6f1e7; --card:#fffaf0; --line:#e3d9c6; --accent:#e07a5f; --muted:#8a8296 }
 * { box-sizing: border-box }
 body { font-family: ui-rounded, system-ui, sans-serif; background: var(--paper); color: var(--ink) }
@@ -236,6 +237,10 @@ select.realm { border-radius: 999px; padding: 4px 10px; font: inherit; font-size
 .num-pop.cash { color: #2e8b57 } .num-pop.goods { color: #c0601a }
 @keyframes numpop { 0% { opacity: 0; margin-top: 0; scale: .6 } 15% { opacity: 1; scale: 1.2 } 100% { opacity: 0; margin-top: -60px; scale: 1 } }
 .jobprog { display: flex; flex-direction: column; gap: 4px; margin-top: 14px }
+/* Breathing room between the status row (chip + "55 / 89 sold") and the
+   progress bar under it, for selling and production alike: 9px above the bar,
+   and the bar's own 4px below matches the column gap. Edges unchanged. */
+.jobprog > .jp-head + .bar.wide { margin: 9px 0 4px }
 .bar.wide { display: block; width: 100%; height: 8px; border-radius: 6px; background: #0001; overflow: hidden }
 .bar.wide i { display: block; height: 100%; background: linear-gradient(90deg, #7bd389, #3c9a5f) }
 
@@ -594,32 +599,39 @@ button.link { background: none; border: 0; box-shadow: none; color: #6b7280; tex
 @media (max-width: 400px) { .ch-grid, .ch-used { grid-template-columns: 1fr 1fr } .ch-grid button { font-size: 13px; padding: 6px } }
 .chain .ch-open { min-height: 48px; border-radius: 12px; font-size: 15px; font-weight: 600; margin-top: 4px }
 
-/* ===== Market news (The Ledger Gazette) ===== */
+/* ===== Market news: "LW Business Live" (modern live news feed) =====
+   Dark broadcast-style header with a pulsing LIVE badge, clean sans-serif
+   headlines, white feed cards with a coloured trend edge. Replaced the old
+   newspaper masthead (Georgia serif, double rule, cream paper). */
 .nw { max-width: 640px; margin: 0 auto }
-.nw-mast { text-align: center; margin-bottom: 6px }
-.nw-mast small { letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-size: 11.5px }
-.nw-mast h2 { margin: 2px 0 4px; font-family: Georgia, 'Times New Roman', serif; font-size: 30px; font-weight: 800; letter-spacing: .01em }
-.nw-rule { height: 5px; border-top: 2px solid var(--ink); border-bottom: 1px solid var(--ink) }
+.nw-mast { text-align: left; margin-bottom: 6px; background: linear-gradient(120deg, #111827, #1e3a5f); color: #fff; border-radius: 14px; padding: 10px 14px }
+.nw-mast small { letter-spacing: .08em; text-transform: uppercase; color: #9fb4cc; font-size: 11.5px }
+.nw-mast h2 { margin: 2px 0 2px; font-family: inherit; font-size: 24px; font-weight: 700; letter-spacing: -.01em; display: flex; align-items: center; gap: 8px }
+.nw-live { font-size: 11px; font-weight: 800; letter-spacing: .08em; background: #e53935; color: #fff; padding: 3px 7px; border-radius: 5px; animation: nw-pulse 1.6s ease-in-out infinite }
+@keyframes nw-pulse { 50% { opacity: .55 } }
+@media (prefers-reduced-motion: reduce) { .nw-live { animation: none } }
+.nw-rule { height: 3px; margin-top: 6px; border-radius: 2px; background: linear-gradient(90deg, #e53935, #2f80ed) }
 .nw-help { font-size: 13px; margin: 8px 0 10px }
-.nw-quiet { text-align: center; padding: 20px; font-style: italic }
-.nw-story { background: linear-gradient(#fffdf6, #f7f0df); border-radius: 14px; padding: 12px; margin: 10px 0; box-shadow: inset 0 0 0 1px #e8dcc3, 0 3px 10px #6b4a2a12; border-left: 5px solid #8a8296 }
+.nw-quiet { text-align: center; padding: 20px }
+.nw-story { background: #fff; border-radius: 12px; padding: 12px; margin: 10px 0; box-shadow: inset 0 0 0 1px #e3e8ef, 0 3px 10px #1a2a4012; border-left: 4px solid #8a8296 }
 .nw-story.nw-up { border-left-color: #2f9e6a } .nw-story.nw-down { border-left-color: #d0573f }
 .nw-top { display: flex; gap: 10px; align-items: flex-start } .nw-top > div { flex: 1; min-width: 0 }
-.nw-pic { font-size: 30px; width: 46px; height: 46px; display: grid; place-items: center; border-radius: 12px; background: #fff; box-shadow: inset 0 0 0 1px #eadfca; flex: none }
-.nw-tag { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); font-weight: 700 }
-.nw-story h3 { margin: 2px 0; font-family: Georgia, 'Times New Roman', serif; font-size: 18px; line-height: 1.2 }
-.nw-lead h3 { font-size: 23px }
-.nw-story p { margin: 0; font-size: 13.5px; color: #4b4552 }
-.nw-eff { font-size: 18px; padding: 4px 8px; border-radius: 10px; flex: none }
+.nw-pic { font-size: 30px; width: 46px; height: 46px; display: grid; place-items: center; border-radius: 12px; background: #f1f5f9; flex: none }
+.nw-tag { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: #2f80ed; font-weight: 700 }
+.nw-story h3 { margin: 2px 0; font-family: inherit; font-weight: 700; font-size: 17px; line-height: 1.25 }
+.nw-lead h3 { font-size: 21px }
+.nw-story p { margin: 0; font-size: 13.5px; color: #475569 }
+.nw-eff { font-size: 18px; padding: 4px 8px; border-radius: 10px; flex: none; font-variant-numeric: tabular-nums }
 .nw-up .nw-eff { color: #1f7a50; background: #dff3e8 } .nw-down .nw-eff { color: #a83b28; background: #fbe2dc }
-.nw-rumor { opacity: .9; background: repeating-linear-gradient(135deg, #fffdf6 0 10px, #f8f2e3 10px 20px); border-left-style: dashed }
+.nw-rumor { opacity: .9; background: repeating-linear-gradient(135deg, #fff 0 10px, #f4f7fb 10px 20px); border-left-style: dashed }
 .nw-past { opacity: .65; padding: 8px 12px } .nw-past .nw-pic { width: 34px; height: 34px; font-size: 20px }
 .nw-past h3 { font-size: 15px }
 .nw-goods { list-style: none; padding: 0; margin: 10px 0 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 6px }
-.nw-goods li { display: flex; flex-direction: column; align-items: center; gap: 2px; background: #fff; border-radius: 10px; padding: 6px 4px; font-size: 12px; text-align: center; box-shadow: inset 0 0 0 1px #efe5d2 }
+.nw-goods li { display: flex; flex-direction: column; align-items: center; gap: 2px; background: #f8fafc; border-radius: 10px; padding: 6px 4px; font-size: 12px; text-align: center; box-shadow: inset 0 0 0 1px #e3e8ef }
 .nw-goods small { color: var(--muted) }
-.nw-sec { margin: 16px 0 4px; font-family: Georgia, serif }
-.news-strip { position: absolute; z-index: 5; top: calc(var(--sat) + 104px); left: calc(var(--sal) + 10px); right: calc(var(--sar) + 10px); max-width: 520px; margin: 0 auto; display: flex; align-items: center; gap: 8px; border: 0; border-radius: 12px; padding: 0 12px 0 0; min-height: 40px; background: #1f2430d0; color: #fff; font-size: 14px; backdrop-filter: blur(6px); overflow: hidden; text-align: left; box-shadow: 0 6px 16px #0003 }
+.nw-sec { margin: 16px 0 4px; font-family: inherit; text-transform: uppercase; font-size: 12px; letter-spacing: .08em; color: var(--muted) }
+/* Headline strip (ticker style: dark bar, red edge, tabular numbers). */
+.news-strip { position: absolute; z-index: 5; top: calc(var(--sat) + 104px); left: calc(var(--sal) + 10px); right: calc(var(--sar) + 10px); max-width: 520px; margin: 0 auto; display: flex; align-items: center; gap: 8px; border: 0; border-radius: 12px; padding: 0 12px 0 0; min-height: 40px; background: #0b1220e6; color: #e8f0ff; font-size: 14px; border-bottom: 2px solid #e53935; font-variant-numeric: tabular-nums; backdrop-filter: blur(6px); overflow: hidden; text-align: left; box-shadow: 0 6px 16px #0003 }
 .news-strip > b { align-self: stretch; display: grid; place-items: center; padding: 0 10px; background: #d0573f; font-size: 12px; letter-spacing: .06em; flex: none }
 .news-strip.nw-up > b { background: #2f9e6a }
 .ns-text { flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; mask-image: linear-gradient(90deg, #000 85%, transparent) }
@@ -676,6 +688,8 @@ button.link { background: none; border: 0; box-shadow: none; color: #6b7280; tex
 .route-lane { cursor: pointer; position: absolute; z-index: 5; top: calc(var(--sat) + 104px); left: calc(var(--sal) + 10px); right: calc(var(--sar) + 10px); max-width: 520px; margin: 0 auto; display: flex; flex-direction: column; gap: 0; border: 0; border-radius: 12px; padding: 4px 10px 6px; background: #1f2430b8; color: #fff; backdrop-filter: blur(6px); text-align: left; box-shadow: 0 6px 16px #0003; overflow: hidden }
 .route-lane.below { top: calc(var(--sat) + 152px) }
 .rl-road { position: relative; display: block; height: 26px; border-bottom: 2px dashed #ffffff66 }
+/* Highway lane: asphalt strip with a dashed centre line and a solid shoulder line. */
+.rl-road { background: linear-gradient(#0000 55%, #3a3f48 55%, #3a3f48 92%, #f5c84288 92%); border-bottom-color: #ffffffaa }
 .rl-cart { position: absolute; bottom: -3px; transition: left 1s linear }
 .route-lane small { font-size: 12.5px; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
 .rl-dest { position: absolute; right: -2px; bottom: 1px; font-size: 16px }

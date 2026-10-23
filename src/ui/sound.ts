@@ -41,7 +41,7 @@ export const SFX_LIST: { id: Sfx; label: string }[] = [
   { id: 'tap', label: 'Tap' }, { id: 'collect', label: 'Collect' }, { id: 'coin', label: 'Coins' },
   { id: 'produce', label: 'Start job' }, { id: 'done', label: 'Job done' }, { id: 'build', label: 'Build' },
   { id: 'upgrade', label: 'Upgrade' }, { id: 'buy', label: 'Buy' }, { id: 'sell', label: 'Sell' },
-  { id: 'levelup', label: 'Level up' }, { id: 'error', label: 'Error' }, { id: 'news', label: 'News' }, { id: 'cart', label: 'Trade cart' }, { id: 'order', label: 'Order filled' }, { id: 'hire', label: 'Hire' },
+  { id: 'levelup', label: 'Level up' }, { id: 'error', label: 'Error' }, { id: 'news', label: 'News' }, { id: 'cart', label: 'Delivery truck' }, { id: 'order', label: 'Order filled' }, { id: 'hire', label: 'Hire' },
 ]
 
 // ---------------------------------------------------------------------------
@@ -287,19 +287,17 @@ const VOICES: Record<Sfx, (a: AudioContext, t: number, step: number) => void> = 
     bell(a, t + 0.42, G5, 0.1, 0.2)
     bell(a, t + 0.54, C6, 0.11, 0.4)
   },
-  // Trade cart (a route's cart leaving or arriving): four hollow "clip-clop"
-  // knocks (low band-passed noise with a short pitched body, alternating
-  // high/low like two hooves), a soft wheel rattle under them, then a small
-  // two-note hand bell (E then G) as the delivery bell.
+  // Delivery truck (a route's truck leaving or arriving; replaced the old
+  // clip-clop cart). A diesel engine rumble (a low sawtooth gliding up as it
+  // revs, under low-passed road noise), a short air-brake hiss, then the
+  // two-tone reversing-style "beep beep" as the delivery chime.
   cart: (a, t) => {
-    for (let i = 0; i < 4; i++) {
-      const at = t + i * 0.085, f = i % 2 ? 520 : 700
-      noise(a, at, { dur: 0.035, freq: f, q: 4, peak: 0.22 })
-      tone(a, at, f * 0.5, { type: 'triangle', dur: 0.04, peak: 0.06, to: f * 0.4 })
-    }
-    noise(a, t, { dur: 0.36, freq: 180, q: 0.7, peak: 0.05, type: 'lowpass' })
-    bell(a, t + 0.38, E5, 0.08, 0.18)
-    bell(a, t + 0.47, G5, 0.09, 0.3)
+    tone(a, t, 55, { type: 'sawtooth', dur: 0.42, peak: 0.07, to: 85 })
+    tone(a, t, 110, { type: 'square', dur: 0.36, peak: 0.025, to: 150 })
+    noise(a, t, { dur: 0.45, freq: 220, q: 0.7, peak: 0.07, type: 'lowpass' })
+    noise(a, t + 0.4, { dur: 0.12, freq: 5200, q: 0.8, peak: 0.08 }) // air-brake hiss
+    tone(a, t + 0.56, 1046, { type: 'square', dur: 0.07, peak: 0.03 })
+    tone(a, t + 0.7, 1046, { type: 'square', dur: 0.07, peak: 0.03 })
   },
   // Buy order filled: a broker's rubber stamp (a low thump plus a short
   // papery slap), then a quick three-note rising "ticker" blip (C, E, G

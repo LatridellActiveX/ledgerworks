@@ -38,19 +38,23 @@ function noise(g: CanvasRenderingContext2D, s: number, n: number, a: number) {
   }
 }
 const TEX: Record<string, THREE.Texture> = {}
+/** Solar panel: dark blue, slightly glossy (used by the flat-roof gable()). */
+const SOLAR_M = new THREE.MeshStandardMaterial({ color: '#23406e', roughness: 0.35, metalness: 0.4 })
 function tex(name: string): THREE.Texture {
   if (TEX[name]) return TEX[name]
   const draw: Record<string, (g: CanvasRenderingContext2D, s: number) => void> = {
-    // Running-bond brick: 8 courses per tile, mortar lines, per-brick tint.
+    // Modern façade cladding (was running-bond brick; the 'brick' surface
+    // name is kept so models don't change): large rectangular metal/composite
+    // panels with thin dark seams and a faint per-panel tint.
     brick: (g, s) => {
-      g.fillStyle = '#d9d2c8'; g.fillRect(0, 0, s, s)
-      const rows = 8, bh = s / rows, bw = s / 4
-      for (let r = 0; r < rows; r++) for (let c = -1; c < 5; c++) {
-        const x = c * bw + (r % 2 ? bw / 2 : 0), l = 205 + Math.random() * 40
-        g.fillStyle = `rgb(${l},${l - 8},${l - 14})`
-        g.fillRect(x + 2, r * bh + 2, bw - 4, bh - 4)
+      g.fillStyle = '#b9bcc2'; g.fillRect(0, 0, s, s)
+      const rows = 4, cols = 2, ph = s / rows, pw = s / cols
+      for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
+        const l = 222 + Math.random() * 22
+        g.fillStyle = `rgb(${l},${l},${l + 4})`
+        g.fillRect(c * pw + 1.5, r * ph + 1.5, pw - 3, ph - 3)
       }
-      noise(g, s, 1800, 0.12)
+      noise(g, s, 600, 0.05)
     },
     // Cast concrete: soft blotches, panel joints and form-tie dots.
     concrete: (g, s) => {
@@ -232,12 +236,17 @@ export class Kit {
     const len = Math.hypot(x2 - x1, z2 - z1)
     return this.add(new THREE.CylinderGeometry(r, r, len, 10), m, { x: (x1 + x2) / 2, y, z: (z1 + z2) / 2, rz: Math.PI / 2, ry: -Math.atan2(z2 - z1, x2 - x1), detail })
   }
-  /** Gable roof prism along X (ridge parallel to X). */
+  /**
+   * Was a pitched gable roof; now a modern flat roof (thin slab with a small
+   * overhang) carrying a tilted solar array. Same signature so every caller
+   * keeps working; `rise` only sets how high the panels tilt.
+   */
   gable(w: number, rise: number, d: number, m: THREE.Material, x = 0, y = 0, z = 0, over = 0.3) {
-    const s = new THREE.Shape(); s.moveTo(-d / 2 - over, 0); s.lineTo(d / 2 + over, 0); s.lineTo(0, rise); s.closePath()
-    const g = new THREE.ExtrudeGeometry(s, { depth: w + over * 2, bevelEnabled: false })
-    g.translate(0, 0, -(w + over * 2) / 2)
-    return this.add(g, m, { x, y, z, ry: Math.PI / 2 })
+    this.box(w + over * 2, 0.22, d + over * 2, m, x, y, z)
+    const tilt = Math.min(0.35, rise * 0.15), rows = Math.max(1, Math.floor(d / 1.4)), cols = Math.max(1, Math.floor(w / 1.3))
+    for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++)
+      this.box(w / cols - 0.15, 0.06, d / rows - 0.25, SOLAR_M, x - w / 2 + (c + 0.5) * (w / cols), y + 0.3, z - d / 2 + (r + 0.5) * (d / rows), { rx: -tilt })
+    return this
   }
   plane(w: number, h: number, m: THREE.Material, p: Place) { return this.add(new THREE.PlaneGeometry(w, h), m, p) }
 

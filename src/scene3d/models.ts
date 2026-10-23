@@ -182,8 +182,8 @@ function tank(k: Kit, x: number, z: number, r: number, h: number, color: string,
   k.add(new THREE.TorusGeometry(r - 0.1, 0.03, 4, 24), M(C.rail), { x, y: y + h + 0.9, z, rx: Math.PI / 2, detail: true })
 }
 /** Chimney with bands and a striped cap. Returns its smoke emitter. */
-function chimney(k: Kit, x: number, z: number, h: number, r = 0.45, brick = false): Emitter {
-  k.cyl(r * 0.8, r, h, M(brick ? '#a8503c' : '#b9bcc1', brick ? 'brick' : 'concrete'), x, 0, z, 16)
+function chimney(k: Kit, x: number, z: number, h: number, r = 0.45, _brick = false): Emitter {
+  k.cyl(r * 0.8, r, h, M('#b9bcc1', 'concrete') /* modern: all stacks are concrete now */, x, 0, z, 16)
   for (let i = 1; i <= 2; i++) k.cyl(r * 0.85 + 0.03, r * 0.85 + 0.03, 0.3, M(i % 2 ? C.red : C.white), x, h - i * 0.6, z, 16)
   k.cyl(r * 0.85, r * 0.8 + 0.05, 0.2, M(C.dark, 'metal'), x, h, z, 16)
   ladder(k, x, z + r * 0.85, 0.2, h - 0.6)
@@ -374,10 +374,11 @@ function shop(k: Kit, o: ShopOpt, L: number, seed: number) {
       for (let i = 0; i < 4; i++) bush(k, x - ww * 0.3 + i * ww * 0.2, 0.45 + 0.3, 0.2, i % 2 ? '#e86a8a' : '#4f9a4c')
     }
     entrance(k, 0, 1.4, 2.2)
-    // Striped awning (alternating strips), with valance.
+    // Flat steel-and-glass canopy in the brand colour with an LED edge strip
+    // (was a striped fabric awning with a valance).
     const aw = o.w - 0.3
-    for (let i = 0; i < 10; i++) k.box(aw / 10, 0.06, 1.3, M(i % 2 ? '#ffffff' : o.awning, 'plain', { rough: 0.9 }), -aw / 2 + aw / 20 + (i * aw) / 10, gh + 0.1, 0.65, { rx: 0.32 })
-    k.box(aw, 0.25, 0.04, M(o.awning), 0, gh - 0.38, 1.27)
+    k.box(aw, 0.12, 1.3, M(o.awning, 'plain', { rough: 0.4, metal: 0.3 }), 0, gh + 0.1, 0.65)
+    k.box(aw, 0.06, 0.04, M('#e8fbff', 'plain', { rough: 0.2 }), 0, gh + 0.1, 1.31)
     // Sign band above the awning.
     sign(k, o.name, shade(o.awning, 0.8), 0, gh + 0.55, 0.08, Math.min(o.w - 1, 4.6))
     // Upper floors.
@@ -463,7 +464,7 @@ export function buildModel(type: string, level: number, name: string, color: str
       break
     }
     case 'pump': { // Pump house: brick block + water tower with bands + pipes and valves
-      block(k, { w: 4.6, d: 3.8, floors: fl(1, 3), color: '#b8654a', surf: 'brick', x: -1.8, z: 1 }, L, seed)
+      block(k, { w: 4.6, d: 3.8, floors: fl(1, 3), color: '#8a96a3', surf: 'brick', x: -1.8, z: 1 }, L, seed)
       const th = 5 + L * 0.3
       for (const [a, b] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) {
         k.cyl(0.1, 0.14, th, M('#6f7a88', 'metal'), 2.6 + a * 1.1, 0, -1.6 + b * 1.1, 8)
@@ -571,7 +572,7 @@ export function buildModel(type: string, level: number, name: string, color: str
     }
     // ---------------- textiles ----------------
     case 'loom': case 'knit': {
-      const top = hall(k, { w: 8, d: 5.4, h: 4 + L * 0.2, color: type === 'knit' ? '#b8654a' : '#a7c4d9', surf: type === 'knit' ? 'brick' : 'metal', roof: 'saw', z: -1, doors: 2 }, L, seed)
+      const top = hall(k, { w: 8, d: 5.4, h: 4 + L * 0.2, color: type === 'knit' ? '#8a96a3' : '#a7c4d9', surf: type === 'knit' ? 'brick' : 'metal', roof: 'saw', z: -1, doors: 2 }, L, seed)
       sign(k, name, shade(color, 0.65), 0, 2.9, 1.82, 3.4)
       if (type === 'knit') { k.cyl(0.6, 0.6, 1.6, M('#9c7a58', 'wood'), 3.0, top + 1.6, -2.6, 16); for (const [a, b] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) k.cyl(0.05, 0.05, 1.6, M(C.dark, 'metal'), 3.0 + a * 0.4, top, -2.6 + b * 0.4, 6) }
       emit.push(chimney(k, -3.4, -3.4, 7 + L * 0.3, 0.42, true))
@@ -676,12 +677,12 @@ export function buildModel(type: string, level: number, name: string, color: str
       break
     }
     case 'kiln': case 'brickworks': {
-      const top = hall(k, { w: 7, d: 4.4, h: 3.8 + L * 0.15, color: '#b5523b', surf: 'brick', roof: 'flat', x: -0.8, z: -1.3, doors: 1 }, L, seed)
+      const top = hall(k, { w: 7, d: 4.4, h: 3.8 + L * 0.15, color: '#7f8b98', surf: 'brick', roof: 'flat', x: -0.8, z: -1.3, doors: 1 }, L, seed)
       sign(k, name, '#7a2f22', -0.8, top - 1.5, 0.95, 3.2)
       // Beehive kilns.
       for (const x of [2.5, 3.8]) { k.sphere(0.9, M('#a8503c', 'brick'), x, 0, 2.6, {}, 16, true); k.box(0.5, 0.7, 0.2, M(C.dark), x, 0, 3.45) }
       emit.push(chimney(k, -3.6, -3.3, 8 + L * 0.3, 0.5, true))
-      for (let i = 0; i < 3; i++) pallet(k, -3.4 + i * 1.3, 3.3, 2, type === 'kiln' ? '#d0705a' : '#b5523b')
+      for (let i = 0; i < 3; i++) pallet(k, -3.4 + i * 1.3, 3.3, 2, type === 'kiln' ? '#d0705a' : '#7f8b98')
       break
     }
     case 'foundry': case 'steelmill': {

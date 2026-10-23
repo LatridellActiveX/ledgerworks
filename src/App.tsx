@@ -319,8 +319,8 @@ export default function App() {
 
 /** Every screen the HUD can open. 'map' is the plain map. */
 type Screen = 'map' | 'levels' | 'value' | 'building' | 'warehouse' | 'exchange' | 'trade' | 'research' | 'board' | 'finance' | 'market' | 'log' | 'changes' | 'account' | 'settings' | 'privacy' | 'chains' | 'news' | 'routes' | 'execs' | 'players'
-const SCREEN_TITLE: Record<Screen, string> = { map: 'Map', levels: 'Company level', value: 'Company value', building: 'Building', warehouse: 'Warehouse', exchange: 'Market', trade: 'Market', research: 'Research', board: 'Research', finance: 'Finance', market: 'Public demand', log: 'Events', changes: 'Change log', account: 'Saves & account', settings: 'Settings', privacy: 'Privacy policy', chains: 'Production chains', news: 'Market news', routes: 'Trade routes', execs: 'Executives', players: 'Players' }
-const SCREEN_ICON: Partial<Record<Screen, string>> = { levels: '★', value: '💹', market: '📈', log: '🔔', changes: '📝', account: '💾', settings: '⚙', privacy: '🔒', chains: '🔗', news: '📰', routes: '🛒', execs: '👔', players: '🔎' }
+const SCREEN_TITLE: Record<Screen, string> = { map: 'Map', levels: 'Company level', value: 'Company value', building: 'Building', warehouse: 'Warehouse', exchange: 'Market', trade: 'Market', research: 'Research', board: 'Research', finance: 'Finance', market: 'Public demand', log: 'Events', changes: 'Change log', account: 'Saves & account', settings: 'Settings', privacy: 'Privacy policy', chains: 'Production chains', news: 'Business Live', routes: 'Trade routes', execs: 'Executives', players: 'Players' }
+const SCREEN_ICON: Partial<Record<Screen, string>> = { levels: '★', value: '💹', market: '📈', log: '🔔', changes: '📝', account: '💾', settings: '⚙', privacy: '🔒', chains: '🔗', news: '📡', routes: '🚚', execs: '👔', players: '🔎' }
 /** The bottom tab bar (original simple glyphs). */
 const TABS: [Screen, string, string][] = [['map', 'Map', '🗺'], ['warehouse', 'Warehouse', '📦'], ['exchange', 'Market', '⇄'], ['research', 'Research', '🔬'], ['finance', 'Finance', '🏦']]
 
@@ -409,7 +409,7 @@ function JobProgress({ s, plot, act }: { s: E.GameState; plot: number; act: Act 
   if (j.kind === 'build' || !a) return null
   const p = E.pending(s, bd)!
   return <div className={`jobprog ${j.kind}`}>
-    <div className="row"><StatusChip state={a.state} />
+    <div className="row jp-head"><StatusChip state={a.state} />
       <span className="ticker">{num(Math.floor(doneT))} / {num(j.qty)} {j.kind === 'make' ? 'made' : 'sold'}{j.kind === 'sell' ? ` · ${money(Math.floor(centsT) / 100)} earned` : ''}</span></div>
     <div className="bar wide"><i style={{ width: `${100 * a.prog}%` }} /></div>
     <small>{num(j.got ?? 0)} collected so far</small>
@@ -420,9 +420,10 @@ function JobProgress({ s, plot, act }: { s: E.GameState; plot: number; act: Act 
       return <div className="preview store-break">
         <div><span>Uncollected earnings</span><b>{money(wait)}</b></div>
         <div><span>Already collected</span><b>{money(got)}</b></div>
-        <div><span>Still to earn ({num(j.qty - E.unitsDone(j, s.hour))} left to sell)</span><b>{money(total - got - wait)}</b></div>
-        {/* Same right-hand number as the map pill: drops by each collect. */}
-        <div><span>Left to collect (matches the map)</span><b>{money(total - got)}</b></div>
+        {/* One merged row (was "Still to earn" + "Left to collect"): the
+            left-to-collect value matches the map pill's right number and
+            drops by each collect; the note splits out what's still selling. */}
+        <div><span>Left to collect <small className="muted">({money(total - got - wait)} still selling · {num(j.qty - E.unitsDone(j, s.hour))} left)</small></span><b>{money(total - got)}</b></div>
         <div><span>Total for this sale ({num(j.qty)} × {money(j.price)})</span><b>{money(total)}</b></div>
       </div>
     })()}

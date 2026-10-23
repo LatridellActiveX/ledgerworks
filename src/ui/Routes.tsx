@@ -23,28 +23,30 @@ type Act = (f: (st: E.GameState) => string | null | void) => void
  * Original little cart drawing: a wooden box wagon with a canvas cover, two
  * spoked wheels (they spin via CSS while the cart moves) and a crate on top.
  */
+/**
+ * Box truck (replaced the old horse-drawn wagon; still exported as Wagon so
+ * callers don't change). Modern cab with a windscreen, a white cargo box with
+ * a company stripe, and two wheels whose hubs spin while it drives (.moving).
+ */
 export function Wagon({ size = 40, moving = true }: { size?: number; moving?: boolean }) {
   return (
     <svg className={`wagon${moving ? ' moving' : ''}`} width={size} height={size * 0.7} viewBox="0 0 60 42" aria-hidden>
-      {/* canvas cover */}
-      <path d="M10 18 Q12 4 28 4 Q44 4 46 18 Z" fill="#f3e6c8" stroke="#b49a6a" strokeWidth="1.5" />
-      <path d="M19 17 Q20 8 28 6 M37 17 Q36 8 28 6" stroke="#cdb688" strokeWidth="1.2" fill="none" />
-      {/* crate peeking out */}
-      <rect x="40" y="11" width="9" height="8" rx="1" fill="#d58b4a" stroke="#8a5428" />
-      {/* wooden box */}
-      <rect x="6" y="17" width="44" height="11" rx="2" fill="#a8643a" stroke="#6e3f22" strokeWidth="1.5" />
-      <path d="M6 22.5 H50" stroke="#c98256" strokeWidth="1.2" />
-      {/* draw bar */}
-      <path d="M50 24 L58 26" stroke="#6e3f22" strokeWidth="2.2" strokeLinecap="round" />
-      {/* wheels: rim, hub and spokes in a group that spins */}
-      {[16, 40].map(cx => (
-        <g key={cx} transform={`translate(${cx} 31)`}>
-          <circle r="8" fill="#3b2d24" />
-          <circle r="6" fill="#e9d2a6" />
-          <g className="spokes">
-            <path d="M-6 0 H6 M0 -6 V6 M-4.2 -4.2 L4.2 4.2 M-4.2 4.2 L4.2 -4.2" stroke="#6e3f22" strokeWidth="1.4" />
-          </g>
-          <circle r="1.8" fill="#3b2d24" />
+      {/* cargo box */}
+      <rect x="2" y="6" width="38" height="24" rx="2" fill="#f4f6f9" stroke="#8b96a6" strokeWidth="1.4" />
+      <rect x="2" y="19" width="38" height="4" fill="#2f80ed" />
+      {/* cab: body, windscreen, headlight */}
+      <path d="M41 12 H52 L58 21 V30 H41 Z" fill="#2f80ed" stroke="#1d4f99" strokeWidth="1.4" strokeLinejoin="round" />
+      <path d="M44 14 H51 L55 20 H44 Z" fill="#bfe3ff" stroke="#1d4f99" strokeWidth="1" />
+      <rect x="55" y="24" width="3" height="2.5" rx="1" fill="#ffe27a" />
+      {/* chassis */}
+      <rect x="2" y="29" width="56" height="3" rx="1" fill="#39424e" />
+      {/* wheels: tyre + alloy hub; the hub group spins */}
+      {[13, 48].map(cx => (
+        <g key={cx} transform={`translate(${cx} 33)`}>
+          <circle r="6.5" fill="#20252c" />
+          <circle r="3.6" fill="#c9d1db" />
+          <g className="spokes"><path d="M-3.2 0 H3.2 M0 -3.2 V3.2" stroke="#6b7685" strokeWidth="1.2" /></g>
+          <circle r="1.2" fill="#20252c" />
         </g>
       ))}
     </svg>
@@ -96,7 +98,7 @@ function RouteForm({ s, act, init, onDone }: { s: E.GameState; act: Act; init?: 
       <div className="rt-amt">
         <input type="number" inputMode="numeric" min={sp.mode === 'amount' ? 1 : 0} max={sp.mode === 'amount' ? town.cap : undefined} value={sp.amount}
           aria-label={sp.mode === 'amount' ? 'Units per trip' : 'Units to keep'} onChange={e => set({ amount: Math.max(0, Math.floor(Number(e.target.value) || 0)) })} />
-        <small className="muted">{sp.mode === 'amount' ? `units per trip (cart holds ${town.cap})` : `units always kept; the rest ships (up to ${town.cap})`}</small>
+        <small className="muted">{sp.mode === 'amount' ? `units per trip (truck holds ${town.cap})` : `units always kept; the rest ships (up to ${town.cap})`}</small>
       </div>
       <label className="rt-lbl">How often</label>
       <div className="rt-every">{R.EVERY_OPTIONS.map(h => <button key={h} className={sp.every === h ? 'on' : ''} onClick={() => set({ every: h })}>{h >= 24 ? '1d' : `${h}h`}</button>)}</div>
@@ -132,14 +134,14 @@ function RouteCard({ s, r, act, onEdit }: { s: E.GameState; r: R.Route; act: Act
       {/* Status: the cart's progress, or when the next one leaves. */}
       {t ? <div className="rt-road"><div className="rt-track"><i style={{ width: `${p * 100}%` }} /><span style={{ left: `${p * 100}%` }}><Wagon size={30} /></span></div>
         <small>On the road with {num(t.qty)} · arrives in {dur(Math.max(0, t.arriveH - s.hour))}</small></div>
-        : <p className="rt-status">{r.paused ? '⏸ Paused' : `Next cart leaves ${r.nextH <= s.hour + 1e-6 ? 'now' : `in ${dur(r.nextH - s.hour)}`} · ${num(R.loadFor(s, r))} ready`}</p>}
+        : <p className="rt-status">{r.paused ? '⏸ Paused' : `Next truck leaves ${r.nextH <= s.hour + 1e-6 ? 'now' : `in ${dur(r.nextH - s.hour)}`} · ${num(R.loadFor(s, r))} ready`}</p>}
       {r.last && <p className="rt-last">{r.last.note ? `Last departure skipped: ${r.last.note}.`
         : <>Last trip ({clock(r.last.h)}): sold {num(r.last.qty)} for {money(r.last.revenue)}, transport {money(r.last.cost)}, profit <b className={r.last.revenue - r.last.cost >= 0 ? 'up' : 'down'}>{money(r.last.revenue - r.last.cost)}</b></>}</p>}
       <p className="rt-total">{r.trips} trip{r.trips === 1 ? '' : 's'} · {num(r.units)} shipped · total profit <b className={R.routeProfit(r) >= 0 ? 'up' : 'down'}>{money(R.routeProfit(r))}</b></p>
       <div className="rt-btns">
         <button onClick={() => act(st => R.togglePause(st, r.id))}>{r.paused ? '▶ Resume' : '⏸ Pause'}</button>
         <button onClick={onEdit}>✎ Edit</button>
-        <button className="danger" onClick={() => { if (confirm(`Close the route to ${town?.name}?${t ? ' The cart on the road turns back and its goods return to the warehouse.' : ''}`)) act(st => R.deleteRoute(st, r.id)) }}>Delete</button>
+        <button className="danger" onClick={() => { if (confirm(`Close the route to ${town?.name}?${t ? ' The truck on the road turns back and its goods return to the warehouse.' : ''}`)) act(st => R.deleteRoute(st, r.id)) }}>Delete</button>
       </div>
     </article>
   )
@@ -152,13 +154,13 @@ export function Routes({ s, act }: { s: E.GameState; act: Act }) {
   const profit = routes.reduce((t, r) => t + R.routeProfit(r), 0)
   return (
     <div className="rt">
-      <p className="muted rt-help">Set up standing routes and carts will ship goods to other towns on their own, on a timer. Each town pays its own price, which drifts from hour to hour, and likes some kinds of goods more than others.</p>
+      <p className="muted rt-help">Set up standing routes and trucks will ship goods to other cities on their own, on a timer. Each city pays its own price, which drifts from hour to hour, and likes some kinds of goods more than others.</p>
       <div className="rt-sum"><span><b>{routes.length}</b>/{R.MAX_ROUTES} routes</span><span><b>{R.onTheRoad(s).length}</b> on the road</span><span>Profit <b className={profit >= 0 ? 'up' : 'down'}>{money(profit)}</b></span></div>
       {form !== null ? <RouteForm key={String(form)} s={s} act={act} init={editing} onDone={() => setForm(null)} />
         : <button className="primary rt-new" disabled={routes.length >= R.MAX_ROUTES} onClick={() => setForm('new')}>＋ New trade route</button>}
-      {routes.length === 0 && form === null && <p className="rt-empty"><Wagon size={56} moving={false} /><br />No routes yet. Pick a town, a good and how often to send it.</p>}
+      {routes.length === 0 && form === null && <p className="rt-empty"><Wagon size={56} moving={false} /><br />No routes yet. Pick a city, a good and how often to send it.</p>}
       {routes.map(r => <RouteCard key={r.id} s={s} r={r} act={act} onEdit={() => setForm(r.id)} />)}
-      <h4 className="rt-sec">Towns</h4>
+      <h4 className="rt-sec">Cities</h4>
       <div className="rt-towns">
         {R.TOWNS.map(t => <div key={t.id} className="rt-town">
           <b>{t.icon} {t.name}</b>
@@ -189,7 +191,7 @@ export function RouteLane({ s, onOpen }: { s: E.GameState; onOpen: () => void })
         <span className="rl-dest" aria-hidden>{soonest.town?.icon}</span>
         {carts.map(c => <span key={c.r.id} className="rl-cart" style={{ left: `calc(${c.p * 100}% - ${c.p * 34}px)` }} title={`${RES[c.r.res]?.name} to ${c.town?.name}`}><Wagon size={34} /></span>)}
       </span>
-      <small>🛒 {carts.length} on the road · {soonest.town?.icon} {soonest.town?.name} in {dur(soonest.left)}</small>
+      <small>🚚 {carts.length} on the highway · {soonest.town?.icon} {soonest.town?.name} in {dur(soonest.left)}</small>
     </div>
   )
 }

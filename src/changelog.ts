@@ -4,6 +4,19 @@ export interface ChangeEntry { id: string; date: string; title: string; notes: s
 
 export const CHANGELOG: ChangeEntry[] = [
   {
+    id: 'modern-city',
+    date: '2026-10-22',
+    title: 'Ledgerworks goes modern',
+    notes: [
+      "Trade routes now run box trucks down a highway lane to four modern cities: Millbrook Park, Saltmarsh Port City, Copperridge and Lanternfall's downtown. The cart sound is now a diesel truck with an air-brake hiss and a delivery beep.",
+      "Market news is now LW Business Live, a live business feed with a LIVE badge, clean headlines and white feed cards.",
+      "Buildings are glass and steel: flat roofs with solar panels where tiled roofs used to be, panel cladding instead of brick, flat canopies with LED strips instead of striped awnings, and modern LED street lights.",
+      "Your company crest is now a modern logo tile with a rising chart and your initials.",
+      "Store selling panel: 'Still to earn' and 'Left to collect' are merged into one 'Left to collect' row with a small note on what is still selling. The progress bar now has proper space above it, in stores and factories.",
+      "Only looks and names changed. Prices, timings and your saves are exactly the same.",
+    ],
+  },
+  {
     id: 'loading-real',
     date: '2026-10-22',
     title: 'Faster, honest loading screen',

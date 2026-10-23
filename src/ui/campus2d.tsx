@@ -112,17 +112,18 @@ function box(p: Pen, o: BoxOpt) {
     for (let l = 1; l < 4; l++) { const y1 = fR(s, (ht * l) / 4), y2 = fR(s + w, (ht * l) / 4); p.add(d + 0.005, kk => <line key={kk} x1={y1[0]} y1={y1[1]} x2={y2[0]} y2={y2[1]} stroke="#7b828a" strokeWidth=".6" />) }
     const b1 = fR(s - 0.03, 0.02), b2 = fR(s + w + 0.03, 0.02); p.add(d + 0.005, kk => <line key={kk} x1={b1[0]} y1={b1[1]} x2={b2[0]} y2={b2[1]} stroke="#e3b23c" strokeWidth="2" strokeDasharray="2 2" />)
   }
-  // Awning: striped, sloping out over the shop front.
+  // Canopy: a flat, solid-colour modern canopy over the shop front (was a
+  // striped fabric awning). Same footprint, so layout doesn't move.
   if (o.awning) {
     const N = 8, t = Math.min(0.62, 20 / h)
     for (let i = 0; i < N; i++) {
       const s0 = i / N, s1 = (i + 1) / N
       const A = fL(s0, t), B = fL(s1, t), C2 = p.P(u - a + 2 * a * s1, v + b + 0.12, z + h * t - 6), D = p.P(u - a + 2 * a * s0, v + b + 0.12, z + h * t - 6)
-      p.poly(d + 0.006, [A, B, C2, D], i % 2 ? '#fffaf0' : o.awning, { stroke: shade(o.awning, 0.7), strokeWidth: 0.4 })
+      p.poly(d + 0.006, [A, B, C2, D], i % 2 ? shade(o.awning, 1.06) : o.awning, { stroke: shade(o.awning, 0.9), strokeWidth: 0.2 })
     }
-    // Scalloped valance.
+    // LED strip along the canopy edge (was a scalloped valance).
     const v0 = p.P(u - a, v + b + 0.12, z + h * t - 6), v1 = p.P(u + a, v + b + 0.12, z + h * t - 6)
-    p.add(d + 0.007, k => <line key={k} x1={v0[0]} y1={v0[1]} x2={v1[0]} y2={v1[1]} stroke={shade(o.awning!, 0.75)} strokeWidth="2.2" strokeDasharray="3 2" strokeLinecap="round" />)
+    p.add(d + 0.007, k => <line key={k} x1={v0[0]} y1={v0[1]} x2={v1[0]} y2={v1[1]} stroke="#e8fbff" strokeWidth="1.6" strokeLinecap="round" />)
   }
   // Sign board with the business name, skewed onto the front-left face.
   if (o.sign) {
@@ -137,7 +138,10 @@ function box(p: Pen, o: BoxOpt) {
   }
   // Roof.
   const rc = p.night ? shade(o.roofColor ?? shade(o.color, 0.5), 0.6) : o.roofColor ?? shade(color, 0.5)
-  const roof = o.roof ?? 'flat'
+  // Modern look: pitched 'gable' (tiled) roofs draw as flat roofs with a row
+  // of solar panels, so every building reads as glass-and-steel.
+  const solar = o.roof === 'gable'
+  const roof = (o.roof === 'gable' ? 'flat' : o.roof ?? 'flat') as BoxOpt['roof']
   if (roof === 'flat' || roof === 'none') {
     p.poly(d + 0.01, T, roof === 'none' ? shade(color, 1.08) : '#a7a39b', { stroke: shade(color, 0.6), strokeWidth: 0.6 })
     if (o.parapet !== false && roof === 'flat') {
@@ -148,6 +152,13 @@ function box(p: Pen, o: BoxOpt) {
     if (o.cornice !== false) {
       const c1 = p.P(u - a, v + b, z + h - 2), c2 = p.P(u + a, v + b, z + h - 2), c3 = p.P(u + a, v - b, z + h - 2)
       p.add(d + 0.012, k => <polyline key={k} points={p.pts([c1, c2, c3])} fill="none" stroke={shade(color, 1.2)} strokeWidth="2.4" strokeLinejoin="round" />)
+    }
+    // Solar array (on what used to be pitched roofs): dark blue panels with
+    // a light frame, in two rows across the roof.
+    if (solar) for (let r = 0; r < 2; r++) for (let c = 0; c < 3; c++) {
+      const u0 = u - a * 0.8 + (c * 1.6 * a) / 3, u1 = u0 + (1.6 * a) / 3 - 0.03
+      const v0 = v - b * 0.7 + r * b * 0.75, v1 = v0 + b * 0.6
+      p.poly(d + 0.02 + (r * 3 + c) * 1e-4, [p.P(u0, v0, z + h + 2), p.P(u1, v0, z + h + 2), p.P(u1, v1, z + h + 4), p.P(u0, v1, z + h + 4)], '#2a4a7a', { stroke: '#cfe0f5', strokeWidth: 0.5 })
     }
     // Rooftop gear: HVAC boxes with fan grilles, vent stacks and a pipe run.
     for (let g = 0; g < (o.gear ?? 0); g++) {
@@ -272,10 +283,15 @@ function sparkles(p: Pen, at: Pt, d: number) {
   p.add(d + 2, k => <g key={k} className="spark2">{[0, 1, 2, 3, 4].map(i => <circle key={i} cx={at[0] - 16 + i * 8} cy={at[1]} r="1.8" fill="#ffd34d" style={{ animationDelay: `${i * 0.35}s` }} />)}</g>)
 }
 
-/** Street lamp (glows at night). */
+/** Modern LED street light: slim pole with a flat head on a short arm. */
 function lamp(p: Pen, u: number, v: number) {
   const [x, y] = p.P(u, v)
-  p.add(u + v, k => <g key={k}><line x1={x} y1={y} x2={x} y2={y - 18} stroke="#3d4148" strokeWidth="1.2" /><circle cx={x} cy={y - 19} r="2" fill={p.night ? '#ffe08a' : '#f3efe7'} />{p.night && <circle cx={x} cy={y - 19} r="6" fill="#ffe08a" opacity=".45" filter="url(#g2-glow)" />}</g>)
+  p.add(u + v, k => <g key={k}>
+    <line x1={x} y1={y} x2={x} y2={y - 20} stroke="#4a515c" strokeWidth="1.3" />
+    <line x1={x} y1={y - 20} x2={x + 5} y2={y - 21} stroke="#4a515c" strokeWidth="1.1" />
+    <rect x={x + 3} y={y - 22.2} width="5" height="1.8" rx=".6" fill="#2b3038" />
+    <rect x={x + 3.4} y={y - 20.6} width="4.2" height=".7" fill="#e8fbff" />
+  </g>)
 }
 
 /** Plot ground: sidewalk border with curb, planters at the corners, a lamp. */
@@ -320,7 +336,7 @@ function model(p: Pen, type: string, level: number) {
       break
     }
     case 'pump': {
-      box(p, { u: -0.2, v: 0.1, a: 0.4, b: 0.32, h: 16 + L * 2, color: '#b8654a', floors: 1, cols: 3, roof: 'gable', roofColor: '#5d6670', sign: name })
+      box(p, { u: -0.2, v: 0.1, a: 0.4, b: 0.32, h: 16 + L * 2, color: '#8a96a3', floors: 1, cols: 3, roof: 'gable', roofColor: '#5d6670', sign: name })
       const [tx, ty] = p.P(0.5, -0.35), th = 40 + L * 2
       p.add(0.15, k => <g key={k} stroke="#6b7480" strokeWidth="1.6">{[-9, 9].map(dx => <line key={dx} x1={tx + dx} y1={ty} x2={tx + dx * 0.6} y2={ty - th} />)}<line x1={tx - 8} y1={ty - th * 0.4} x2={tx + 8} y2={ty - th * 0.7} strokeWidth=".8" /><line x1={tx + 8} y1={ty - th * 0.4} x2={tx - 8} y2={ty - th * 0.7} strokeWidth=".8" /></g>)
       cyl(p, 0.5, -0.35, 0.13, 16, col, { z: th, bands: 2, cap: 'dome' })
@@ -333,7 +349,7 @@ function model(p: Pen, type: string, level: number) {
       break
     }
     case 'barnyard': case 'ranch': {
-      box(p, { u: -0.15, v: -0.2, a: 0.42, b: 0.3, h: 22 + L * 1.5, color: type === 'ranch' ? '#a8784f' : '#c8553d', floors: 1, cols: 2, roof: 'gable', roofColor: '#5b3a2e', sign: name, signColor: '#fffaf0' })
+      box(p, { u: -0.15, v: -0.2, a: 0.42, b: 0.3, h: 22 + L * 1.5, color: type === 'ranch' ? '#a8784f' : '#9aa6b2', floors: 1, cols: 2, roof: 'gable', roofColor: '#5d6670', sign: name, signColor: '#fffaf0' })
       cyl(p, 0.48, -0.45, 0.1, 40 + L * 2, '#dcd6cc', { bands: 3, cap: 'dome', ladder: true })
       fence(p, -0.7, 0.6, 0.62)
       for (let i = 0; i < 4; i++) { const [x, y] = p.P(-0.5 + i * 0.3, 0.42 + (i % 2) * 0.1); p.add(1, k => <g key={k} className="bob2" style={{ animationDelay: `${i * 0.4}s` }}><ellipse cx={x} cy={y - 4} rx="5" ry="3" fill={type === 'ranch' ? '#f4f1ea' : i % 2 ? '#fff' : '#6b4f3a'} /><circle cx={x + 4.5} cy={y - 6} r="1.8" fill="#3d3030" /><line x1={x - 3} y1={y - 2} x2={x - 3} y2={y} stroke="#3d3030" /><line x1={x + 3} y1={y - 2} x2={x + 3} y2={y} stroke="#3d3030" /></g>) }
@@ -401,7 +417,7 @@ function model(p: Pen, type: string, level: number) {
       break
     }
     case 'kiln': case 'brickworks': {
-      hall({ roof: 'flat', color: '#b8654a', gear: 1 })
+      hall({ roof: 'flat', color: '#8a96a3', gear: 1 })
       chimney(p, -0.45, -0.4, 70 + L * 2); chimney(p, 0.4, -0.45, 54)
       for (let i = 0; i < 3; i++) pallet(p, -0.5 + i * 0.22, 0.62, '#c0583d', 2)
       break

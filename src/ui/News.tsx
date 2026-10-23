@@ -1,5 +1,6 @@
 // ============================================================================
-// Market news screen ("The Ledger Gazette"). New stories reach you as bell notifications.
+// Market news screen ("LW Business Live", a modern live news feed; was the
+// "Ledger Gazette" newspaper until Oct 2026). New stories reach you as bell notifications.
 //
 // Shows the stories running today (see src/game/news.ts), a "Rumor" for the
 // story that starts tomorrow so you can stock up a day early, and the stories
@@ -7,7 +8,7 @@
 // the effect on shop sales (+40% / -25%), how many you hold, and when it ends.
 //
 // UX idea borrowed from Offworld Trading Company's event pop-ups and
-// Capitalism Lab's news reports; the newspaper look, words and art are ours.
+// Capitalism Lab's news reports; the live-feed look, words and art are ours.
 // ============================================================================
 import * as E from '../game/engine'
 import * as N from '../game/news'
@@ -55,17 +56,17 @@ export function News({ s }: { s: E.GameState }) {
   const past = N.pastStories(day)
   return (
     <div className="nw">
-      {/* Masthead: newspaper title, day number and a one-line summary. */}
+      {/* Header: live-feed brand with a pulsing LIVE badge, day number and a one-line summary. */}
       <header className="nw-mast">
         <small>Day {day + 1} · {live.length ? `${live.length} ${live.length === 1 ? 'story' : 'stories'} moving markets` : 'Quiet markets'}</small>
-        <h2>The Ledger Gazette</h2>
+        <h2><span className="nw-live">● LIVE</span> LW Business Live</h2>
         <div className="nw-rule" />
       </header>
       <p className="muted nw-help">News changes how fast shops sell the goods in a story (and, playing offline, nudges their market price). Stock up before a boom; hold back during a slump.</p>
       {live.length === 0 && <p className="nw-quiet">No market news today. Prices and demand are normal.</p>}
       {live.map((st, i) => <Story key={st.t.id + st.startDay} s={s} st={st} kind={i === 0 ? 'lead' : 'live'} day={day} />)}
       {rum && <Story s={s} st={rum} kind="rumor" day={day} />}
-      {past.length > 0 && <h4 className="nw-sec">Earlier this week</h4>}
+      {past.length > 0 && <h4 className="nw-sec">Earlier this week · feed archive</h4>}
       {past.map(st => <Story key={st.t.id + st.startDay} s={s} st={st} kind="past" day={day} />)}
     </div>
   )
