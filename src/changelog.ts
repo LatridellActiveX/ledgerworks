@@ -4,6 +4,15 @@ export interface ChangeEntry { id: string; date: string; title: string; notes: s
 
 export const CHANGELOG: ChangeEntry[] = [
   {
+    id: 'store-busy-list',
+    date: '2026-10-23',
+    title: 'See what else a store can sell while it is busy',
+    notes: [
+      "While a store is selling, its panel still lists every other good it can sell, with the price, how many are in the warehouse and what it would earn an hour.",
+      "Their Sell buttons are greyed out. Tapping one pops up a small tip, 'Finish or stop the current sale first', that fades after a couple of seconds, and no sale starts.",
+    ],
+  },
+  {
     id: 'shop-fruit-balance',
     date: '2026-10-23',
     title: 'Apples and berries pay more in shops',

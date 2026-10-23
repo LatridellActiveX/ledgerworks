@@ -2,7 +2,7 @@
 // price, and see how long the public takes to buy it all. A live demand curve
 // shows how many units an hour the shop moves at each price, and the shop's
 // fittings, tills and clerk are managed underneath.
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import * as E from '../game/engine'
 import { BLD, RES } from '../game/data'
 import { BAY_WAGE_MULT, CLERK_WAGE, FITTINGS, TILL_MAX, maxSellHours, tillShare } from '../game/shop'
@@ -105,6 +105,55 @@ export function RetailPanel({ s, plot, act }: { s: E.GameState; plot: number; ac
       </div>
       <button className="primary" disabled={hours > cap || lim.max < 1} onClick={() => act(st => E.startSell(st, plot, lot.res, lot.q, q, p))}>{hours > cap ? 'Too slow — lower price' : 'Start selling'}</button>
       {fittings}
+    </div>
+  )
+}
+
+/**
+ * While a store is busy selling, keep showing everything else it could sell
+ * (price, warehouse stock, earnings an hour) so the player can plan the next
+ * sale. Each Sell button looks disabled and carries the note; tapping it still
+ * routes through act() a tap only opens a tooltip with the reason; the engine
+ * check (E.SELL_BUSY_MSG) independently blocks a second sale.
+ */
+export function OtherGoods({ s, plot, act }: { s: E.GameState; plot: number; act: Act }) {
+  const bd = s.plots[plot]!, store = BLD[bd.type].store
+  const cur = bd.job?.kind === 'sell' ? E.key(bd.job.res, bd.job.q) : ''
+  // Every lot in the warehouse this store can sell, minus the one on sale now.
+  const lots = Object.entries(s.stock).map(([k, v]) => ({ k, v, ...E.parseKey(k) }))
+    .filter(l => RES[l.res].store === store && l.k !== cur && l.v >= 1)
+  // Which row's tooltip is open ('' = none). Auto-hides after 2 s; any tap
+  // elsewhere on the page also closes it.
+  const [tip, setTip] = useState('')
+  useEffect(() => {
+    if (!tip) return
+    const t = setTimeout(() => setTip(''), 2000)
+    const off = () => setTip('')
+    document.addEventListener('pointerdown', off)
+    return () => { clearTimeout(t); document.removeEventListener('pointerdown', off) }
+  }, [tip])
+  if (!lots.length) return null
+  return (
+    <div className="card other-goods">
+      <h4>Other goods this store sells</h4>
+      {lots.map(l => {
+        const price = E.fairPrice(l.res, l.q)
+        // Units an hour at the fair price for this shop, times the price.
+        const perH = E.sellRate(s, l.res, l.q, price, bd) * E.shopSpeed(bd) * price
+        return (
+          <div key={l.k} className="fit-row">
+            <span><ResIcon id={l.res} /> <b>{RES[l.res].name} Q{l.q}</b> <small className="muted">{money(price)} · {num(l.v)} in warehouse · {money(perH)}/h</small></span>
+            {/* Greyed-out Sell. A tap shows the reason in a small tooltip on
+                this button only (no toast, no sale); it hides after 2 s or on
+                the next tap anywhere. The engine refuses the sale regardless. */}
+            <span className="tip-anchor">
+              <button className="locked" aria-disabled="true" aria-describedby={tip === l.k ? 'sell-tip' : undefined}
+                onClick={e => { e.stopPropagation(); setTip(l.k) }}>Sell</button>
+              {tip === l.k && <span id="sell-tip" role="tooltip" className="sell-tip">{E.SELL_BUSY_MSG}</span>}
+            </span>
+          </div>
+        )
+      })}
     </div>
   )
 }

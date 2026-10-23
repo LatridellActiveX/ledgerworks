@@ -788,3 +788,9 @@ tr.bidrow td { color: #3c9a5f; font-weight: 600 }
 .vcat-body { padding: 6px 0 2px 18px; display: grid; gap: 4px; font-size: 13px }
 .vline { display: flex; justify-content: space-between; gap: 8px; font-variant-numeric: tabular-nums }
 .wh-sum { display: flex; flex-wrap: wrap; gap: 4px 14px; justify-content: space-between; margin: 4px 0 10px; font-size: 13px; color: #6b6470 }
+
+/* Locked Sell button in a busy store's other-goods list: looks disabled, still tappable for the toast. */
+.other-goods button.locked { opacity: .45; filter: grayscale(1); cursor: not-allowed }
+/* Tooltip anchored above the tapped Sell button. */
+.tip-anchor { position: relative; display: inline-block }
+.sell-tip { position: absolute; right: 0; bottom: calc(100% + 6px); white-space: nowrap; background: #1f2633; color: #fff; font-size: 11px; padding: 5px 8px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,.25); z-index: 5; pointer-events: none }

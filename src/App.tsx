@@ -38,7 +38,7 @@ import { CHANGELOG } from './changelog'
 import { Crest } from './ui/Crest'
 import { LevelScreen } from './ui/Levels'
 import { renameCompany } from './game/company'
-import { RetailPanel } from './ui/RetailPanel'
+import { OtherGoods, RetailPanel } from './ui/RetailPanel'
 import { Exchange } from './ui/Exchange'
 import { Research } from './ui/Research'
 import { Board } from './ui/Board'
@@ -364,7 +364,10 @@ function BuildingPanel({ s, plot, act }: { s: E.GameState; plot: number; act: Ac
           {bd.job.kind !== 'build' && <JobProgress s={s} plot={plot} act={act} />}
           {E.ripeOf(bd.job) === undefined && <button onClick={() => act(st => E.rush(st, plot))}>Rush for {money(E.rushCost(s, bd))}</button>}
         </div>
-      ) : bt.kind === 'production' ? <MakeForm s={s} plot={plot} act={act} /> : <RetailPanel s={s} plot={plot} act={act} />}
+      ) : null}
+      {/* A selling store still lists its other goods, locked until this sale ends. */}
+      {bd.job?.kind === 'sell' && <OtherGoods s={s} plot={plot} act={act} />}
+      {bd.job ? null : bt.kind === 'production' ? <MakeForm s={s} plot={plot} act={act} /> : <RetailPanel s={s} plot={plot} act={act} />}
       <div className="row">
         <button disabled={!!bd.job} onClick={() => act(st => E.upgrade(st, plot))}>Upgrade to L{bd.level + 1} ({money(E.upgradeCost(bd.type, bd.level + 1))})</button>
         <button className="danger" onClick={() => confirm(`Scrap for ${money(E.scrapRefund(bd))} back?`) && act(st => E.scrap(st, plot))}>Scrap</button>

@@ -361,9 +361,17 @@ export function sellHours(s: GameState, res: string, q: number, price: number, q
   return Math.max(MIN_JOB_H, t)
 }
 
+/** Shown (as a toast and a note) when a store already has a sale running. */
+export const SELL_BUSY_MSG = 'Finish or stop the current sale first'
+
 export function startSell(s: GameState, plot: number, res: string, q: number, qty: number, price: number): string | null {
   const bd = s.plots[plot]
-  if (!bd || bd.job) return 'Building is busy'
+  if (!bd) return 'Building is busy'
+  // One sale at a time per store: while a sale is running, every other good is
+  // listed in the panel but locked. This is the rule itself, so a second sale
+  // can never start even if the UI (or an old client) asks for one.
+  if (bd.job?.kind === 'sell') return SELL_BUSY_MSG
+  if (bd.job) return 'Building is busy'
   if (RES[res]?.store !== BLD[bd.type].store) return 'This shop does not sell that'
   const bq = badQty(qty); if (bq) return bq
   if ((s.stock[key(res, q)] ?? 0) + 1e-9 < qty) return 'Not enough in the warehouse'

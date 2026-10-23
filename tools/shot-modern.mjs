@@ -6,8 +6,8 @@ const URL = 'https://ledgerworks.parkercthomson.workers.dev/'
 const b = await chromium.launch({ args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] })
 async function page(view) {
   const p = await b.newPage({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true })
-  await p.addInitScript(v => { globalThis.__lwNoBoot = true; localStorage.setItem('ledgerworks-guest', '1'); localStorage.setItem('ledgerworks-view', v); localStorage.setItem('ledgerworks-tutorial', JSON.stringify({ step: 0, done: true, off: false })) }, view)
-  await p.goto(URL); await p.waitForTimeout(5000)
+  await p.addInitScript(v => { localStorage.setItem('ledgerworks-guest', '1'); localStorage.setItem('ledgerworks-view', v); localStorage.setItem('ledgerworks-tutorial', JSON.stringify({ step: 0, done: true, off: false })) }, view)
+  await p.goto(URL); await p.waitForFunction(() => localStorage.getItem('ledgerworks-save-v1'), null, { timeout: 30000 })
   // Seed: several buildings, a store mid-sale, and a trade route with a truck on the road.
   await p.evaluate(() => {
     const k = 'ledgerworks-save-v1', s = JSON.parse(localStorage.getItem(k))
@@ -21,20 +21,20 @@ async function page(view) {
   return p
 }
 const shot = (p, n) => p.screenshot({ path: `/workspace/ledgerworks-modern-${n}.png` })
-const p2 = await page('2d'); await shot(p2, 'map-2d')
-// Store panel: open the store by tapping its pill.
-await p2.locator('.spill').first().click({ force: true, timeout: 5000 }).catch(e => console.log('spill', e.message.split('\n')[0]))
-await p2.waitForTimeout(1200)
-await p2.locator('.jobprog').first().scrollIntoViewIfNeeded().catch(() => {})
-await p2.screenshot({ path: '/workspace/ledgerworks-sell-panel.png' })
-console.log('panel', (await p2.locator('.store-break').innerText().catch(() => '(none)')).replace(/\n/g, ' | '))
-const p3 = await page('3d'); await shot(p3, 'map-3d')
-// Menu screens: news and routes.
-for (const [scr, n] of [['Business Live', 'news'], ['Trade routes', 'routes']]) {
-  await p3.locator('.menu-btn, [aria-label="Menu"]').first().click({ timeout: 4000 }).catch(() => {})
-  await p3.getByRole('button', { name: scr }).first().click({ timeout: 4000 }).catch(e => console.log(n, e.message.split('\n')[0]))
-  await p3.waitForTimeout(1200); await shot(p3, n)
-  console.log(n, (await p3.locator('h2').allInnerTexts()).join(' / '))
-  await p3.goBack().catch(() => {}); await p3.keyboard.press('Escape'); await p3.waitForTimeout(600)
+const p2 = await page('2d')
+// Close-up: zoom the 2D map in on the built corner before the shot.
+await p2.mouse.move(200, 420); await p2.keyboard.down('Control'); for (let i = 0; i < 8; i++) { await p2.mouse.wheel(0, -240); await p2.waitForTimeout(150) }; await p2.keyboard.up('Control')
+await p2.waitForTimeout(800); await shot(p2, 'map')
+// Menu screens: news and routes, via the burger menu.
+for (const [scr, n] of [[/Business Live/, 'news'], [/routes/i, 'routes']]) {
+  await p2.locator('.burger').click({ timeout: 4000, force: true }).catch(e => console.log('burger', e.message.split('\n')[0]))
+  await p2.locator('button', { hasText: scr }).first().click({ timeout: 4000 }).catch(e => console.log(n, e.message.split('\n')[0]))
+  await p2.waitForTimeout(1200); await shot(p2, n)
+  await p2.reload(); await p2.waitForTimeout(3000)
 }
+// Store panel: reload to the default view and tap the selling store.
+await p2.reload(); await p2.waitForTimeout(3000)
+await p2.mouse.click(160, 337); await p2.waitForTimeout(1500)
+await p2.locator('.jobprog').first().scrollIntoViewIfNeeded({ timeout: 3000 }).catch(() => console.log('no jobprog'))
+await p2.screenshot({ path: '/workspace/ledgerworks-sell-panel.png' })
 await b.close()
