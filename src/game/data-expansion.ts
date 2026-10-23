@@ -1,3 +1,4 @@
+import { SHOP_DD } from './shopdd'
 // ============================================================================
 // Stage 12 goods expansion: 64 more goods (111 in total), 17 more buildings
 // and 2 more store types. All names and numbers are original.
@@ -26,20 +27,20 @@ const ROWS: Row[] = [
   ['honey', 'Wild honey', '#f2b134', 4.5, 'jar', 'farm', 25, { greens: 0.5, water: 0.2 }, 'market', 250],
   // --- Kitchen and confectionery (food) ---
   ['sugar', 'Cane sugar', '#f7f3ea', 2.0, 'sack', 'food', 90, { cane: 1.5, power: 0.5 }],
-  ['choc', 'Chocolate bar', '#6b3e26', 9, 'tile', 'food', 30, { cocoa: 1.5, sugar: 0.5, milk: 0.5, power: 1 }, 'market', 400],
-  ['roast', 'Roasted coffee', '#5a3a28', 11, 'sack', 'food', 30, { beans: 2, power: 1 }, 'market', 350],
+  ['choc', 'Chocolate bar', '#6b3e26', 13.5, 'tile', 'food', 30, { cocoa: 1.5, sugar: 0.5, milk: 0.5, power: 1 }, 'market', SHOP_DD(13.5)],
+  ['roast', 'Roasted coffee', '#5a3a28', 13.5, 'sack', 'food', 30, { beans: 2, power: 1 }, 'market', SHOP_DD(13.5)],
   ['wine', 'Grape wine', '#7b2140', 14, 'bottle', 'food', 20, { grapes: 4, power: 1 }, 'market', 200],
   ['crisps', 'Potato crisps', '#f2c66d', 3.2, 'bag', 'food', 70, { potatoes: 2, power: 0.6 }, 'market', 700],
   ['sauce', 'Tomato sauce', '#c8392b', 4, 'jar', 'food', 60, { tomatoes: 2, sugar: 0.2, power: 0.5 }, 'market', 500],
   ['ricebowl', 'Rice bowl', '#f1e7c9', 6.5, 'cheese', 'food', 40, { rice: 1, greens: 0.5, eggs: 1, power: 0.6 }, 'market', 450],
   ['flakes', 'Corn flakes', '#f2d38a', 5, 'bag', 'food', 50, { corn: 2, sugar: 0.3, power: 0.8 }, 'market', 400],
-  ['pie', 'Apple pie', '#d39a55', 13, 'loaf', 'food', 20, { flour: 1, apples: 2, butter: 0.3, sugar: 0.5, power: 1 }, 'market', 180],
+  ['pie', 'Apple pie', '#d39a55', 24.5, 'loaf', 'food', 20, { flour: 1, apples: 2, butter: 0.3, sugar: 0.5, power: 1 }, 'market', SHOP_DD(24.5)],
   ['cake', 'Sponge cake', '#f6d7c4', 16, 'loaf', 'food', 15, { flour: 1, eggs: 3, sugar: 1, butter: 0.4, power: 1 }, 'market', 150],
   ['butter', 'Butter block', '#f6e08b', 5.5, 'cheese', 'food', 40, { milk: 3, power: 0.6 }, 'market', 400],
   ['yogurt', 'Yogurt cup', '#f4f1f7', 2.8, 'jar', 'food', 70, { milk: 1.2, berries: 0.2, power: 0.4 }, 'market', 700],
   ['icecream', 'Ice cream tub', '#f7c6d9', 8, 'jar', 'food', 30, { milk: 2, sugar: 0.6, power: 2 }, 'market', 300],
   ['sandwich', 'Deli sandwich', '#e6b880', 7, 'loaf', 'food', 40, { bread: 0.4, cheese: 0.1, greens: 0.5, tomatoes: 0.5 }, 'market', 500],
-  ['pizza', 'Flatbread pizza', '#e48b4a', 12, 'cheese', 'food', 20, { flour: 1, sauce: 0.5, cheese: 0.3, power: 1.5 }, 'market', 280],
+  ['pizza', 'Flatbread pizza', '#e48b4a', 21.5, 'cheese', 'food', 20, { flour: 1, sauce: 0.5, cheese: 0.3, power: 1.5 }, 'market', SHOP_DD(21.5)],
   ['soda', 'Fizzy soda', '#58c4c6', 2.4, 'bottle', 'food', 120, { water: 1, sugar: 0.4, power: 0.3 }, 'market', 1000],
   // --- Fashion (textile) ---
   ['yarn', 'Yarn', '#e3d3e8', 7, 'roll', 'textile', 40, { wool: 1.5, power: 0.5 }],

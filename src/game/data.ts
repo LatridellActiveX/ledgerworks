@@ -1,3 +1,4 @@
+import { SHOP_DD } from './shopdd'
 // ============================================================================
 // Static game data: resources, buildings and recipes.
 // All names, numbers and descriptions are original to Ledgerworks.
@@ -61,6 +62,10 @@ export const RESOURCES: Resource[] = [
   // Farm & food
   { id: 'seeds', name: 'Seeds', color: '#c9b37e', basePrice: 0.2 },
   { id: 'wheat', name: 'Wheat', color: '#e8c872', basePrice: 1.1 },
+  // Shop balance (Oct 2026), grocery line: eggs, cheese, juice (here) and
+  // chocolate, roast coffee, apple pie, pizza (data-expansion.ts) use
+  // SHOP_DD so a level-1 store earns ~$200/game hour on each at fair price.
+  // Base prices sit ~40% over unit cost (inputs at base + wage / perHour).
   // Shop balance (Oct 2026): fair shop price = basePrice x 1.5, so apples sell
   // at $5.00 and berries at $7.00 (quality 0). dailyDemand / 24 is a level-1
   // shop's speed at that price: 40 apples/h or ~28.6 berries/h = $200 per game
@@ -70,12 +75,12 @@ export const RESOURCES: Resource[] = [
   { id: 'greens', name: 'Greens', color: '#9fd49a', basePrice: 1.4, store: 'market', dailyDemand: 800 },
   { id: 'feed', name: 'Animal feed', color: '#bfa57a', basePrice: 0.9 },
   { id: 'hens', name: 'Hens', color: '#f2e2c4', basePrice: 12 },
-  { id: 'eggs', name: 'Eggs', color: '#fff3d6', basePrice: 0.8, store: 'market', dailyDemand: 1200 },
+  { id: 'eggs', name: 'Eggs', color: '#fff3d6', basePrice: 1.25, store: 'market', dailyDemand: SHOP_DD(1.25) },
   { id: 'milk', name: 'Milk', color: '#f7f7f2', basePrice: 1.3, store: 'market', dailyDemand: 900 },
   { id: 'flour', name: 'Flour', color: '#f1e9d8', basePrice: 2.2 },
   { id: 'bread', name: 'Bread loaf', color: '#d9a066', basePrice: 4.5, store: 'market', dailyDemand: 600 },
-  { id: 'cheese', name: 'Cheese wheel', color: '#f5c94c', basePrice: 9, store: 'market', dailyDemand: 300 },
-  { id: 'juice', name: 'Fruit juice', color: '#f5a65b', basePrice: 7.5 /* raised with apples, same ~42% margin */, store: 'market', dailyDemand: 500 },
+  { id: 'cheese', name: 'Cheese wheel', color: '#f5c94c', basePrice: 18.5, store: 'market', dailyDemand: SHOP_DD(18.5) },
+  { id: 'juice', name: 'Fruit juice', color: '#f5a65b', basePrice: 7.5 /* raised with apples, same ~42% margin */, store: 'market', dailyDemand: SHOP_DD(7.5) },
   { id: 'jam', name: 'Berry jam', color: '#9b4f8f', basePrice: 13.7 /* raised with berries, same ~45% margin */, store: 'market', dailyDemand: 300 },
   // Textiles
   { id: 'cotton', name: 'Cotton', color: '#f4f0ea', basePrice: 1.5 },

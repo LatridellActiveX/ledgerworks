@@ -33,6 +33,10 @@ for (const [scr, n] of [[/Business Live/, 'news'], [/routes/i, 'routes']]) {
   await p2.waitForTimeout(1200); await shot(p2, n)
   await p2.reload(); await p2.waitForTimeout(3000)
 }
+// Market screen: bottom-nav Market tab, apples/berries reference prices.
+await p2.getByRole('button', { name: /Market/ }).last().click({ timeout: 4000 }).catch(e => console.log('market', e.message.split('\n')[0]))
+await p2.waitForTimeout(1500); await p2.locator('select').first().selectOption('apples').catch(e => console.log('sel', e.message.split('\n')[0])); await p2.waitForTimeout(800); await p2.screenshot({ path: '/workspace/ledgerworks-market-prices.png' })
+await p2.reload(); await p2.waitForTimeout(3000)
 // Store panel: reload to the default view and tap the selling store.
 await p2.reload(); await p2.waitForTimeout(3000)
 await p2.touchscreen.tap(158, 352); await p2.waitForTimeout(1500)

@@ -13,7 +13,11 @@ import { RES, RESOURCES } from './data'
  * Bases in use before anchors were stored. Saves and server state that have
  * no anchor map were built on these; every other good is assumed unchanged.
  */
-export const LEGACY_BASE: Record<string, number> = { apples: 1.6, berries: 2.0, juice: 3.8, jam: 6 }
+export const LEGACY_BASE: Record<string, number> = {
+  apples: 1.6, berries: 2.0, juice: 3.8, jam: 6,
+  // Grocery line rebalance (same day): saves anchored before it use the anchor map instead.
+  eggs: 0.8, cheese: 9, choc: 9, roast: 11, pie: 13, pizza: 12,
+}
 
 /** Current base for every good: the anchor map we store after re-basing. */
 export const currentBases = () => Object.fromEntries(RESOURCES.map(r => [r.id, r.basePrice]))

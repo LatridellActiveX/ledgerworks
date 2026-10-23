@@ -4,6 +4,15 @@ export interface ChangeEntry { id: string; date: string; title: string; notes: s
 
 export const CHANGELOG: ChangeEntry[] = [
   {
+    id: 'grocery-shop-line',
+    date: '2026-10-23',
+    title: 'Grocery prices: eggs, cheese, coffee, chocolate, pie, pizza, juice',
+    notes: [
+      "A level-1 Corner market now earns about $200 per game hour on each of these at the fair price: eggs $1.88, cheese wheel $27.75, roasted coffee $20.25, chocolate bar $20.25, apple pie $36.75, flatbread pizza $32.25 and fruit juice $11.25.",
+      "Each one still sells for well above what it costs to make, and the Market moves to the new prices straight away.",
+    ],
+  },
+  {
     id: 'market-rebase',
     date: '2026-10-23',
     title: 'Markets catch up with the new fruit prices',
