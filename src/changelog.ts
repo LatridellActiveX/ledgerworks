@@ -4,6 +4,16 @@ export interface ChangeEntry { id: string; date: string; title: string; notes: s
 
 export const CHANGELOG: ChangeEntry[] = [
   {
+    id: 'shop-fruit-balance',
+    date: '2026-10-23',
+    title: 'Apples and berries pay more in shops',
+    notes: [
+      "Shops now sell apples at $5.00 and berries at $7.00 each by default.",
+      "A level-1 shop earns about $200 per game hour on either: 40 apples or about 28.6 berries an hour. Higher levels, tills and clerks speed it up just like before.",
+      "Fruit juice ($7.50) and berry jam ($13.70) went up too, so they still earn more than the fruit that goes into them.",
+    ],
+  },
+  {
     id: 'modern-city',
     date: '2026-10-22',
     title: 'Ledgerworks goes modern',

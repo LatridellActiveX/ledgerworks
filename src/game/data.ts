@@ -61,8 +61,12 @@ export const RESOURCES: Resource[] = [
   // Farm & food
   { id: 'seeds', name: 'Seeds', color: '#c9b37e', basePrice: 0.2 },
   { id: 'wheat', name: 'Wheat', color: '#e8c872', basePrice: 1.1 },
-  { id: 'apples', name: 'Apples', color: '#ef8a8a', basePrice: 1.6, store: 'market', dailyDemand: 900 },
-  { id: 'berries', name: 'Berries', color: '#b48ad6', basePrice: 2.0, store: 'market', dailyDemand: 700 },
+  // Shop balance (Oct 2026): fair shop price = basePrice x 1.5, so apples sell
+  // at $5.00 and berries at $7.00 (quality 0). dailyDemand / 24 is a level-1
+  // shop's speed at that price: 40 apples/h or ~28.6 berries/h = $200 per game
+  // hour either way. Levels, tills, clerks etc. still multiply as before.
+  { id: 'apples', name: 'Apples', color: '#ef8a8a', basePrice: 5 / 1.5, store: 'market', dailyDemand: 960 },
+  { id: 'berries', name: 'Berries', color: '#b48ad6', basePrice: 7 / 1.5, store: 'market', dailyDemand: 24 * 200 / 7 },
   { id: 'greens', name: 'Greens', color: '#9fd49a', basePrice: 1.4, store: 'market', dailyDemand: 800 },
   { id: 'feed', name: 'Animal feed', color: '#bfa57a', basePrice: 0.9 },
   { id: 'hens', name: 'Hens', color: '#f2e2c4', basePrice: 12 },
@@ -71,8 +75,8 @@ export const RESOURCES: Resource[] = [
   { id: 'flour', name: 'Flour', color: '#f1e9d8', basePrice: 2.2 },
   { id: 'bread', name: 'Bread loaf', color: '#d9a066', basePrice: 4.5, store: 'market', dailyDemand: 600 },
   { id: 'cheese', name: 'Cheese wheel', color: '#f5c94c', basePrice: 9, store: 'market', dailyDemand: 300 },
-  { id: 'juice', name: 'Fruit juice', color: '#f5a65b', basePrice: 3.8, store: 'market', dailyDemand: 500 },
-  { id: 'jam', name: 'Berry jam', color: '#9b4f8f', basePrice: 6, store: 'market', dailyDemand: 300 },
+  { id: 'juice', name: 'Fruit juice', color: '#f5a65b', basePrice: 7.5 /* raised with apples, same ~42% margin */, store: 'market', dailyDemand: 500 },
+  { id: 'jam', name: 'Berry jam', color: '#9b4f8f', basePrice: 13.7 /* raised with berries, same ~45% margin */, store: 'market', dailyDemand: 300 },
   // Textiles
   { id: 'cotton', name: 'Cotton', color: '#f4f0ea', basePrice: 1.5 },
   { id: 'cloth', name: 'Cloth', color: '#a7c4d9', basePrice: 4 },
