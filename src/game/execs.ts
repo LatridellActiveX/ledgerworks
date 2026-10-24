@@ -21,6 +21,7 @@
 //
 // Achievements: tiered goals that pay cash once per tier.
 // ============================================================================
+import { book as ledgerBook } from './ledger'
 import type { GameState } from './engine'
 
 export type Seat = 'coo' | 'cfo' | 'cmo' | 'cto'
@@ -114,7 +115,7 @@ export const hourlySalaries = (s: GameState) => dailySalaries(s) / 24
  *  Cash may dip below zero like other running costs; you can fire anyone. */
 export function payHour(s: GameState) {
   const pay = hourlySalaries(s)
-  if (pay > 0) s.cash -= pay
+  if (pay > 0) { s.cash -= pay; ledgerBook(s, 'execs', -pay) }
 }
 
 export function hire(s: GameState, id: number, seat: Seat, level: number): string | null {
@@ -123,7 +124,7 @@ export function hire(s: GameState, id: number, seat: Seat, level: number): strin
   if (!e) return 'Candidate not found'
   if (s.execs?.[seat]) return 'Seat is taken; let the current person go first'
   if (s.cash < hireCost(e)) return 'Not enough cash for the signing bonus'
-  s.cash -= hireCost(e)
+  s.cash -= hireCost(e); ledgerBook(s, 'execs', -hireCost(e))
   s.execs = { ...(s.execs ?? {}), [seat]: e }
   s.candidates = s.candidates!.filter(c => c !== e)
   return null
@@ -139,7 +140,7 @@ export function train(s: GameState, seat: Seat): string | null {
   const sk = SEAT_SKILL[seat], c = trainCost(e, sk)
   if (e.skills[sk] >= 40) return 'Already at the top'
   if (s.cash < c) return 'Not enough cash'
-  s.cash -= c; e.skills[sk]++
+  s.cash -= c; ledgerBook(s, 'execs', -c); e.skills[sk]++
   return null
 }
 
@@ -179,7 +180,7 @@ export function checkAchievements(s: GameState): string[] {
     const v = a.value(s)
     let got = s.ach[a.id] ?? 0
     while (got < a.tiers.length && v >= a.tiers[got][0]) {
-      s.cash += a.tiers[got][1]
+      s.cash += a.tiers[got][1]; ledgerBook(s, 'otherIn', a.tiers[got][1]) // achievement prize
       out.push(`Achievement: ${a.name} ${'★'.repeat(got + 1)} (+${fmt(a.tiers[got][1])})`)
       got++
     }

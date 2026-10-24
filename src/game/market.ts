@@ -16,6 +16,7 @@
 //  - Reference prices random-walk daily, pulled back toward the base price,
 //    and dip when you flood a market.
 // ============================================================================
+import { book as ledgerBook } from './ledger'
 import { RES, RESOURCES } from './data'
 import { rand } from './rng'
 import { priceTrend } from './economy'
@@ -79,7 +80,7 @@ export function buy(s: GameState, res: string, qty: number, minQ = 0): string | 
     if (left <= 0) break
   }
   s.asks = s.asks.filter(o => o.qty > 0)
-  s.cash -= cost
+  s.cash -= cost; ledgerBook(s, res === 'crates' ? 'crates' : 'exBuy', -cost) // crates get their own line
   s.stats.exSpend += cost
   return null
 }
@@ -131,7 +132,7 @@ export function cancelAsk(s: GameState, id: number): string | null {
   setWhy('order cancelled')
   addStock(s, o.res, o.q, o.qty)
   if (o.crates) addStock(s, 'crates', 0, o.crates)
-  s.cash -= fee
+  s.cash -= fee; ledgerBook(s, 'fees', -fee)
   s.asks = s.asks.filter(a => a !== o)
   return null
 }
@@ -149,6 +150,8 @@ export function quickSell(s: GameState, res: string, q: number, qty: number): st
   if (crates) takeStock(s, 'crates', crates)
   s.bidLeft[res] -= qty
   s.cash += qty * bidPrice(s, res, q) * (1 - feeRate(s))
+  // Ledger: gross sale in, broker fee out, so both show on the statement.
+  ledgerBook(s, 'exSales', qty * bidPrice(s, res, q)); ledgerBook(s, 'fees', -qty * bidPrice(s, res, q) * feeRate(s))
   s.stats.exRev += qty * bidPrice(s, res, q)
   s.exSold[res] = (s.exSold[res] ?? 0) + qty
   return null
@@ -167,7 +170,7 @@ export function sellPower(s: GameState, q: number, qty: number): string | null {
   const pay = qty * refPrice(s, 'power') * GRID_RATE
   setWhy('sold to the grid')
   addStock(s, 'power', q, -qty)
-  s.cash += pay
+  s.cash += pay; ledgerBook(s, 'exSales', pay) // grid sales count as exchange sales
   return null
 }
 
@@ -190,6 +193,7 @@ export function npcHour(s: GameState, say: (m: string) => void) {
       if (o.owner === 'me') {
         const used = Math.min(o.crates, cratesFor(r.id, t)); o.crates -= used
         s.cash += t * o.price * (1 - feeRate(s))
+        ledgerBook(s, 'exSales', t * o.price); ledgerBook(s, 'fees', -t * o.price * feeRate(s))
         s.stats.exRev += t * o.price
         s.exSold[r.id] = (s.exSold[r.id] ?? 0) + t
         if (o.qty <= 1e-9) say(`Exchange: your ${RES[r.id].name} Q${o.q} order sold out.`)

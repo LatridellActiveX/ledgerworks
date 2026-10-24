@@ -4,6 +4,12 @@ export interface ChangeEntry { id: string; date: string; title: string; notes: s
 
 export const CHANGELOG: ChangeEntry[] = [
   {
+    id: 'daily-statements',
+    date: '2026-10-23',
+    title: 'Daily financial statements',
+    notes: ['Every cash movement is now recorded by category: store sales, exchange sales, contracts, trade routes, bond interest, purchases, crates, wages, executives, fees, buildings, bonds and more.', 'The books close every game midnight, including while you are away. Finance has new Cash flow, Balance and Ratios tabs, with the last 90 days and ‹ › to step between them.', 'Cash flow shows operating, investing and financing activities and the total change in cash. Balance shows assets, liabilities and equity with the change since the day before, plus your rank. Ratios covers margins, returns, turnover and liquidity; tap ? on any line to see how it is worked out.', 'Existing saves start recording at the next midnight; the first full statement follows a day later.'],
+  },
+  {
     id: 'no-kaching-text',
     date: '2026-10-23',
     title: 'Quieter stores on the map',

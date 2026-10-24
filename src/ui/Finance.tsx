@@ -1,5 +1,6 @@
 // Finance tab: credit rating, issue/repay your bonds, buy NPC bonds,
-// and the weekly government order.
+// and the weekly government order. Tabs at the top also open the daily
+// financial statements (Cash flow / Balance sheet / Ratios, see Statements.tsx).
 import { useState } from 'react'
 import * as E from '../game/engine'
 import * as F from '../game/finance'
@@ -9,11 +10,22 @@ import { dur, money, num } from './fmt'
 import { QtyPicker, clampQty } from './QtyPicker'
 import * as Q from '../game/qty'
 import { BondMarket } from './Bonds'
+import { Statements, type StatementTab } from './Statements'
 
 type Act = (f: (st: E.GameState) => string | null | void) => void
 const pct = (r: number) => `${(r * 100).toFixed(2)}%`
 
+/** Finance tab: pick a section; 'bonds' is the original screen. */
 export function Finance({ s, act, user }: { s: E.GameState; act: Act; user?: string | null }) {
+  const [tab, setTab] = useState<'bonds' | StatementTab>('bonds')
+  const tabs: [typeof tab, string][] = [['bonds', 'Bonds'], ['cash', 'Cash flow'], ['balance', 'Balance'], ['ratios', 'Ratios']]
+  return <>
+    <div className="seg dark fin-tabs" role="tablist">{tabs.map(([id, label]) => <button key={id} role="tab" aria-selected={tab === id} className={tab === id ? 'on' : ''} onClick={() => setTab(id)}>{label}</button>)}</div>
+    {tab === 'bonds' ? <BondsAndOrders s={s} act={act} user={user} /> : <Statements s={s} tab={tab} />}
+  </>
+}
+
+function BondsAndOrders({ s, act, user }: { s: E.GameState; act: Act; user?: string | null }) {
   const [lots, setLots] = useState(2)
   const rating = F.myRating(s)
   const [rate, setRate] = useState(F.MIN_RATE[rating] * 100)

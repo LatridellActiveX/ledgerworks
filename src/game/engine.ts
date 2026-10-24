@@ -14,6 +14,7 @@ import { currentBases } from './rebase'
 //  - Wages for a job are paid up front when it starts (simple + predictable).
 //  - Shop revenue is paid when the sale job finishes.
 // ============================================================================
+import * as L from './ledger'
 import { BLD, REC, RES } from './data'
 import * as V from './value'
 import { marketDay, npcHour, restockNpc, seedHistory, type Order } from './market'
@@ -86,6 +87,12 @@ export interface GameState {
   execs: Partial<Record<X.Seat, X.Exec>>
   candidates: X.Exec[]
   stats: X.Stats
+  /** Money ledger: today's cash movements per category (see ledger.ts). Missing in old saves until their first close. */
+  ledgerDay?: Partial<Record<L.Cat, number>>
+  /** Where today's books opened: hour, cash and balance sheet. */
+  ledgerOpen?: { h: number; cash: number; bal: L.Balance }
+  /** Daily financial statements, oldest first, capped at L.HIST_DAYS. */
+  statements?: L.DayStatement[]
   ach: Record<string, number> // tiers reached per achievement
   // --- Finance (stage 10) ---
   bonds?: F.Bond[] // bonds you issued (debt)
@@ -197,6 +204,7 @@ export function newGame(company = 'My Company', now = Date.now()): GameState {
   X.newCandidates(s)
   F.newBondOffers(s)
   seedHistory(s)
+  L.openBooks(s) // new games keep books from day one
   return s
 }
 
@@ -222,7 +230,7 @@ export function construct(s: GameState, plot: number, type: string): string | nu
   if (plot >= plotCount(lvl) || s.plots[plot]) return 'That plot is not free'
   if (lvl < b.unlockLevel) return `Needs company level ${b.unlockLevel}`
   if (s.cash < b.cost) return 'Not enough cash'
-  s.cash -= b.cost
+  s.cash -= b.cost; L.book(s, 'buildings', -b.cost) // ledger: investing
   s.plots[plot] = { uid: s.nextUid++, type, level: 1, job: { kind: 'build', endH: s.hour + buildHours(1) } }
   F.rollAbundance(s, s.plots[plot]!)
   s.xp += b.cost / 200
@@ -237,7 +245,7 @@ export function upgrade(s: GameState, plot: number): string | null {
   if (bd.job) return 'Building is busy'
   const cost = upgradeCost(bd.type, bd.level + 1)
   if (s.cash < cost) return 'Not enough cash'
-  s.cash -= cost
+  s.cash -= cost; L.book(s, 'buildings', -cost)
   bd.level++
   bd.job = { kind: 'build', endH: s.hour + buildHours(bd.level) }
   s.xp += cost / 200
@@ -255,7 +263,7 @@ export function scrap(s: GameState, plot: number): string | null {
   const bd = s.plots[plot]
   if (!bd) return 'Empty plot'
   if (bd.job && bd.job.kind !== 'build') return 'Wait for the current job to finish'
-  s.cash += scrapRefund(bd)
+  s.cash += scrapRefund(bd); L.book(s, 'buildings', scrapRefund(bd)) // refund nets against building spend
   if (F.isExtractor(bd.type)) s.stats.scrappedMines++
   s.plots[plot] = null
   say(s, `Scrapped a ${BLD[bd.type].name}.`)
@@ -309,7 +317,7 @@ export function startMake(s: GameState, plot: number, res: string, qty: number):
   }
   // A graft lifts the next crop from this plot one quality step, once.
   if (bd.graft && FM.isFarm(bd.type)) { q = Math.min(MAX_QUALITY, q + 1); bd.graft = false }
-  s.cash -= wages
+  s.cash -= wages; L.book(s, 'wages', -wages)
   bd.job = { kind: 'make', res, qty, q, startH: s.hour, endH: s.hour + hours, uc: (inCost + wages) / qty, src: inCost, wg: wages }
   return null
 }
@@ -395,7 +403,7 @@ export function startSell(s: GameState, plot: number, res: string, q: number, qt
   if (s.cash < wages) return 'Not enough cash for wages'
   setWhy('sent to store')
   addStock(s, res, q, -qty)
-  s.cash -= wages
+  s.cash -= wages; L.book(s, 'wages', -wages) // store staff
   bd.job = { kind: 'sell', res, qty, q, price, startH: s.hour, endH: s.hour + hours }
   return null
 }
@@ -421,7 +429,7 @@ export function buyFitting(s: GameState, plot: number, id: string): string | nul
   if (bd.mods?.includes(id)) return `${f.name} is already fitted`
   const cost = Math.round(BLD[bd.type].cost * f.share)
   if (s.cash < cost) return 'Not enough cash'
-  s.cash -= cost
+  s.cash -= cost; L.book(s, 'buildings', -cost) // fittings count as building spend
   bd.mods = [...(bd.mods ?? []), id]
   s.xp += cost / 200
   say(s, `${BLD[bd.type].name}: fitted ${f.name}.`)
@@ -435,7 +443,7 @@ export function buyTill(s: GameState, plot: number): string | null {
   if (have >= TILL_MAX) return 'Tills are full'
   const cost = Math.round(BLD[bd.type].cost * tillShare(have))
   if (s.cash < cost) return 'Not enough cash'
-  s.cash -= cost
+  s.cash -= cost; L.book(s, 'buildings', -cost)
   bd.till = have + 1
   s.xp += cost / 200
   say(s, `${BLD[bd.type].name}: till ${have + 1} installed.`)
@@ -481,7 +489,7 @@ export function rollDay(s: GameState) {
   F.depleteAll(s)
   // Accounting base: cash plus bonds you hold.
   const fee = accountingFee(s.cash + F.heldValue(s), ACCOUNTING_FREE + X.cashLineBonus(s))
-  if (fee > 0) { s.cash -= fee; say(s, `Accounting fee: $${fee.toLocaleString()}.`) }
+  if (fee > 0) { s.cash -= fee; L.book(s, 'fees', -fee); say(s, `Accounting fee: $${fee.toLocaleString()}.`) }
   // Company value history is now snapshotted every V.SNAP_H hours in advanceTo.
   // Weekly economy roll (offline only; online the server decides).
   const day = Math.floor(s.hour / 24)
@@ -497,6 +505,9 @@ export function rollDay(s: GameState) {
   // Record today's going prices for the Exchange chart.
   s.priceHist = s.priceHist ?? {}
   for (const [k, v] of Object.entries(s.ref)) { const h = (s.priceHist[k] = s.priceHist[k] ?? []); h.push(v); if (h.length > 30) h.shift() }
+  // Daily close: last, so the day's interest, fees and prices are all in.
+  // Runs inside offline catch-up too (advanceTo calls rollDay each midnight).
+  L.closeDay(s)
 }
 
 // --------------------------------------------------------------------------
@@ -536,7 +547,7 @@ export function collect(s: GameState, plot: number): string | null {
   const p = pending(s, bd)!
   if (p.units < 1) return 'Nothing ready yet'
   if (j.kind === 'make') { setWhy('made'); addStock(s, j.res, p.q, p.units, j.uc); j.got = (j.got ?? 0) + p.units; madeNote(s, j.res, p.units) }
-  else { s.cash += p.cents / 100; j.got = (j.got ?? 0) + p.units; j.gotC = (j.gotC ?? 0) + p.cents }
+  else { s.cash += p.cents / 100; L.book(s, 'retail', p.cents / 100); j.got = (j.got ?? 0) + p.units; j.gotC = (j.gotC ?? 0) + p.cents }
   j.lastH = s.hour
   return null
 }
@@ -586,7 +597,7 @@ export function irrigate(s: GameState, plot: number): string | null {
   if (bd.job) return 'Building is busy'
   const cost = 2500 * bd.level
   if (s.cash < cost) return 'Not enough cash'
-  s.cash -= cost
+  s.cash -= cost; L.book(s, 'otherOut', -cost) // farm care
   bd.irrigated = true
   return null
 }
@@ -600,7 +611,7 @@ export function graft(s: GameState, plot: number): string | null {
   const cost = 300 * bd.level
   if (s.cash < cost) return 'Not enough cash'
   if (haveQty(s, 'seeds') < 3) return 'Need 3 Seeds'
-  s.cash -= cost
+  s.cash -= cost; L.book(s, 'otherOut', -cost)
   takeStock(s, 'seeds', 3)
   const [r, n] = rand(s.seed); s.seed = n
   bd.graft = r < FM.GRAFT_CHANCE
@@ -619,7 +630,7 @@ export function cancelJob(s: GameState, plot: number): string | null {
   const done = unitsDone(j, s.hour)
   if (j.kind === 'make') { setWhy('made'); addStock(s, j.res, p.q, Math.max(0, p.units), j.uc); say(s, `${BLD[bd.type].name} stopped after ${done} of ${j.qty} ${RES[j.res].name}.`) }
   else {
-    s.cash += p.cents / 100
+    s.cash += p.cents / 100; L.book(s, 'retail', p.cents / 100)
     setWhy('back from store')
     addStock(s, j.res, j.q, j.qty - done)
     s.soldToday[j.res] = (s.soldToday[j.res] ?? 0) + done * soldWeight(bd)
@@ -640,7 +651,7 @@ function finishJob(s: GameState, bd: Building) {
     s.xp += (makeWages(bd.type, bd.level, j.endH - j.startH)) / 50
   } else if (j.kind === 'sell') {
     const rev = saleCents(j) / 100
-    s.cash += (saleCents(j) - (j.gotC ?? 0)) / 100 // the rest not yet collected
+    s.cash += (saleCents(j) - (j.gotC ?? 0)) / 100; L.book(s, 'retail', (saleCents(j) - (j.gotC ?? 0)) / 100) // the rest not yet collected
     s.stats.retailRev += rev
     s.soldToday[j.res] = (s.soldToday[j.res] ?? 0) + j.qty * soldWeight(bd)
     s.xp += rev / 50
@@ -702,7 +713,7 @@ export function rush(s: GameState, plot: number): string | null {
   const left = bd.job.endH - s.hour
   const cost = Math.ceil(left) * 250
   if (s.cash < cost) return 'Not enough cash'
-  s.cash -= cost
+  s.cash -= cost; L.book(s, 'fees', -cost) // rush fee
   bd.job.endH = s.hour
   if (bd.job.kind === 'make' && FM.isFarm(bd.type)) ripen(s, bd)
   else finishJob(s, bd)

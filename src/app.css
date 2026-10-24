@@ -818,3 +818,24 @@ tr.bidrow td { color: #3c9a5f; font-weight: 600 }
 .card.jobcard > .jc-head, .card.jobcard > .jc-time { display: flex; flex-direction: column; align-items: center }
 .card.jobcard > .kv { display: grid }
 .card.jobcard > .row.jc-acts { display: flex; justify-content: center; flex-wrap: wrap; gap: 6px }
+
+/* ===== Daily financial statements (Finance → Cash flow / Balance / Ratios) =====
+   Idea from Parker's reference (caps sections, striped rows, ? help), drawn
+   in Ledgerworks' card style. Rows are a 2-column grid: the label wraps, the
+   value stays right-aligned, so it fits 390px wide at 130% text. */
+.fin-tabs { margin: 4px 0 8px } .fin-tabs button { min-width: 0; padding: 0 4px; overflow-wrap: anywhere }
+.fs { gap: 6px }
+.fs-nav { display: grid; grid-template-columns: 44px minmax(0, 1fr) 44px; align-items: center; text-align: center; gap: 6px }
+.fs-nav b { display: block; letter-spacing: .4px } .fs-nav small { display: block; color: #6b6470 }
+.fs-nav button { min-height: 44px; font-size: 1.4em; padding: 0 }
+.fs-body h4 { margin: 12px 0 4px; text-transform: uppercase; letter-spacing: .6px; font-size: .95em }
+.fs-body h5 { margin: 6px 0 2px; text-transform: uppercase; font-size: .8em; color: #6b6470; letter-spacing: .5px }
+.fs-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; padding: 5px 8px; align-items: baseline; border-radius: 6px }
+.fs-body > .fs-row:nth-of-type(even) { background: color-mix(in srgb, var(--line) 45%, transparent) }
+.fs-k { overflow-wrap: anywhere } .fs-strong { font-weight: 700 }
+.fs-v { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap }
+.fs-v small { display: block; font-size: .8em; font-weight: 400 }
+.fs-v.pos, .fs .pos { color: #2f8a3a } .fs-v.neg, .fs .neg { color: #c8553d }
+.fs-q { display: inline-grid; place-items: center; width: 22px; height: 22px; min-height: 0; margin-left: 6px; padding: 0; border-radius: 50%; font-size: .75em; font-weight: 700; vertical-align: middle; box-shadow: none }
+.fs-help { margin: 0 8px 4px; padding: 6px 8px; border-radius: 8px; background: #1f2633; color: #fff; font-size: .85em }
+.fs-total { border-top: 2px solid #1f243033; margin-top: 4px; padding-top: 2px }

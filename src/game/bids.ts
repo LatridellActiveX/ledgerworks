@@ -21,6 +21,9 @@
 //  - At most MAX_BIDS open orders; they expire after a week of game time.
 // Bids live in the save (GameState.bids); old saves simply have none.
 // ============================================================================
+import { book as ledgerBook } from './ledger'
+/** Ledger line for a buy order: crates have their own line. */
+const bidCat = (b: { res: string }) => (b.res === 'crates' ? 'crates' : 'exBuy') as 'crates' | 'exBuy'
 import { RES } from './data'
 import { rand } from './rng'
 import { addStock, logMsg, setWhy, type GameState } from './engine'
@@ -60,7 +63,7 @@ function fillBid(s: GameState, b: Bid, q: number, t: number, unit: number) {
   addStock(s, b.res, q, t, unit)
   b.qty -= t
   b.escrow = Math.max(0, b.escrow - t * b.price)
-  s.cash += t * (b.price - unit) // price improvement goes back to you
+  s.cash += t * (b.price - unit); ledgerBook(s, bidCat(b), t * (b.price - unit)) // price improvement goes back to you
   b.spent += t * unit
   s.stats.exSpend += t * unit
   s.bidFills = (s.bidFills ?? 0) + 1 // drives the "order filled" sound
@@ -94,10 +97,10 @@ export function placeBid(s: GameState, res: string, minQ: number, qty: number, p
   price = round2(price)
   if (s.cash + 1e-9 < bidCost(qty, price)) return 'Not enough cash for the escrow'
   const b: Bid = { id: s.nextUid++, res, minQ, qty, total: qty, price, escrow: qty * price, placedH: s.hour, spent: 0 }
-  s.cash -= b.escrow
+  s.cash -= b.escrow; ledgerBook(s, bidCat(b), -b.escrow) // escrow counts as a purchase; refunds net it back
   matchBook(s, b) // instant part, no broker fee
   if (b.qty > 0) {
-    s.cash -= b.qty * price * BROKER_FEE * feeMult(s) // fee on the waiting part only (a CFO cuts it)
+    s.cash -= b.qty * price * BROKER_FEE * feeMult(s); ledgerBook(s, 'fees', -b.qty * price * BROKER_FEE * feeMult(s)) // fee on the waiting part only (a CFO cuts it)
     bids.push(b)
   } else logMsg(s, `Exchange: your buy order for ${RES[res].name} filled at once.`)
   return null
@@ -107,7 +110,7 @@ export function placeBid(s: GameState, res: string, minQ: number, qty: number, p
 export function cancelBid(s: GameState, id: number): string | null {
   const b = (s.bids ?? []).find(x => x.id === id)
   if (!b) return 'Order not found'
-  s.cash += b.escrow
+  s.cash += b.escrow; ledgerBook(s, bidCat(b), b.escrow)
   s.bids = s.bids!.filter(x => x !== b)
   return null
 }
@@ -133,7 +136,7 @@ export function bidHour(s: GameState) {
     if (b.qty <= 0) logMsg(s, `Exchange: your buy order for ${RES[b.res].name} is complete.`)
   }
   for (const b of s.bids.filter(x => x.qty > 0 && s.hour - x.placedH >= EXPIRE_H)) {
-    s.cash += b.escrow; b.escrow = 0; b.qty = 0
+    s.cash += b.escrow; ledgerBook(s, bidCat(b), b.escrow); b.escrow = 0; b.qty = 0
     logMsg(s, `Exchange: your buy order for ${RES[b.res].name} expired; unused cash came back.`)
   }
   s.bids = s.bids.filter(x => x.qty > 0)

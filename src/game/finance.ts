@@ -21,6 +21,7 @@
 // quality before the deadline (each delivery is paid at once), and get the
 // deposit back when everything is in. Miss the deadline: lose the deposit.
 // ============================================================================
+import { book as ledgerBook } from './ledger'
 import { BLD, RES, RESOURCES } from './data'
 import { rand } from './rng'
 import { investedCost, addStock, setWhy, companyLevel, parseKey, key, type GameState, type Building } from './engine'
@@ -84,7 +85,7 @@ export function issueBond(s: GameState, lots: number, rate: number): string | nu
   const need = MIN_RATE[myRating(s)]
   if (rate < need) return `At rating ${myRating(s)} investors want at least ${(need * 100).toFixed(1)}% a day`
   s.bonds = [...(s.bonds ?? []), { id: s.nextUid++, amount, rate, soldH: s.hour }]
-  s.cash += amount
+  s.cash += amount; ledgerBook(s, 'bondsIssued', amount) // financing
   s.stats.bondsRaised += amount
   return null
 }
@@ -93,7 +94,7 @@ export function callBond(s: GameState, id: number): string | null {
   if (!b) return 'Bond not found'
   if (s.hour - b.soldH < CALL_AFTER_H) return 'Bonds can be repaid 14 days after sale'
   if (s.cash < b.amount) return 'Not enough cash to repay'
-  s.cash -= b.amount
+  s.cash -= b.amount; ledgerBook(s, 'bondsRepaid', -b.amount)
   s.bonds = s.bonds!.filter(x => x !== b)
   return null
 }
@@ -111,7 +112,7 @@ export function buyBond(s: GameState, id: number): string | null {
   const o = s.bondOffers?.find(x => x.id === id)
   if (!o) return 'Offer gone'
   if (s.cash < o.amount) return 'Not enough cash'
-  s.cash -= o.amount
+  s.cash -= o.amount; ledgerBook(s, 'bondsBought', -o.amount) // investing
   s.holdings = [...(s.holdings ?? []), { ...o, boughtH: s.hour }]
   s.bondOffers = s.bondOffers!.filter(x => x !== o)
   return null
@@ -120,21 +121,21 @@ export function buyBond(s: GameState, id: number): string | null {
 /** Midnight: pay/receive interest, defaults and early repayments. */
 export function bondDay(s: GameState, say: (m: string) => void) {
   const owe = (s.bonds ?? []).reduce((t, b) => t + b.amount * b.rate, 0)
-  if (owe) { s.cash -= owe; say(`Bond interest paid: $${Math.round(owe).toLocaleString()}.`) }
+  if (owe) { s.cash -= owe; ledgerBook(s, 'interestOut', -owe); say(`Bond interest paid: $${Math.round(owe).toLocaleString()}.`) }
   let got = 0
   for (const h of [...(s.holdings ?? [])]) {
     const [risk, rec] = DEFAULT_RISK[h.rating]
     if (rnd(s) < risk) {
-      s.cash += h.amount * rec; say(`${h.issuer} defaulted; you recovered ${Math.round(rec * 100)}%.`)
+      s.cash += h.amount * rec; ledgerBook(s, 'bondsBought', h.amount * rec); say(`${h.issuer} defaulted; you recovered ${Math.round(rec * 100)}%.`)
       s.holdings = s.holdings!.filter(x => x !== h); continue
     }
     got += h.amount * h.rate
     if (s.hour - h.boughtH >= CALL_AFTER_H && rnd(s) < 0.03) {
-      s.cash += h.amount; say(`${h.issuer} repaid its bond.`)
+      s.cash += h.amount; ledgerBook(s, 'bondsBought', h.amount); say(`${h.issuer} repaid its bond.`)
       s.holdings = s.holdings!.filter(x => x !== h)
     }
   }
-  if (got) s.cash += got
+  if (got) { s.cash += got; ledgerBook(s, 'interestIn', got) }
 }
 
 // --------------------------------------------------------- government orders
@@ -167,7 +168,7 @@ export function acceptGov(s: GameState): string | null {
   if (companyLevel(s.xp) < GOV_LEVEL) return `Government orders unlock at company level ${GOV_LEVEL}`
   if (!g || g.status !== 'offer') return 'No open offer'
   if (s.cash < g.deposit) return 'Not enough cash for the deposit'
-  s.cash -= g.deposit
+  s.cash -= g.deposit; ledgerBook(s, 'contracts', -g.deposit) // deposit nets against contract income
   g.status = 'active'; g.deadlineH = s.hour + 24 * 6
   return null
 }
@@ -186,8 +187,8 @@ export function deliverGov(s: GameState, res: string, amount?: number): string |
   for (const l of lots) { const t = Math.min(need, s.stock[key(l.res, l.q)]); addStock(s, l.res, l.q, -t); need -= t; sent += t; if (need <= 0) break }
   if (!sent) return `You have no ${RES[res].name} at Q${it.q} or better`
   it.done += sent
-  s.cash += sent * it.price
-  if (g.items.every(i => i.done >= i.qty)) { g.status = 'done'; s.cash += g.deposit; s.stats.govDone++ }
+  s.cash += sent * it.price; ledgerBook(s, 'contracts', sent * it.price)
+  if (g.items.every(i => i.done >= i.qty)) { g.status = 'done'; s.cash += g.deposit; ledgerBook(s, 'contracts', g.deposit); s.stats.govDone++ }
   return null
 }
 /** Midnight housekeeping for government orders. */

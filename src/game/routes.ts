@@ -31,6 +31,7 @@
 //  - Routes live in the save (GameState.routes), so local saves, save codes
 //    and cloud saves all carry them. Old saves simply have no routes.
 // ============================================================================
+import { book as ledgerBook } from './ledger'
 import { RES } from './data'
 import { refPrice, depth, bidPrice } from './market'
 import { fieldOf } from './research'
@@ -252,7 +253,7 @@ export function runRoute(s: GameState, r: Route) {
     // ---- Arrival: sell the load at the town's price right now. ----
     const t = r.trip
     const revenue = saleValue(s, town, r.res, t.qty, t.q)
-    s.cash += revenue
+    s.cash += revenue; ledgerBook(s, 'routes', revenue)
     s.xp += revenue / 100
     r.trips++; r.units += t.qty; r.revenue += revenue; r.costs += t.cost
     r.last = { h: s.hour, qty: t.qty, revenue, cost: t.cost }
@@ -271,7 +272,7 @@ export function runRoute(s: GameState, r: Route) {
   setWhy(`shipped to ${town.name}`)
   const q = takeStock(s, r.res, qty) // best quality first; returns the lowest taken
   if (q < 0) return skip('Not enough in the warehouse')
-  s.cash -= cost
+  s.cash -= cost; ledgerBook(s, 'routeCost', -cost)
   r.trip = { departH: s.hour, arriveH: s.hour + town.travelH, qty, q, cost }
 }
 
