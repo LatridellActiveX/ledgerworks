@@ -4,6 +4,12 @@ export interface ChangeEntry { id: string; date: string; title: string; notes: s
 
 export const CHANGELOG: ChangeEntry[] = [
   {
+    id: 'hud-clock-spacing',
+    date: '2026-10-23',
+    title: 'Top bar polish',
+    notes: ['The clock in the top bar reads "D1 08:00" again instead of running the day and time together, and the Turbo Week chip uses the right small font size (an earlier tweak that had no note of its own).'],
+  },
+  {
     id: 'compact-hud',
     date: '2026-10-23',
     title: 'Slimmer top bar',

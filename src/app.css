@@ -860,7 +860,7 @@ tr.bidrow td { color: #3c9a5f; font-weight: 600 }
 .hud-strip .hud-btn { min-width: 40px; height: 40px; border-radius: 12px; background: #ffffff14; box-shadow: none; padding: 0 8px }
 .hud-strip .burger span { width: 18px; height: 2px }
 .hud-left { display: flex; flex-direction: column; align-items: flex-start; gap: 3px; min-width: 0; flex: 1 1 auto } /* takes the free space (replaces the spacer) */
-.hud-strip .hud-info { align-self: flex-start; background: none; padding: 0; color: #fffc; font-size: 10px; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; box-shadow: none }
+.hud-strip .hud-info { align-self: flex-start; word-spacing: 2px; /* clearer gaps at 10px */ background: none; padding: 0; color: #fffc; font-size: 10px; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; box-shadow: none }
 .hud-strip .turbo-wrap { align-self: flex-start }
 .hud-strip .turbo-chip { padding: 1px 7px; font-size: 10px }
 .hud-strip .turbo-pop { left: 0; right: auto }

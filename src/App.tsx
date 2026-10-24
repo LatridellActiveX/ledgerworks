@@ -186,7 +186,9 @@ export default function App() {
         <button className="hud-btn burger" aria-label="Menu" onClick={() => setMenu(true)}><span /><span /><span /></button>
         {/* Tiny info column: day/clock/phase as small text, event chip under it. */}
         <div className="hud-left">
-          <span className="hud-info" title={clock(s.hour)}>{/* short form "D1 08:00" so it fits the slim strip */}{clock(s.hour).replace(/^Day /, 'D').replace(',', ' ')} · <span className={`phase-${s.phase ?? 'normal'}`}>{PHASE_LABEL[s.phase ?? 'normal']}</span>{s.realm === 'seasons' ? ` · S${s.season}` : ''}</span>
+          <span className="hud-info" title={clock(s.hour)}>{/* Short form "D1 08:00" so it fits the slim strip. A non-breaking space
+              (\u00a0) separates day and time: the plain space was so thin in the
+              10px strip font that it read as "D108:00". */}{clock(s.hour).replace(/^Day (\d+), /, 'D$1\u00a0')} · <span className={`phase-${s.phase ?? 'normal'}`}>{PHASE_LABEL[s.phase ?? 'normal']}</span>{s.realm === 'seasons' ? ` · S${s.season}` : ''}</span>
           <TurboChip />
         </div>
         {/* Small bell with an unread count. */}
