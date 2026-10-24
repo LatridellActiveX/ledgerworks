@@ -230,7 +230,8 @@ export default function App() {
       {screen !== 'map' && <section key={screen} className="screen">
         <header className="screen-head">
           <button className="hud-btn" aria-label="Back to map" onClick={() => { sfx('tap'); if (screen === 'chains' && chainFrom) { setWhOpen(chainFrom); setChainFrom(null); setScreen('warehouse'); return } setScreen('map'); setWhOpen(null); if (screen === 'building') setSel(null) }}>‹</button>
-          <h2>{screen === 'building' && sel !== null ? (s.plots[sel] ? `${BLD[s.plots[sel]!.type].name} · level ${s.plots[sel]!.level}` : `Build on plot ${sel + 1}`) : SCREEN_TITLE[screen]}</h2>
+          <h2>{screen === 'building' && sel !== null ? (s.plots[sel] ? // Farms grow by fields, not levels, so the top bar shows the field count.
+            (FM.isFarm(s.plots[sel]!.type) ? `${BLD[s.plots[sel]!.type].name} · ${1 + (s.plots[sel]!.fields?.length ?? 0)} fields` : `${BLD[s.plots[sel]!.type].name} · level ${s.plots[sel]!.level}`) : `Build on plot ${sel + 1}`) : SCREEN_TITLE[screen]}</h2>
           {(screen === 'exchange' || screen === 'trade') && <div className="seg"><button className={screen === 'exchange' ? 'on' : ''} onClick={() => setScreen('exchange')}>Exchange</button><button className={screen === 'trade' ? 'on' : ''} onClick={() => setScreen('trade')}>Trade floor</button></div>}
           {(screen === 'research' || screen === 'board') && <div className="seg"><button className={screen === 'research' ? 'on' : ''} onClick={() => setScreen('research')}>Research</button><button className={screen === 'board' ? 'on' : ''} onClick={() => setScreen('board')}>Board & goals</button></div>}
         </header>
@@ -423,7 +424,7 @@ function FieldsCard({ s, plot, sel, onSel, act }: { s: E.GameState; plot: number
     return <>{RES[j.res].name} · {Math.round(100 * FM.growFrac(j, s.hour))}%</>
   }
   return <div className="card fields-card">
-    <div className="jc-head"><b>FIELDS</b><span>Each field grows its own crop</span></div>
+    <div className="jc-head"><b>FIELDS</b> <span>Each field grows its own crop</span></div>
     <div className="kv">
       {units.map((u, i) => <KV key={u.uid} k={i === 0 ? `Main field (${bd.level === 1 ? '1×' : `L${bd.level}`})` : `Field ${i + 1} (${FM.FIELD_OUT}×)`}>{status(u)}</KV>)}
       <KV k="Next field">{next === null ? `Maximum (${FM.MAX_FIELDS} extra)` : <>{money(next)} <small className="muted">adds {FM.FIELD_OUT}× base output</small></>}</KV>
