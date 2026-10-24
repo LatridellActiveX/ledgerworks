@@ -4,6 +4,12 @@ export interface ChangeEntry { id: string; date: string; title: string; notes: s
 
 export const CHANGELOG: ChangeEntry[] = [
   {
+    id: 'turbo-week',
+    date: '2026-10-23',
+    title: '⚡ Turbo Week: 3× production and selling',
+    notes: ['For one week (until Fri Oct 30, 8:48 PM EDT) every factory, crop and store runs 3× faster for all players, including jobs already running and time spent offline during the event. Prices, wages and research are unchanged. Watch the ⚡ chip under the clock for the countdown.'],
+  },
+  {
     id: 'value-donut-fix',
     date: '2026-10-23',
     title: 'Cleaner Company Value chart',

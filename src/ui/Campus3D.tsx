@@ -2,6 +2,7 @@
 // campus when WebGL is missing, the bundle fails to load, or the player
 // switches to 2D. The 3D bundle is a separate file (/scene3d.js), so the
 // game shows instantly and the 3D view fades in when ready.
+import { TurboTag } from './TurboChip'
 import { useEffect, useRef, useState } from 'react'
 import type { GameState } from '../game/engine'
 import { Campus, tilePos } from './campus'
@@ -87,7 +88,7 @@ function ActivityBadges({ s, posOf }: { s: GameState; posOf: (i: number) => { x:
       const a = activityOf(s, bd)
       if (!a) return null
       // Dark time pill (time left on the job), like a status label over each building.
-      const left = bd?.job ? Math.max(0, bd.job.endH - s.hour) : 0
+      const left = bd?.job ? E.jobLeft(s, bd.job) : 0 // counts the live event speed-up
       if (a.state === 'build') return <div key={i} className="act build" ref={reg(i)}><span className="tpill">🏗 {dur(left)}</span></div>
       const busy = a.state === 'make' || a.state === 'sell' || a.state === 'done'
       const R = 15, C = 2 * Math.PI * R
@@ -101,7 +102,7 @@ function ActivityBadges({ s, posOf }: { s: GameState; posOf: (i: number) => { x:
           <span className="ic">{a.state === 'sell' ? <span className="coin sm">$</span> : <ResIcon id={a.res} size={18} />}</span>
           {/* The floating "ka-ching!" text over selling stores was removed (2D and 3D share this overlay).
               The coin collect sound still plays. */}
-          <span className="tpill" title={chipLabel[a.state]}><i className={`dot ${a.state}`} />{a.state === 'done' ? 'Done' : dur(left)}</span>
+          <span className="tpill" title={chipLabel[a.state]}><i className={`dot ${a.state}`} />{a.state === 'done' ? 'Done' : dur(left)}{a.state !== 'done' && <TurboTag on={E.boosts(bd?.job)} />}</span>
           {/* The "$x / $y" earnings pill over selling stores was removed
               (Oct 2026) in both 2D and 2.5D; the coin bubble and timer above
               stay, and the full breakdown lives in the store's panel. */}

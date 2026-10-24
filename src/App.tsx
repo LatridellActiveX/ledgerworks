@@ -4,6 +4,7 @@
 //   top bar (cash, level, clock) | plot grid | side panel (selected plot)
 //   warehouse + exchange | event log | change log
 // ============================================================================
+import { TurboChip, TurboTag } from './ui/TurboChip'
 import { Boot } from './ui/Boot'
 import { PlayerSearch, PlayerProfile } from './ui/Players'
 import { PlayerCtx } from './ui/PlayerLink'
@@ -185,6 +186,8 @@ export default function App() {
           <button className="pill crates" aria-label="Shipping crates" title="Shipping crates (tap to buy more)" onClick={() => open('warehouse')}><ResIcon id="crates" size={16} />{compactNum(E.haveQty(s, 'crates'))}</button>
           <button className="hud-xp" title={`Company level ${lvl}, ${xpPct}% to the next. Tap for details.`} aria-label={`Company level ${lvl}, ${xpPct} percent to the next. Show level details.`} onClick={() => open('levels')}><b>★ {lvl}</b><span className="bar"><i style={{ width: `${xpPct}%` }} /></span><small>{xpPct}%</small></button>
           <span className="hud-info">{clock(s.hour)} · <span className={`phase-${s.phase ?? 'normal'}`}>{PHASE_LABEL[s.phase ?? 'normal']}</span>{s.realm === 'seasons' ? ` · S${s.season}` : ''}</span>
+          {/* Live event chip (Turbo Week): one line, under the clock. */}
+          <TurboChip />
         </div>
       </div>
 
@@ -439,7 +442,8 @@ function JobCard({ s, plot, act }: { s: E.GameState; plot: number; act: Act }) {
   if (j.kind === 'build' || !a) return null
   const p = E.pending(s, bd)!
   const ripe = E.ripeOf(j) !== undefined
-  const left = j.endH - s.hour
+  // Time left counts the live event (Turbo Week runs jobs faster).
+  const left = E.jobLeft(s, j)
   return <div className={`card jobcard jobprog ${j.kind}`}>
     {/* 1. Header: section title in caps, product name below. */}
     <div className="jc-head">
@@ -486,7 +490,7 @@ function JobCard({ s, plot, act }: { s: E.GameState; plot: number; act: Act }) {
     {/* 4. Time left, with the wall-clock finish muted underneath. */}
     <div className="jc-time">
       {ripe ? <span>Ripe. Harvest it from the plot above.</span> : <>
-        <span>{dur(left)}</span>
+        <span>{dur(left)} <TurboTag on={E.boosts(j)} /></span>
         <small className="muted">Finishes at {finishAt(left)}</small>
       </>}
     </div>

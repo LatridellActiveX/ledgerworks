@@ -1,6 +1,7 @@
 // Orchard plot: a drawn field that shows what is growing, how far along it
 // is, the soil and the weather, with the hands-on actions: tend, harvest,
 // irrigate and graft. Used inside the building panel for farm buildings.
+import { TurboTag } from './TurboChip'
 import * as E from '../game/engine'
 import * as FM from '../game/farm'
 import { RES } from '../game/data'
@@ -77,7 +78,7 @@ export function FarmPlot({ s, plot, act }: { s: E.GameState; plot: number; act: 
     <div className="farm-stats">
       <div>Soil <span className="bar"><i style={{ width: `${Math.min(100, (soil / FM.SOIL_MAX) * 100)}%` }} /></span> {Math.round(soil * 100)}%</div>
       <div className="muted">{FM.WEATHER[weather].note}</div>
-      {j && !ripe && <div>Ripens in {Math.ceil((j.endH - s.hour) * 60)} min · tended {j.tends ?? 0}×</div>}
+      {j && !ripe && <div>Ripens in {Math.ceil(E.jobLeft(s, j) * 60)} min <TurboTag on={E.boosts(j)} /> · tended {j.tends ?? 0}×</div>}
       {ripe && <div className={late ? 'err' : 'ok-note'}>{late ? 'Late: losing quality. Harvest now.' : 'Ripe. Harvest now before it loses value.'}</div>}
     </div>
     <div className="row farm-actions">

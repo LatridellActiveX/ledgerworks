@@ -1,3 +1,4 @@
+import * as EV from './event'
 import { currentBases } from './rebase'
 // ============================================================================
 // Ledgerworks simulation engine (pure functions, no React, easy to test).
@@ -665,7 +666,7 @@ function finishJob(s: GameState, bd: Building) {
  * Move the clock to `toHour`, finishing jobs and rolling days in time order.
  * Mutates and returns the state.
  */
-export function advanceTo(s: GameState, toHour: number): GameState {
+export function advanceTo(s: GameState, toHour: number, boost = 1): GameState {
   // Trade routes: after a long time away, only the last few missed trips are made up.
   R.capCatchUp(s, toHour)
   while (true) {
@@ -673,11 +674,16 @@ export function advanceTo(s: GameState, toHour: number): GameState {
     // the next whole hour (NPC buyers), or midnight.
     const nextHour = Math.floor(s.hour + 1e-9) + 1
     let next = nextHour, who: Building | null = null, route: R.Route | null = null
-    for (const bd of s.plots) if (bd?.job && ripeOf(bd.job) === undefined && bd.job.endH < next) { next = bd.job.endH; who = bd }
+    // A boosted job (Turbo Week) ends after (endH - hour) / boost game hours.
+    for (const bd of s.plots) if (bd?.job && ripeOf(bd.job) === undefined) {
+      const end = boosts(bd.job) ? s.hour + Math.max(0, bd.job.endH - s.hour) / boost : bd.job.endH
+      if (end < next) { next = end; who = bd }
+    }
     for (const bd of s.plots) { const rh = ripeOf(bd?.job); if (bd && rh !== undefined && rh + FM.SPOIL_H < next) { next = Math.max(s.hour, rh + FM.SPOIL_H); who = bd } }
     const re = R.nextRouteEvent(s)
     if (re && re.h < next) { next = Math.max(s.hour, re.h); who = null; route = re.r }
     if (next > toHour) break
+    warpJobs(s, next - s.hour, boost)
     s.hour = next
     if (route) R.runRoute(s, route)
     else if (who && ripeOf(who.job) !== undefined) { say(s, `${BLD[who.type].name}: the crop spoiled before it was harvested.`); who.job = undefined }
@@ -692,17 +698,54 @@ export function advanceTo(s: GameState, toHour: number): GameState {
       if (nextHour % 24 === 0) { rollDay(s); const [r, n] = rand(s.seed); s.seed = n; for (const line of FM.farmDay(s, r)) say(s, line) }
     }
   }
+  warpJobs(s, Math.max(0, toHour - s.hour), boost)
   s.hour = Math.max(s.hour, toHour)
   for (const m of X.checkAchievements(s)) say(s, m)
   return s
 }
 
-/** Advance by real wall-clock time since the last call (offline progress too). */
+// --------------------------------------------------------------------------
+// Live-event speed-ups (Turbo Week, see event.ts).
+//
+// A job's progress is (hour - startH) / (endH - startH). To make a job run
+// `boost` times faster for `dt` game hours we slide its whole timeline
+// (startH, endH and lastH) earlier by (boost - 1) * dt: progress then grows by
+// boost * dt while its length (and so its wages, XP and units) is unchanged.
+// This also speeds up jobs that were already running, from now on only.
+// --------------------------------------------------------------------------
+/** Jobs the event speeds up: production (incl. growing crops) and store selling. Not construction, not ripe crops. */
+export const boosts = (j: Job | undefined) => !!j && (j.kind === 'make' || j.kind === 'sell') && (j.kind !== 'make' || j.ripeH === undefined)
+function warpJobs(s: GameState, dt: number, boost: number) {
+  if (boost === 1 || dt <= 0) return
+  const shift = (boost - 1) * dt
+  for (const bd of s.plots) {
+    const j = bd?.job
+    if (!boosts(j) || j!.kind === 'build') continue
+    const k = j as Extract<Job, { kind: 'make' | 'sell' }>
+    // Never slide past the end: a job finishing in this step lands exactly on it.
+    const sh = Math.min(shift, Math.max(0, k.endH - s.hour - dt))
+    k.startH -= sh; k.endH -= sh
+    if (k.lastH !== undefined) k.lastH -= sh
+  }
+}
+/** Game hours a job still takes from now, counting the live event. For timers and countdowns. */
+export const jobLeft = (s: GameState, j: Job | undefined, now = Date.now()) =>
+  !j ? 0 : boosts(j) ? EV.boostedLeft(Math.max(0, j.endH - s.hour), now) : Math.max(0, j.endH - s.hour)
+
+/**
+ * Advance by real wall-clock time since the last call (offline progress too).
+ * The real interval is split at the event's start/end so only the part inside
+ * the window runs boosted, and players get a notice when it starts or ends.
+ */
 export function advanceReal(s: GameState, now = Date.now()): GameState {
-  const dh = ((now - s.lastReal) / 3600000) * GAME_SPEED
+  const from = s.lastReal
   s.lastReal = now
   if (s.realm === 'seasons') s.seasonPhase = SEA.seasonAt(now).phase // shared season clock
-  return dh > 0 ? advanceTo(s, s.hour + dh) : s
+  for (const seg of EV.splitWindow(from, now)) advanceTo(s, s.hour + ((seg.to - seg.from) / 3600000) * GAME_SPEED, seg.mult)
+  const x = EV.crossed(from, now)
+  if (x.started) say(s, `${EV.EVENT.icon} ${EV.EVENT.name} has started! Production and store selling run ${EV.EVENT.mult}× faster until ${new Date(EV.EVENT.end).toLocaleString([], { weekday: 'short', hour: 'numeric', minute: '2-digit' })}.`)
+  if (x.ended) say(s, `${EV.EVENT.name} has ended. Production and selling are back to normal speed.`)
+  return s
 }
 
 /** Pay 2,000 cash to finish a running job instantly ("rush"); handy in a

@@ -10,6 +10,7 @@
 // UX idea borrowed from Offworld Trading Company's event pop-ups and
 // Capitalism Lab's news reports; the live-feed look, words and art are ours.
 // ============================================================================
+import * as EV from '../game/event'
 import * as E from '../game/engine'
 import * as N from '../game/news'
 import { RES } from '../game/data'
@@ -63,6 +64,12 @@ export function News({ s }: { s: E.GameState }) {
         <div className="nw-rule" />
       </header>
       <p className="muted nw-help">News changes how fast shops sell the goods in a story (and, playing offline, nudges their market price). Stock up before a boom; hold back during a slump.</p>
+      {/* Live event headline (Turbo Week) at the top of the feed while it runs. */}
+      {EV.isLive(Date.now()) && <article className="nw-story nw-live-ev nw-up">
+        <div className="nw-top"><span className="nw-pic" aria-hidden>{EV.EVENT.icon}</span>
+          <div><small className="nw-tag">Breaking · ends in {EV.countdown(EV.msLeft(Date.now()))}</small><h3>{EV.EVENT.name}: factories and stores run {EV.EVENT.mult}× faster</h3><p>{EV.EVENT.blurb}</p></div>
+          <b className="nw-eff">{EV.EVENT.mult}×</b></div>
+      </article>}
       {live.length === 0 && <p className="nw-quiet">No market news today. Prices and demand are normal.</p>}
       {live.map((st, i) => <Story key={st.t.id + st.startDay} s={s} st={st} kind={i === 0 ? 'lead' : 'live'} day={day} />)}
       {rum && <Story s={s} st={rum} kind="rumor" day={day} />}

@@ -15,6 +15,7 @@
 //    Use in contract with the shared quantity picker).
 // All icons are Ledgerworks' own SVG art (see goodart.tsx).
 // ============================================================================
+import { TurboTag } from './TurboChip'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import * as E from '../game/engine'
 import * as M from '../game/market'
@@ -174,7 +175,7 @@ function Incoming({ s, openPlot }: { s: E.GameState; openPlot: (i: number) => vo
     return <button key={i} className="wh-li" onClick={() => openPlot(i)}>
       <GoodArt id={j.res} size={40} />
       <span><b>{RES[j.res].name}</b> <small>at {BLD[bd!.type].name}</small><br />
-        <small>{num(p.units)} ready to collect · {num(j.qty - done)} still to make · done in {dur(Math.max(0, j.endH - s.hour))}</small>
+        <small>{num(p.units)} ready to collect · {num(j.qty - done)} still to make · done in {dur(E.jobLeft(s, j))} <TurboTag on /></small>
         <span className="bar"><i style={{ width: `${(100 * done) / j.qty}%` }} /></span>
         <small>Sourcing {j.src !== undefined ? `${money(j.src)} · ${money(j.src / j.qty)} per unit` : '—'}{j.wg !== undefined ? ` · wages ${money(j.wg / j.qty)} per unit` : ''}</small></span>
     </button>
