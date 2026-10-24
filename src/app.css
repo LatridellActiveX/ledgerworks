@@ -272,6 +272,13 @@ select.realm { border-radius: 999px; padding: 4px 10px; font: inherit; font-size
 @keyframes burst { from { opacity: 1; transform: scale(.2) rotate(0) } to { opacity: 0; transform: scale(1.6) rotate(40deg) } }
 
 /* Collect bubble: big fixed hit box; only the inner face bobs. */
+/* BLURRY-PANEL FIX (Oct 2026): the original .bubble rule above gives the
+   whole bubble box a frosted backdrop-filter blur. This later restyle made the
+   box itself transparent and draws the visible pill on .face instead, but the
+   blur was never switched off. That left a see-through, blurred 76x64 rectangle
+   around and ABOVE the pill (the box is taller than the pill, which sits at the
+   bottom). backdrop-filter: none removes it, so only the clean pill shows. */
+.bubble { backdrop-filter: none !important; -webkit-backdrop-filter: none !important }
 .bubble { min-width: 76px; min-height: 64px; padding: 0; background: transparent !important; border: 0 !important; box-shadow: none !important; animation: none !important; display: grid; place-items: end center }
 .bubble::after { display: none }
 .bubble .face { position: relative; display: flex; align-items: center; gap: 5px; padding: 6px 12px 8px; border-radius: 18px; background: #fffdf8; box-shadow: 0 4px 12px #0003, 0 0 0 2px #fff;

@@ -4,6 +4,12 @@ export interface ChangeEntry { id: string; date: string; title: string; notes: s
 
 export const CHANGELOG: ChangeEntry[] = [
   {
+    id: 'collect-bubble-blur',
+    date: '2026-10-24',
+    title: 'Clean collect bubbles',
+    notes: ['The "+38" style collect bubbles on the map no longer have a blurry frosted box behind and above them. Only the bubble itself shows now.'],
+  },
+  {
     id: 'black-buildings-fix',
     date: '2026-10-23',
     title: 'Buildings no longer show up black',
