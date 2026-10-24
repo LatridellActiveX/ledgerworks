@@ -31,6 +31,7 @@ import { Login } from './ui/Login'
 import { Guide, Tip, Goals } from './ui/Tutorial'
 import * as TU from './game/tutorial'
 import * as A from './game/auth'
+import { Admin } from './ui/Admin'
 import { BuildingArt, Logo, ResIcon } from './ui/art'
 import { Campus3D } from './ui/Campus3D'
 import { Ticker } from './ui/Ticker'
@@ -54,7 +55,7 @@ import { flyTo } from './ui/fly'
 import * as Q from './game/qty'
 import { cashLineBonus, checkAchievements } from './game/execs'
 import { PHASE_LABEL, accountingFee } from './game/economy'
-import { cloudKey, cloudLoad, cloudSave, syncWorld, useCloudKey } from './game/cloud'
+import { cloudKey, cloudLoad, cloudSave, pullInbox, syncWorld, useCloudKey } from './game/cloud'
 import './app.css'
 
 export default function App() {
@@ -77,11 +78,14 @@ export default function App() {
   const [whOpen, setWhOpen] = useState<string | null>(null)
   // Accounts: who is signed in (cookie session), and whether to show the login screen.
   const [user, setUser] = useState<string | null>(null)
+  // Admin flag from /api/auth/me: ONLY shows the menu entry; the server checks every admin call.
+  const [isAdmin, setIsAdmin] = useState(false)
   const [showLogin, setShowLogin] = useState(false)
-  useEffect(() => { A.me().then(m => { if (m) setUser(m.name); else if (!A.isGuest()) setShowLogin(true) }) }, [])
+  useEffect(() => { A.me().then(m => { if (m) { setUser(m.name); setIsAdmin(!!m.admin) } else if (!A.isGuest()) setShowLogin(true) }) }, [])
   /** After sign-in: load the account's cloud save, or upload this company if it has none. */
   const afterLogin = async (name: string | null, created = false) => {
     setShowLogin(false); setUser(name)
+    A.me().then(m => setIsAdmin(!!m?.admin))
     if (!name) return
     // Guest -> account: this device's company is the newest copy, so upload it
     // first (an older guest cloud backup must never overwrite it). The trade
@@ -129,8 +133,17 @@ export default function App() {
   // Every minute: pull shared prices from the server; every 2 minutes: cloud save.
   useEffect(() => {
     const pull = () => setS(p => { const n = structuredClone(p); syncWorld(n).then(() => setS(q => ({ ...q, ref: n.ref, online: n.online, phase: n.phase ?? q.phase }))); return p })
-    pull()
-    const a = setInterval(pull, 60000)
+    // Support changes queued on the server (cash given/taken, fresh start):
+    // applied here because the game, not the server, owns the save.
+    const inbox = () => pullInbox().then(items => {
+      for (const it of items) {
+        if (it.kind === 'cash') setS(p => { const n = structuredClone(p); n.cash += it.amount; return n })
+        if (it.kind === 'reset') setS(p => { const n = freshGame(p.company); saveGame(n); cloudSave(n); return n })
+        setMsg(it.kind === 'cash' ? `Support ${it.amount > 0 ? 'added' : 'removed'} ${money(Math.abs(it.amount))} ${it.amount > 0 ? 'to' : 'from'} your cash.` : 'Support reset your company to a fresh start.')
+      }
+    })
+    pull(); inbox()
+    const a = setInterval(() => { pull(); inbox() }, 60000)
     const b = setInterval(() => setS(p => { cloudSave(p); return p }), 120000)
     return () => { clearInterval(a); clearInterval(b) }
   }, [])
@@ -267,6 +280,7 @@ export default function App() {
           {screen === 'board' && <Board s={s} onExecs={() => open('execs')} />}
           {screen === 'execs' && <Executives s={s} act={act} />}
           {screen === 'finance' && <Finance s={s} act={act} user={user} onReport={() => { if (!tut.report) setTut({ ...tut, report: true }) }} />}
+          {screen === 'admin' && isAdmin && <Admin />}
           {screen === 'goals' && <Goals s={s} t={tut} onClaim={claimGoal} />}
           {screen === 'levels' && <LevelScreen s={s} />}
           {screen === 'value' && <CompanyValue s={s} onPlayer={openPlayer} onRename={renameCompany_} />}
@@ -279,7 +293,7 @@ export default function App() {
           {screen === 'log' && <ul className="log">{s.log.map((l, i) => <li key={i}>{l}</li>)}</ul>}
           {screen === 'changes' && <ul className="log">{CHANGELOG.map(c => <li key={c.id}><b>{c.date} · {c.title}</b> — {c.notes.join(' ')}</li>)}</ul>}
           {screen === 'account' && <div className="menu-list">
-            {user ? <p>Signed in as <b>{user}</b> <button onClick={async () => { await A.logout().catch(() => {}); setUser(null); A.setGuest(true); setMsg('Signed out') }}>Log out</button></p>
+            {user ? <p>Signed in as <b>{user}</b> <button onClick={async () => { await A.logout().catch(() => {}); setUser(null); setIsAdmin(false); A.setGuest(true); setMsg('Signed out') }}>Log out</button></p>
               : <><p className="muted">Playing as a guest. Create an account to keep this company safe and play on any device.</p><button className="primary" onClick={() => setShowLogin(true)}>Sign in or create account</button></>}
             <div className="crest-row">
               <Crest name={s.company} size={84} />
@@ -337,6 +351,7 @@ export default function App() {
       {menu && <div className="drawer-bg" onClick={() => setMenu(false)}><nav className="drawer" onClick={e => e.stopPropagation()}>
         <div className="drawer-head"><Logo /><b>{s.company}</b></div>
         {(['goals', 'levels', 'value', 'players', 'execs', 'news', 'routes', 'chains', 'market', 'log', 'changes', 'account', 'settings', 'privacy'] as const).map(t => <button key={t} onClick={() => open(t)}>{SCREEN_ICON[t]} {SCREEN_TITLE[t]}</button>)}
+        {isAdmin && <button onClick={() => open('admin')}>{SCREEN_ICON.admin} {SCREEN_TITLE.admin}</button>}
         <button onClick={() => { toggleView(); setMenu(false) }}>{view === '3d' ? '▦ Switch to 2D map' : '◈ Switch to 3D map'}</button>
       </nav></div>}
 
@@ -361,9 +376,9 @@ export default function App() {
 }
 
 /** Every screen the HUD can open. 'map' is the plain map. */
-type Screen = 'map' | 'levels' | 'value' | 'building' | 'warehouse' | 'exchange' | 'trade' | 'research' | 'board' | 'finance' | 'market' | 'log' | 'changes' | 'account' | 'settings' | 'privacy' | 'chains' | 'news' | 'routes' | 'execs' | 'players' | 'goals'
-const SCREEN_TITLE: Record<Screen, string> = { map: 'Map', levels: 'Company level', value: 'Company value', building: 'Building', warehouse: 'Warehouse', exchange: 'Market', trade: 'Market', research: 'Research', board: 'Research', finance: 'Finance', market: 'Public demand', log: 'Events', changes: 'Change log', account: 'Saves & account', settings: 'Settings', privacy: 'Privacy policy', chains: 'Production chains', news: 'Business Live', routes: 'Trade routes', execs: 'Executives', players: 'Players', goals: 'Goals' }
-const SCREEN_ICON: Partial<Record<Screen, string>> = { levels: '★', value: '💹', market: '📈', log: '🔔', changes: '📝', account: '💾', settings: '⚙', privacy: '🔒', chains: '🔗', news: '📡', routes: '🚚', execs: '👔', players: '🔎', goals: '🎯' }
+type Screen = 'map' | 'levels' | 'value' | 'building' | 'warehouse' | 'exchange' | 'trade' | 'research' | 'board' | 'finance' | 'market' | 'log' | 'changes' | 'account' | 'settings' | 'privacy' | 'chains' | 'news' | 'routes' | 'execs' | 'players' | 'goals' | 'admin'
+const SCREEN_TITLE: Record<Screen, string> = { map: 'Map', levels: 'Company level', value: 'Company value', building: 'Building', warehouse: 'Warehouse', exchange: 'Market', trade: 'Market', research: 'Research', board: 'Research', finance: 'Finance', market: 'Public demand', log: 'Events', changes: 'Change log', account: 'Saves & account', settings: 'Settings', privacy: 'Privacy policy', chains: 'Production chains', news: 'Business Live', routes: 'Trade routes', execs: 'Executives', players: 'Players', goals: 'Goals', admin: 'Admin' }
+const SCREEN_ICON: Partial<Record<Screen, string>> = { levels: '★', value: '💹', market: '📈', log: '🔔', changes: '📝', account: '💾', settings: '⚙', privacy: '🔒', chains: '🔗', news: '📡', routes: '🚚', execs: '👔', players: '🔎', goals: '🎯', admin: '🛠' }
 /** The bottom tab bar (original simple glyphs). */
 const TABS: [Screen, string, string][] = [['map', 'Map', '🗺'], ['warehouse', 'Warehouse', '📦'], ['exchange', 'Market', '⇄'], ['research', 'Research', '🔬'], ['finance', 'Finance', '🏦']]
 

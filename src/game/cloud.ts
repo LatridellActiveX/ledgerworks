@@ -10,6 +10,7 @@
 import type { GameState } from './engine'
 import { migrate } from './save'
 import { realm } from './seasons'
+import { setEventEnd } from './event'
 /** Cloud row id: the seasons realm gets its own row so it never overwrites a classic save. */
 const rowId = (id: string) => (realm() === 'seasons' ? id + '-s' : id)
 
@@ -47,6 +48,7 @@ export async function syncWorld(s: GameState): Promise<boolean> {
     s.ref = { ...s.ref, ...w.ref }
     s.online = true
     if (w.phase) s.phase = w.phase // stage 7: shared economy phase
+    setEventEnd(w.eventEnd) // event ended/extended on the server
     return true
   } catch { s.online = false; return false }
 }
@@ -65,4 +67,25 @@ export async function cloudLoad(): Promise<GameState> {
   const r = await fetch('/api/load', { method: 'POST', body: JSON.stringify({ id: rowId(id), token, seasons: realm() === 'seasons' }) })
   if (!r.ok) throw new Error((await r.json()).error)
   return migrate(await r.json())
+}
+
+/** A change support made to this company (cash given/taken, or a fresh start). */
+export type InboxItem = { kind: 'cash' | 'reset'; amount: number }
+/**
+ * Fetch (and clear) pending support changes for this player. Classic realm
+ * only; the server knows the player from the session or the cloud key.
+ */
+export async function pullInbox(): Promise<InboxItem[]> {
+  if (realm() !== 'classic') return []
+  try {
+    const { id, token } = identity()
+    const r = await fetch('/api/inbox', { method: 'POST', credentials: 'same-origin', body: JSON.stringify({ id, token }) })
+    return r.ok ? ((await r.json()).items ?? []) : []
+  } catch { return [] }
+}
+/** Report an error to the server log (message only), at most 5 per page load. */
+let errSent = 0
+export function reportError(msg: string, src = 'client') {
+  if (errSent++ >= 5) return
+  fetch('/api/error', { method: 'POST', body: JSON.stringify({ msg: String(msg).slice(0, 300), src }) }).catch(() => {})
 }

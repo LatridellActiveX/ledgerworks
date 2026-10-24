@@ -97,7 +97,14 @@ export async function handleAuth(req: Request, env: AuthEnv, path: string): Prom
   if (!path.startsWith('/api/auth/')) return null
   await ensureAuthSchema(env)
   const op = path.slice('/api/auth/'.length)
-  if (op === 'me') { const u = await sessionUser(req, env); return u ? json({ name: u.name }) : json({ error: 'signed out' }, 401) }
+  if (op === 'me') {
+    const u = await sessionUser(req, env)
+    if (!u) return json({ error: 'signed out' }, 401)
+    // `admin` only decides whether the menu shows the Admin entry; every admin
+    // endpoint re-checks the flag on the server (worker/admin.ts).
+    const a = await env.DB.prepare('SELECT is_admin FROM users WHERE name = ?').bind(u.name).first<any>().catch(() => null)
+    return json({ name: u.name, ...(a?.is_admin === 1 ? { admin: true } : {}) })
+  }
   if (req.method !== 'POST') return json({ error: 'method' }, 405)
   if (op === 'logout') {
     const tok = cookieOf(req)

@@ -5,7 +5,7 @@
 import { identity } from './cloud'
 
 export const GUEST_KEY = 'ledgerworks-guest'
-export type Me = { name: string } | null
+export type Me = { name: string; admin?: boolean } | null
 
 async function call(op: string, body?: unknown) {
   const r = await fetch('/api/auth/' + op, body === undefined ? { credentials: 'same-origin' } : { method: 'POST', credentials: 'same-origin', body: JSON.stringify(body) })

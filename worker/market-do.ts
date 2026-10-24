@@ -126,6 +126,21 @@ export class MarketDO {
   async fetch(req: Request): Promise<Response> {
     const path = new URL(req.url).pathname
     if (path.startsWith('/p2p/')) return this.p2p(path.slice(5), await req.json<any>().catch(() => ({})))
+    // Internal admin reads. Only the Worker's admin handler (which checks
+    // is_admin first) calls these; no public route forwards /admin/* here.
+    if (path === '/admin/world') return Response.json(await this.step())
+    if (path === '/admin/values') {
+      // Company value last reported per game username (linked accounts).
+      const L = await this.ledger(), out: Record<string, number> = {}
+      for (const a of Object.values(L.accounts)) out[a.owner ?? a.name] = a.value
+      return Response.json(out)
+    }
+    if (path === '/admin/board') {
+      // Units listed and open order count per good on the player board.
+      const L = await this.ledger(), out: Record<string, { qty: number; n: number }> = {}
+      for (const o of L.orders) { const x = (out[o.res] ??= { qty: 0, n: 0 }); x.qty += o.qty; x.n++ }
+      return Response.json(out)
+    }
     if (path === '/report') {
       // { sold: { resId: units } } -- capped per call so one client can't crash prices.
       const { sold } = await req.json<any>()

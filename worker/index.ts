@@ -25,6 +25,8 @@ import { cleanupGuestSaves, isCleanupSlot } from './cleanup'
 import { privacyHtml } from '../src/legal/privacy'
 import { MarketDO } from './market-do'
 import { handleAuth, sessionUser, ensureAuthSchema } from './auth'
+import { handleAdmin, handlePublic, eventEnd } from './admin'
+import { EVENT } from '../src/game/event'
 export { MarketDO }
 
 declare const __HTML__: string
@@ -71,7 +73,12 @@ export default {
     // Lazy 3D campus bundle; the URL carries a build stamp so it can cache for a year.
     if (url.pathname === '/scene3d.js') return new Response(__SCENE__, { headers: { 'content-type': 'text/javascript; charset=utf-8', 'cache-control': 'public, max-age=31536000, immutable' } })
 
-    if (url.pathname === '/api/world') return world(env).fetch('https://do/world')
+    if (url.pathname === '/api/world') {
+      // Shared prices, plus the live event's end time if an admin changed it.
+      const w = await (await world(env).fetch('https://do/world')).json<any>()
+      const eventEndAt = await eventEnd(env).catch(() => null)
+      return json({ ...w, ...(eventEndAt ? { eventEnd: eventEndAt } : {}) })
+    }
     if (url.pathname === '/api/report' && req.method === 'POST') return world(env).fetch('https://do/report', { method: 'POST', body: await req.text() })
 
     // Stage 11: player accounts and trading all live in the market object.
@@ -90,6 +97,17 @@ export default {
       await ensureAuthSchema(env)
       const ledger = (op: string, body: unknown) => world(env).fetch('https://do/p2p/' + op, { method: 'POST', body: JSON.stringify(body) }).then(r => r.json<any>())
       return (await handlePlayers(req, env, url, ledger, await sha(req.headers.get('cf-connecting-ip') ?? 'local')))!
+    }
+    // Internal tools: every /api/admin/* call is checked for is_admin in worker/admin.ts.
+    if (url.pathname.startsWith('/api/admin/')) {
+      await ensureAuthSchema(env)
+      const doGet = (p: string) => world(env).fetch('https://do' + p).then(r => r.json<any>())
+      return (await handleAdmin(req, env, url.pathname, doGet, () => doGet('/admin/world'), __BUILD__, EVENT.end))!
+    }
+    // Error reports and pending admin changes for this player.
+    if (url.pathname === '/api/error' || url.pathname === '/api/inbox') {
+      await ensureAuthSchema(env)
+      return (await handlePublic(req, env, url.pathname, await sha(req.headers.get('cf-connecting-ip') ?? 'local'), await sessionUser(req, env), __BUILD__))!
     }
     const auth = await handleAuth(req, env, url.pathname)
     if (auth) return auth

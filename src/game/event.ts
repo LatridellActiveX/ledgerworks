@@ -27,6 +27,15 @@ export const EVENT: LiveEvent = {
   blurb: 'All production and store selling runs 3× faster for everyone. Prices, wages and research are unchanged.',
 }
 
+/**
+ * Server override of the end time (set by internal tools to end or extend
+ * the event early). Arrives with /api/world; mutates EVENT in place so every
+ * reader sees it. Ignored if it is not a valid date.
+ */
+export function setEventEnd(iso: string | undefined) {
+  if (iso && !Number.isNaN(Date.parse(iso))) EVENT.end = iso
+}
+
 const startMs = (e: LiveEvent) => Date.parse(e.start)
 const endMs = (e: LiveEvent) => Date.parse(e.end)
 

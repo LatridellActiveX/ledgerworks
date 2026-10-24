@@ -4,6 +4,12 @@ export interface ChangeEntry { id: string; date: string; title: string; notes: s
 
 export const CHANGELOG: ChangeEntry[] = [
   {
+    id: 'internal-tools',
+    date: '2026-10-24',
+    title: 'Internal tools and error reports',
+    notes: ['Behind-the-scenes tools to help us look after the game and support players.', 'If the game hits an error, it now sends a short anonymous error report so we can fix it faster (see the Privacy policy).'],
+  },
+  {
     id: 'upgrade-value',
     date: '2026-10-24',
     title: 'Upgrades add to building value',

@@ -903,3 +903,25 @@ tr.bidrow td { color: #3c9a5f; font-weight: 600 }
 .goal { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 14px; background: #ffffff10 }
 .goal .grow { flex: 1; display: flex; flex-direction: column } .goal.locked { opacity: .55 } .goal.ready { outline: 2px solid #ff9a72 }
 .goal-ic { font-size: 20px }
+
+/* ---- Admin dashboard (internal tools) ---- */
+.admin { padding: 4px 2px 24px; font-size: 14px; }
+.adm-tabs { display: flex; gap: 6px; margin-bottom: 10px; position: sticky; top: 0; z-index: 2; background: inherit; }
+.adm-tabs button { flex: 1; padding: 8px 4px; border-radius: 10px; border: 1px solid #0001; background: #fff; font-weight: 600; }
+.adm-tabs button.on { background: #2f6b4f; color: #fff; }
+.adm-row { display: flex; gap: 6px; align-items: center; margin: 6px 0; }
+.adm-row input { flex: 1; min-width: 0; padding: 8px; border-radius: 8px; border: 1px solid #0002; }
+.adm-row button { padding: 8px 10px; border-radius: 8px; border: 1px solid #0002; background: #fff; font-weight: 600; }
+.adm-row button.danger { color: #b3261e; }
+.adm-t { width: 100%; border-collapse: collapse; font-size: 13px; }
+.adm-t th { text-align: left; font-size: 11px; opacity: .6; padding: 4px; }
+.adm-t td { padding: 6px 4px; border-top: 1px solid #0001; vertical-align: top; }
+.adm-t td small { display: block; opacity: .6; }
+.adm-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
+.adm-cards div { background: #fff; border-radius: 12px; padding: 10px; }
+.adm-cards small { display: block; opacity: .6; font-size: 11px; }
+.adm-cards b { font-size: 16px; }
+.adm-log { list-style: none; padding: 0; margin: 0; }
+.adm-log li { background: #fff; border-radius: 10px; padding: 8px; margin-bottom: 6px; word-break: break-word; }
+.adm-log small { display: block; opacity: .6; }
+.adm-note { background: #e8f3ec; padding: 8px; border-radius: 8px; }
