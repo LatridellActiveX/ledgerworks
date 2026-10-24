@@ -39,8 +39,7 @@ describe('update check', () => {
   })
 })
 
-import { valueDetail, valueBreakdown } from '../src/game/value'
-import * as E from '../src/game/engine'
+import { valueDetail } from '../src/game/value'
 describe('company value detail', () => {
   it('the categories add up to the breakdown', () => {
     const s = E.newGame('Val', 0)

@@ -6,6 +6,8 @@
 //
 //  GET  /api/admin/dashboard        players (top by cash), economy, health, audit log
 //  POST /api/admin/players {q}      player search by username / company
+//  GET  /api/admin/econ             global economy overrides (Trade Spire panel)
+//  POST /api/admin/econ {op, ..., confirm: true}   change them (see src/game/overrides.ts applyEcon)
 //  POST /api/admin/tool {action, target?, amount?, hours?, confirm: true}
 //        action: 'cash' (amount +/-), 'reset', 'event-end', 'event-extend' (hours)
 //        Cash and reset are queued in admin_inbox for the player's game to
@@ -17,6 +19,10 @@
 //  eventEnd(env)                    the live event's end override, if any
 // ============================================================================
 import { sessionUser, sha256 } from './auth'
+import { applyEcon, cleanEcon, describeEcon, isNormal, type Econ, type EconEvent } from '../src/game/overrides'
+import { RES } from '../src/game/data'
+
+const GOODS = new Set(Object.keys(RES))
 
 export interface AdminEnv { DB: D1Database }
 type Ledger = (op: string) => Promise<any>
@@ -59,6 +65,40 @@ export async function eventEnd(env: AdminEnv): Promise<string | null> {
   return evCache.v
 }
 
+/**
+ * Global economy overrides (Trade Spire), cached 60 s per isolate like the
+ * event end, so /api/world costs at most one extra D1 read a minute.
+ */
+let econCache: { at: number; v: Econ } | null = null
+export async function econOverrides(env: AdminEnv, fresh = false): Promise<Econ> {
+  if (!fresh && econCache && Date.now() - econCache.at < 60000) return econCache.v
+  const r = await env.DB.prepare("SELECT v FROM admin_settings WHERE k = 'econ'").first<any>().catch(() => null)
+  let v: Econ
+  try { v = cleanEcon(r?.v ? JSON.parse(r.v) : null, GOODS) } catch { v = cleanEcon(null) }
+  econCache = { at: Date.now(), v }
+  return v
+}
+/** /api/world payload part: only sent when something is overridden. */
+export async function econForWorld(env: AdminEnv) {
+  const e = await econOverrides(env)
+  return isNormal(e) ? undefined : e
+}
+
+/** Is this player id an admin? Used to strip admin-only fields from cloud saves. */
+export async function isAdminId(env: AdminEnv, playerId: string) {
+  const row = await env.DB.prepare('SELECT is_admin FROM users WHERE player_id = ?').bind(playerId).first<any>().catch(() => null)
+  return row?.is_admin === 1
+}
+
+/**
+ * Admin-only save fields (pure, tested). Non-admin saves lose them, so a
+ * client hack can't keep a Trade Spire in the cloud. Mutates and returns state.
+ */
+export function stripAdminOnly(state: any, admin: boolean) {
+  if (!admin && state && typeof state === 'object') delete state.adminSpire
+  return state
+}
+
 // Per-IP error report limit (memory only, hashed IP): 10 a minute.
 const errHits = new Map<string, { n: number; t: number }>()
 
@@ -91,7 +131,7 @@ export async function handlePublic(req: Request, env: AdminEnv, path: string, ip
   return null
 }
 
-export async function handleAdmin(req: Request, env: AdminEnv, path: string, ledger: Ledger, world: () => Promise<any>, build: string, defaultEventEnd: string): Promise<Response | null> {
+export async function handleAdmin(req: Request, env: AdminEnv, path: string, ledger: Ledger, world: () => Promise<any>, build: string, defaultEventEnd: string, cfgEvent?: EconEvent): Promise<Response | null> {
   if (!path.startsWith('/api/admin/')) return null
   const admin = await adminUser(req, env)
   if (!admin) return json({ error: 'forbidden' }, 403) // signed out or not an admin
@@ -122,8 +162,23 @@ export async function handleAdmin(req: Request, env: AdminEnv, path: string, led
       economy: { totalCash: tot?.c ?? 0, saves: tot?.n ?? 0, goods: Object.keys(w.ref ?? {}).map(id => ({ id, price: w.ref[id], soldToday: w.sold?.[id] ?? 0, listed: board[id]?.qty ?? 0, orders: board[id]?.n ?? 0 })), day: w.day, phase: w.phase },
       health: { build, active: { hour: act?.h ?? 0, day: act?.d ?? 0, week: act?.w ?? 0 }, errors: errs.results },
       event: { end: ev ?? defaultEventEnd, overridden: !!ev },
+      overrides: describeEcon(await econOverrides(env, true)),
       audit: audit.results,
     })
+  }
+  // ---- Trade Spire: global economy overrides (affect ALL players) ----
+  if (op === 'econ') {
+    const cur = await econOverrides(env, true)
+    // The live event as players see it now (configured, plus the end-time tool).
+    const base: EconEvent = cfgEvent ? { name: (cfgEvent as any).name, mult: cfgEvent.mult, start: cfgEvent.start, end: (await eventEnd(env)) ?? defaultEventEnd } : { name: 'Event', mult: 1, start: new Date(0).toISOString(), end: defaultEventEnd }
+    if (req.method === 'GET') return json({ econ: cur, active: describeEcon(cur, now), event: cur.event ?? base, goods: [...GOODS] })
+    if (req.method !== 'POST') return json({ error: 'method' }, 405)
+    const r = applyEcon(await req.json<any>().catch(() => null), cur, now, base, GOODS)
+    if (typeof r === 'string') return json({ error: r }, 400)
+    await env.DB.prepare("INSERT INTO admin_settings (k, v) VALUES ('econ', ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v").bind(JSON.stringify(r.econ)).run()
+    econCache = null
+    await env.DB.prepare('INSERT INTO admin_audit (ts, admin, action, target, detail) VALUES (?,?,?,?,?)').bind(now, admin.name, 'econ', 'all players', r.detail).run()
+    return json({ ok: true, detail: r.detail, econ: r.econ, active: describeEcon(r.econ, now), event: r.econ.event ?? base })
   }
   if (op === 'players' && req.method === 'POST') {
     const b = await req.json<any>().catch(() => ({}))

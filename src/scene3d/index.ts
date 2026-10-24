@@ -239,7 +239,8 @@ export function mount(el: HTMLElement, opts: { onPick: (i: number) => void; qual
 
   /** Build one plot's model: high-detail building + contact shadow + scaffolding while building. */
   function model(p: PlotSnap, i: number) {
-    const b = BLD[p.type]
+    // The admin-only Trade Spire is not a BuildingType (it must not appear in any list), so it gets a stand-in.
+    const b = BLD[p.type] ?? { name: 'Trade Spire', color: '#7cc3ea', kind: 'production' as const }
     const m = buildModel(p.type, p.level, b.name, b.color, b.kind, i * 31 + 7, p.fields)
     // Soft contact shadow (cheap ambient-occlusion look).
     const cs = mesh(new THREE.PlaneGeometry(9.6, 9.6), new THREE.MeshBasicMaterial({ color: '#000', transparent: true, opacity: 0.12, depthWrite: false }), 0, 0.12, 0, false)

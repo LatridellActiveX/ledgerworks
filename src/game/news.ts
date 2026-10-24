@@ -20,6 +20,8 @@
 // ============================================================================
 
 /** One kind of story. `goods` are resource ids from data.ts. */
+import * as OV from './overrides'
+
 export interface NewsTemplate {
   id: string
   /** Emoji shown as the story's picture on the news card. */
@@ -79,6 +81,9 @@ export function activeStories(day: number): NewsStory[] {
     // The same template can't stack with itself; the newer one wins.
     if (st && st.endDay > day) { const i = out.findIndex(o => o.t.id === st.t.id); if (i >= 0) out.splice(i, 1); out.push(st) }
   }
+  // Trade Spire override (overrides.ts): a custom story on top while it runs.
+  const ov = OV.econ().news
+  if (ov && Date.parse(ov.until) > Date.now()) out.push({ t: { id: 'admin-news', icon: ov.icon, headline: ov.headline, blurb: ov.blurb, goods: ov.goods, mult: ov.mult }, startDay: day, endDay: day + 1 })
   return out.reverse() // newest first
 }
 

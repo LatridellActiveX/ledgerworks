@@ -36,6 +36,22 @@ export function setEventEnd(iso: string | undefined) {
   if (iso && !Number.isNaN(Date.parse(iso))) EVENT.end = iso
 }
 
+/** The event exactly as configured above, before any server override. */
+const CONFIGURED: LiveEvent = { ...EVENT }
+
+/**
+ * Apply both server overrides from /api/world in a fixed order (called on
+ * every sync, so removing an override puts the configured event back):
+ *  1. reset to the configured event,
+ *  2. the older admin end-time tool (eventEnd),
+ *  3. a Trade Spire event override (custom name, multiplier, start, end).
+ */
+export function applyWorldEvent(endIso: string | undefined, ov?: { name: string; mult: number; start: string; end: string }) {
+  Object.assign(EVENT, CONFIGURED)
+  setEventEnd(endIso)
+  if (ov) Object.assign(EVENT, { id: 'admin-' + ov.start, name: ov.name, mult: ov.mult, start: ov.start, end: ov.end, blurb: `All production and store selling runs ${ov.mult}× faster for everyone.` })
+}
+
 const startMs = (e: LiveEvent) => Date.parse(e.start)
 const endMs = (e: LiveEvent) => Date.parse(e.end)
 
@@ -70,12 +86,13 @@ export const crossed = (from: number, to: number, e: LiveEvent = EVENT) => ({
  * left, at real time `now`. Inside the window work goes `mult` times faster,
  * but only until the window closes, after which it is back to normal speed.
  */
-export function boostedLeft(work: number, now: number, e: LiveEvent = EVENT): number {
+export function boostedLeft(work: number, now: number, e: LiveEvent = EVENT, g = 1): number {
+  // g = global admin speed multiplier (overrides.ts), applied in and out of the window.
   if (work <= 0) return 0
-  const m = speedAt(now, e)
-  if (m === 1) return work
+  const m = speedAt(now, e) * g
+  if (m === g) return work / g
   const winH = (msLeft(now, e) / 3600000) * GAME_SPEED // game hours left in the window
-  return work <= m * winH ? work / m : winH + (work - m * winH)
+  return work <= m * winH ? work / m : winH + (work - m * winH) / g
 }
 
 /** Short countdown, e.g. "6d 23h", "4h 12m", "9m". */

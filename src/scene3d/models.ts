@@ -435,6 +435,28 @@ export function buildModel(type: string, level: number, name: string, color: str
   }
 
   switch (type) {
+    // ---------------- admin-only ----------------
+    case 'spire': { // Trade Spire (admin only, see GameState.adminSpire): faceted glass needle
+      // Stone plinth with a steel lip.
+      k.rbox(7.4, 0.6, 7.4, M('#d8dde3', 'concrete'), 0, 0, 0, 0.2)
+      k.box(6.2, 0.9, 6.2, M(C.steel, 'metal'), 0, 0.6, 0)
+      // Glass shaft: 6 stacked square frustums, each a bit narrower, turned
+      // 45 degrees so a sharp corner faces the camera (a "spire", not a box).
+      const glass = glassM(false), mull = M('#2f6a93', 'metal', { metal: 0.8, rough: 0.3 })
+      let y = 1.5, r = 3.1
+      for (let i = 0; i < 6; i++) {
+        const h = 2.4, r2 = r * 0.8
+        k.cyl(r2, r, h, glass, 0, y, 0, 4, { ry: Math.PI / 4 })
+        k.cyl(r * 1.02, r * 1.02, 0.12, mull, 0, y, 0, 4, { ry: Math.PI / 4, detail: true }) // floor band
+        y += h; r = r2
+      }
+      // Tip, gold crown ring and antenna with a red beacon.
+      k.cyl(0.05, r, 2.2, glass, 0, y, 0, 4, { ry: Math.PI / 4 })
+      k.add(new THREE.TorusGeometry(1.5, 0.12, 6, 24), M('#e8b93c', 'metal', { metal: 0.9, rough: 0.25 }), { x: 0, y: 9.6, z: 0, rx: Math.PI / 2 })
+      k.cyl(0.06, 0.06, 2.2, M(C.steel, 'metal'), 0, y + 1.6, 0, 6)
+      k.sphere(0.22, M('#ff6b5b', 'plain', { glow: '#ff3b2b' }), 0, y + 3.9, 0)
+      break
+    }
     // ---------------- utilities ----------------
     case 'generator': { // Windmill park: lattice-free tapered tower, nacelle, blades + substation
       const h = 9 + L * 0.5

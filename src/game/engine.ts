@@ -1,4 +1,5 @@
 import * as EV from './event'
+import * as OV from './overrides'
 import { currentBases } from './rebase'
 // ============================================================================
 // Ledgerworks simulation engine (pure functions, no React, easy to test).
@@ -57,6 +58,14 @@ export interface GameState {
   cash: number
   xp: number
   hour: number // game clock, in game hours since founding
+  /**
+   * Plot index of the admin-only Trade Spire, if built. Deliberately NOT in
+   * `plots`: nothing that reads plots (value, wages, stats, leaderboards,
+   * profiles, other players' views) can ever see it. Only drawn when the
+   * server says this player is an admin; the Worker strips it from cloud
+   * saves of non-admins.
+   */
+  adminSpire?: number
   /** Today's weather on the farms (see farm.ts). */
   weather?: 'clear' | 'rain' | 'frost' | 'heat'
   lastReal: number // real ms timestamp of the last advance()
@@ -263,7 +272,7 @@ export function buyField(s: GameState, plot: number): string | null {
 export function construct(s: GameState, plot: number, type: string): string | null {
   const b = BLD[type], lvl = companyLevel(s.xp)
   if (!b) return 'Unknown building'
-  if (plot >= plotCount(lvl) || s.plots[plot]) return 'That plot is not free'
+  if (plot >= plotCount(lvl) || s.plots[plot] || s.adminSpire === plot) return 'That plot is not free'
   if (lvl < b.unlockLevel) return `Needs company level ${b.unlockLevel}`
   if (s.cash < b.cost) return 'Not enough cash'
   s.cash -= b.cost; L.book(s, 'buildings', -b.cost) // ledger: investing
@@ -274,6 +283,20 @@ export function construct(s: GameState, plot: number, type: string): string | nu
   say(s, `Started building a ${b.name}.`)
   return null
 }
+
+/**
+ * Trade Spire (admin only): free and instant, one per company, on a free
+ * unlocked plot. The caller (App) only offers it when the server says the
+ * player is an admin; the Worker strips it from non-admin cloud saves, and it
+ * lives outside `plots` so it never counts for value, stats or leaderboards.
+ */
+export function buildSpire(s: GameState, plot: number): string | null {
+  if (s.adminSpire !== undefined) return 'You already have a Trade Spire'
+  if (plot < 0 || plot >= plotCount(companyLevel(s.xp)) || s.plots[plot]) return 'That plot is not free'
+  s.adminSpire = plot
+  return null
+}
+export function removeSpire(s: GameState): string | null { s.adminSpire = undefined; return null }
 
 export function upgrade(s: GameState, plot: number): string | null {
   const bd = s.plots[plot]
@@ -739,7 +762,7 @@ export function advanceTo(s: GameState, toHour: number, boost = 1): GameState {
     let next = nextHour, who: Building | null = null, route: R.Route | null = null
     // A boosted job (Turbo Week) ends after (endH - hour) / boost game hours.
     for (const bd of allUnits(s)) if (bd.job && ripeOf(bd.job) === undefined) { // incl. farm fields
-      const end = boosts(bd.job) ? s.hour + Math.max(0, bd.job.endH - s.hour) / boost : bd.job.endH
+      const end = boosts(bd.job) ? s.hour + Math.max(0, bd.job.endH - s.hour) / jobBoost(bd.job, boost) : bd.job.endH
       if (end < next) { next = end; who = bd }
     }
     for (const bd of allUnits(s)) { const rh = ripeOf(bd.job); if (rh !== undefined && rh + FM.SPOIL_H < next) { next = Math.max(s.hour, rh + FM.SPOIL_H); who = bd } }
@@ -778,12 +801,20 @@ export function advanceTo(s: GameState, toHour: number, boost = 1): GameState {
 // --------------------------------------------------------------------------
 /** Jobs the event speeds up: production (incl. growing crops) and store selling. Not construction, not ripe crops. */
 export const boosts = (j: Job | undefined) => !!j && (j.kind === 'make' || j.kind === 'sell') && (j.kind !== 'make' || j.ripeH === undefined)
-function warpJobs(s: GameState, dt: number, boost: number) {
-  if (boost === 1 || dt <= 0) return
-  const shift = (boost - 1) * dt
+/**
+ * Total speed of one job: live event multiplier x the global admin
+ * production / selling multiplier (Trade Spire, overrides.ts). Below 1 the
+ * same slide runs the other way, so jobs take longer.
+ */
+export const jobBoost = (j: Job, eventBoost: number) => eventBoost * OV.jobMult(j.kind === 'sell' ? 'sell' : 'make')
+function warpJobs(s: GameState, dt: number, eventBoost: number) {
+  if (dt <= 0) return
   for (const bd of allUnits(s)) { // fields grow boosted too
     const j = bd?.job
     if (!boosts(j) || j!.kind === 'build') continue
+    const boost = jobBoost(j!, eventBoost)
+    if (boost === 1) continue
+    const shift = (boost - 1) * dt
     const k = j as Extract<Job, { kind: 'make' | 'sell' }>
     // Never slide past the end: a job finishing in this step lands exactly on it.
     const sh = Math.min(shift, Math.max(0, k.endH - s.hour - dt))
@@ -793,7 +824,7 @@ function warpJobs(s: GameState, dt: number, boost: number) {
 }
 /** Game hours a job still takes from now, counting the live event. For timers and countdowns. */
 export const jobLeft = (s: GameState, j: Job | undefined, now = Date.now()) =>
-  !j ? 0 : boosts(j) ? EV.boostedLeft(Math.max(0, j.endH - s.hour), now) : Math.max(0, j.endH - s.hour)
+  !j ? 0 : boosts(j) ? EV.boostedLeft(Math.max(0, j.endH - s.hour), now, EV.EVENT, OV.jobMult(j.kind === 'sell' ? 'sell' : 'make')) : Math.max(0, j.endH - s.hour)
 
 /**
  * Advance by real wall-clock time since the last call (offline progress too).

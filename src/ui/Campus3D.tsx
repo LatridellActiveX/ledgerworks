@@ -127,7 +127,8 @@ export async function loadScene(): Promise<any> {
   return import(/* @vite-ignore */ `/scene3d.js?v=${__BUILD_ID__}`)
 }
 
-export function Campus3D({ s, slots, sel, onPick, mode, onCollect }: { s: GameState; slots: number; sel: number | null; onPick: (i: number) => void; mode: '3d' | '2d'; onCollect: (i: number, r: DOMRect) => void }) {
+/** `spire`: plot index of the admin-only Trade Spire; App passes it ONLY when the server says this player is an admin. */
+export function Campus3D({ s, slots, sel, onPick, mode, onCollect, spire }: { s: GameState; slots: number; sel: number | null; onPick: (i: number) => void; mode: '3d' | '2d'; onCollect: (i: number, r: DOMRect) => void; spire?: number | null }) {
   const flat = useRef<HTMLDivElement>(null)
   const [gfxGen, setGfxGen] = useState(0) // bump to remount the 3D scene with new graphics settings
   useEffect(() => { const f = () => setGfxGen(g => g + 1); addEventListener('lw:gfx', f); return () => removeEventListener('lw:gfx', f) }, [])
@@ -154,7 +155,8 @@ export function Campus3D({ s, slots, sel, onPick, mode, onCollect }: { s: GameSt
   // Push a light snapshot of the state into the scene every render.
   useEffect(() => {
     handle.current?.update({
-      plots: s.plots.map(b => b ? { type: b.type, level: b.level, busy: !!b.job && b.job.kind !== 'build', building: b.job?.kind === 'build', act: activityOf(s, b)?.state ?? 'idle', fields: b.fields?.map(f => (f.job?.kind === 'make' ? f.job.res : '')) /* farm fields: crop per patch, '' = bare soil */ } : null),
+      // The spire is drawn as a pseudo plot here only (render snapshot), never in s.plots.
+      plots: s.plots.map((b, i) => i === spire && !b ? { type: 'spire', level: 1, busy: false, building: false, act: 'idle' as const } : b ? { type: b.type, level: b.level, busy: !!b.job && b.job.kind !== 'build', building: b.job?.kind === 'build', act: activityOf(s, b)?.state ?? 'idle', fields: b.fields?.map(f => (f.job?.kind === 'make' ? f.job.res : '')) /* farm fields: crop per patch, '' = bare soil */ } : null),
       slots, hour: s.hour, sel,
     })
   })
@@ -175,7 +177,7 @@ export function Campus3D({ s, slots, sel, onPick, mode, onCollect }: { s: GameSt
       return { x: m.a * x + m.c * (y - 26) + m.e - o.left, y: m.b * x + m.d * (y - 26) + m.f - o.top }
     }
     // Zoom/pan transform goes on .map-layer only (never on the HUD).
-    return <div className="flat-wrap zoomable" ref={flat}><div className="map-layer" style={{ transform: `translate(${zv.x}px, ${zv.y}px) scale(${zv.k})` }}><Campus s={s} slots={slots} sel={sel} onPick={onPick} /></div><ActivityBadges s={s} posOf={pos2d} /><Bubbles list={bubbles} posOf={pos2d} onCollect={onCollect} /></div>
+    return <div className="flat-wrap zoomable" ref={flat}><div className="map-layer" style={{ transform: `translate(${zv.x}px, ${zv.y}px) scale(${zv.k})` }}><Campus s={s} slots={slots} sel={sel} onPick={onPick} spire={spire} /></div><ActivityBadges s={s} posOf={pos2d} /><Bubbles list={bubbles} posOf={pos2d} onCollect={onCollect} /></div>
   }
   return (
     <div className="scene3d" ref={box}>

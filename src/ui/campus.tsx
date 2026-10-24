@@ -12,7 +12,7 @@
 // All animation is CSS or SVG <animate>, so it costs almost no JS.
 // ============================================================================
 import type { GameState } from '../game/engine'
-import { Defs2D, Ground2D, Model2D } from './campus2d'
+import { Defs2D, Ground2D, Model2D , SpireArt } from './campus2d'
 
 const TW = 64, TH = 32 // half tile width / height in px
 const COLS = 6, ROWS = 4
@@ -29,7 +29,8 @@ export const tilePos = (i: number) => {
 // (Day/night sky tint removed: the map is always in daylight. The game clock
 // still runs; it just no longer changes how the map looks.)
 
-export function Campus({ s, slots, sel, onPick }: { s: GameState; slots: number; sel: number | null; onPick: (i: number) => void }) {
+/** `spire`: plot index of the admin-only Trade Spire, only passed for admins (see App). */
+export function Campus({ s, slots, sel, onPick, spire }: { s: GameState; slots: number; sel: number | null; onPick: (i: number) => void; spire?: number | null }) {
   // Always daytime: buildings and ground are drawn with night=false (no dark
   // surfaces, lit windows or glowing lamps).
   const night = false
@@ -68,8 +69,9 @@ export function Campus({ s, slots, sel, onPick }: { s: GameState; slots: number;
         return (
           <g key={i} className={`tile ${locked ? 'locked' : ''} ${sel === i ? 'sel' : ''}`} onClick={() => !locked && onPick(i)}>
             <polygon points={dia} className="pad" />
-            {!locked && !bd && <Ground2D x={x} y={y} night={night} />}
-            {!bd && !locked && <text x={x} y={y + 5} textAnchor="middle" className="plus">+</text>}
+            {!locked && !bd && i !== spire && <Ground2D x={x} y={y} night={night} />}
+            {!bd && !locked && i === spire && <SpireArt x={x} y={y} />}
+            {!bd && !locked && i !== spire && <text x={x} y={y + 5} textAnchor="middle" className="plus">+</text>}
             {locked && <text x={x} y={y + 5} textAnchor="middle" className="lock">🔒</text>}
             {bd && <Model2D type={bd.type} level={bd.level} busy={!!j && j.kind !== 'build'} night={night} x={x} y={y} />}
             {bd && j?.kind === 'build' && <g className="scaffold"><rect x={x - 20} y={y - 40} width="40" height="36" fill="none" stroke="#e3b23c" strokeDasharray="4 3" /></g>}

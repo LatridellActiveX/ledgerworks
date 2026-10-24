@@ -32,6 +32,8 @@ import { Guide, Tip, Goals } from './ui/Tutorial'
 import * as TU from './game/tutorial'
 import * as A from './game/auth'
 import { Admin } from './ui/Admin'
+import { Spire } from './ui/Spire'
+import { SpireIcon } from './ui/campus2d'
 import { BuildingArt, Logo, ResIcon } from './ui/art'
 import { Campus3D } from './ui/Campus3D'
 import { Ticker } from './ui/Ticker'
@@ -204,7 +206,8 @@ export default function App() {
     <div className="app hud-app">
       {/* The map is the whole screen; everything else floats over it. */}
       <section className="campus-wrap full">
-        <Campus3D s={s} slots={slots} sel={sel} onPick={i => { setSel(i); setScreen('building') }} mode={view} onCollect={collectAt} />
+        {/* Trade Spire: drawn and tappable ONLY when the server says we're an admin. */}
+        <Campus3D s={s} slots={slots} sel={sel} spire={isAdmin ? s.adminSpire : null} onPick={i => { if (isAdmin && i === s.adminSpire && !s.plots[i]) { setScreen('spire'); return } setSel(i); setScreen('building') }} mode={view} onCollect={collectAt} />
       </section>
 
       {/*
@@ -281,6 +284,7 @@ export default function App() {
           {screen === 'execs' && <Executives s={s} act={act} />}
           {screen === 'finance' && <Finance s={s} act={act} user={user} onReport={() => { if (!tut.report) setTut({ ...tut, report: true }) }} />}
           {screen === 'admin' && isAdmin && <Admin />}
+          {screen === 'spire' && isAdmin && <Spire s={s} act={act} onAdmin={() => open('admin')} onRemoved={() => setScreen('map')} />}
           {screen === 'goals' && <Goals s={s} t={tut} onClaim={claimGoal} />}
           {screen === 'levels' && <LevelScreen s={s} />}
           {screen === 'value' && <CompanyValue s={s} onPlayer={openPlayer} onRename={renameCompany_} />}
@@ -288,7 +292,7 @@ export default function App() {
           {screen === 'players' && (player
             ? <PlayerProfile name={player} s={s} act={act} user={user} onBack={() => setPlayer(null)} />
             : <PlayerSearch onOpen={setPlayer} />)}
-          {screen === 'building' && sel !== null && (s.plots[sel] ? <BuildingPanel s={s} plot={sel} act={act} /> : <BuildMenu s={s} plot={sel} act={act} />)}
+          {screen === 'building' && sel !== null && (s.plots[sel] ? <BuildingPanel s={s} plot={sel} act={act} /> : <BuildMenu s={s} plot={sel} act={act} admin={isAdmin} onSpire={() => { setSel(null); setScreen('spire') }} />)}
           {screen === 'market' && <Demand s={s} />}
           {screen === 'log' && <ul className="log">{s.log.map((l, i) => <li key={i}>{l}</li>)}</ul>}
           {screen === 'changes' && <ul className="log">{CHANGELOG.map(c => <li key={c.id}><b>{c.date} · {c.title}</b> — {c.notes.join(' ')}</li>)}</ul>}
@@ -378,8 +382,8 @@ export default function App() {
 }
 
 /** Every screen the HUD can open. 'map' is the plain map. */
-type Screen = 'map' | 'levels' | 'value' | 'building' | 'warehouse' | 'exchange' | 'trade' | 'research' | 'board' | 'finance' | 'market' | 'log' | 'changes' | 'account' | 'settings' | 'privacy' | 'chains' | 'news' | 'routes' | 'execs' | 'players' | 'goals' | 'admin'
-const SCREEN_TITLE: Record<Screen, string> = { map: 'Map', levels: 'Company level', value: 'Company value', building: 'Building', warehouse: 'Warehouse', exchange: 'Market', trade: 'Market', research: 'Research', board: 'Research', finance: 'Finance', market: 'Public demand', log: 'Events', changes: 'Change log', account: 'Saves & account', settings: 'Settings', privacy: 'Privacy policy', chains: 'Production chains', news: 'Business Live', routes: 'Trade routes', execs: 'Executives', players: 'Players', goals: 'Goals', admin: 'Admin' }
+type Screen = 'map' | 'levels' | 'value' | 'building' | 'warehouse' | 'exchange' | 'trade' | 'research' | 'board' | 'finance' | 'market' | 'log' | 'changes' | 'account' | 'settings' | 'privacy' | 'chains' | 'news' | 'routes' | 'execs' | 'players' | 'goals' | 'admin' | 'spire'
+const SCREEN_TITLE: Record<Screen, string> = { map: 'Map', levels: 'Company level', value: 'Company value', building: 'Building', warehouse: 'Warehouse', exchange: 'Market', trade: 'Market', research: 'Research', board: 'Research', finance: 'Finance', market: 'Public demand', log: 'Events', changes: 'Change log', account: 'Saves & account', settings: 'Settings', privacy: 'Privacy policy', chains: 'Production chains', news: 'Business Live', routes: 'Trade routes', execs: 'Executives', players: 'Players', goals: 'Goals', admin: 'Admin', spire: 'Trade Spire' }
 const SCREEN_ICON: Partial<Record<Screen, string>> = { levels: '★', value: '💹', market: '📈', log: '🔔', changes: '📝', account: '💾', settings: '⚙', privacy: '🔒', chains: '🔗', news: '📡', routes: '🚚', execs: '👔', players: '🔎', goals: '🎯', admin: '🛠' }
 /** The bottom tab bar (original simple glyphs). */
 const TABS: [Screen, string, string][] = [['map', 'Map', '🗺'], ['warehouse', 'Warehouse', '📦'], ['exchange', 'Market', '⇄'], ['research', 'Research', '🔬'], ['finance', 'Finance', '🏦']]
@@ -387,12 +391,17 @@ const TABS: [Screen, string, string][] = [['map', 'Map', '🗺'], ['warehouse', 
 type Act = (f: (st: E.GameState) => string | null | void) => void
 
 /** List of buildings you can construct on an empty plot. */
-function BuildMenu({ s, plot, act }: { s: E.GameState; plot: number; act: Act }) {
+function BuildMenu({ s, plot, act, admin = false, onSpire }: { s: E.GameState; plot: number; act: Act; admin?: boolean; onSpire?: () => void }) {
   const lvl = E.companyLevel(s.xp)
   return (
     <div>
       <h3>Build on plot {plot + 1}</h3>
       <div className="buildlist">
+        {/* Admin-only Trade Spire: only when the SERVER said admin (/api/auth/me), one per company, free + instant. */}
+        {admin && s.adminSpire === undefined && <button className="buildopt spire-opt" data-b="spire" onClick={() => act(st => { const e = E.buildSpire(st, plot); if (!e) onSpire?.(); return e })}>
+          <span className="mini"><SpireIcon size={48} /></span>
+          <span><b>Trade Spire</b><br /><small>Admin only · free · instant · global economy controls</small></span>
+        </button>}
         {BUILDINGS.map(b => {
           const ok = lvl >= b.unlockLevel
           return (

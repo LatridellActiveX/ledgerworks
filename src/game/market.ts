@@ -16,6 +16,7 @@
 //  - Reference prices random-walk daily, pulled back toward the base price,
 //    and dip when you flood a market.
 // ============================================================================
+import * as OV from './overrides'
 import { book as ledgerBook } from './ledger'
 import { RES, RESOURCES } from './data'
 import { rand } from './rng'
@@ -35,7 +36,9 @@ export interface Order { id: number; owner: 'me' | 'npc'; res: string; q: number
 /** Crates needed to ship `qty` units of a good. */
 export const cratesFor = (res: string, qty: number) => Math.ceil(qty * (RES[res].ship ?? 1) - 1e-9)
 /** Current reference ("going") price of a good at Q0. */
-export const refPrice = (s: GameState, res: string) => s.ref[res] ?? RES[res].basePrice
+// Global admin price multiplier (Trade Spire, overrides.ts) is applied HERE,
+// the one function every Exchange and trade-route price goes through.
+export const refPrice = (s: GameState, res: string) => (s.ref[res] ?? RES[res].basePrice) * OV.priceMult(res)
 /** How deep NPC supply is for a good: cheap goods trade in bigger lots. */
 export const depth = (res: string) => Math.round(Math.min(5000, Math.max(40, 1500 / RES[res].basePrice)))
 /** Price NPC buyers pay instantly ("quick sell"), per unit. */

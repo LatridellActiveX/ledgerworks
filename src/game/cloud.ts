@@ -10,7 +10,9 @@
 import type { GameState } from './engine'
 import { migrate } from './save'
 import { realm } from './seasons'
-import { setEventEnd } from './event'
+import { applyWorldEvent } from './event'
+import * as OV from './overrides'
+import { RES } from './data'
 /** Cloud row id: the seasons realm gets its own row so it never overwrites a classic save. */
 const rowId = (id: string) => (realm() === 'seasons' ? id + '-s' : id)
 
@@ -48,7 +50,9 @@ export async function syncWorld(s: GameState): Promise<boolean> {
     s.ref = { ...s.ref, ...w.ref }
     s.online = true
     if (w.phase) s.phase = w.phase // stage 7: shared economy phase
-    setEventEnd(w.eventEnd) // event ended/extended on the server
+    // Global admin overrides (Trade Spire): prices, speeds, news, event.
+    OV.setEcon(w.econ, new Set(Object.keys(RES)))
+    applyWorldEvent(w.eventEnd, OV.econ().event) // event ended/extended/replaced on the server
     return true
   } catch { s.online = false; return false }
 }

@@ -4,6 +4,12 @@ export interface ChangeEntry { id: string; date: string; title: string; notes: s
 
 export const CHANGELOG: ChangeEntry[] = [
   {
+    id: 'internal-tools-2',
+    date: '2026-10-24',
+    title: 'Internal tools',
+    notes: ['Behind-the-scenes improvements to the tools we use to look after the game.'],
+  },
+  {
     id: 'shot-tool-boot',
     date: '2026-10-24',
     title: 'Testing tool tweak',

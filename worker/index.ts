@@ -25,7 +25,7 @@ import { cleanupGuestSaves, isCleanupSlot } from './cleanup'
 import { privacyHtml } from '../src/legal/privacy'
 import { MarketDO } from './market-do'
 import { handleAuth, sessionUser, ensureAuthSchema } from './auth'
-import { handleAdmin, handlePublic, eventEnd } from './admin'
+import { handleAdmin, handlePublic, eventEnd, econForWorld, isAdminId, stripAdminOnly } from './admin'
 import { EVENT } from '../src/game/event'
 export { MarketDO }
 
@@ -77,7 +77,9 @@ export default {
       // Shared prices, plus the live event's end time if an admin changed it.
       const w = await (await world(env).fetch('https://do/world')).json<any>()
       const eventEndAt = await eventEnd(env).catch(() => null)
-      return json({ ...w, ...(eventEndAt ? { eventEnd: eventEndAt } : {}) })
+      // Trade Spire overrides (prices, speeds, event, news), only when set.
+      const econ = await econForWorld(env).catch(() => undefined)
+      return json({ ...w, ...(eventEndAt ? { eventEnd: eventEndAt } : {}), ...(econ ? { econ } : {}) })
     }
     if (url.pathname === '/api/report' && req.method === 'POST') return world(env).fetch('https://do/report', { method: 'POST', body: await req.text() })
 
@@ -102,7 +104,7 @@ export default {
     if (url.pathname.startsWith('/api/admin/')) {
       await ensureAuthSchema(env)
       const doGet = (p: string) => world(env).fetch('https://do' + p).then(r => r.json<any>())
-      return (await handleAdmin(req, env, url.pathname, doGet, () => doGet('/admin/world'), __BUILD__, EVENT.end))!
+      return (await handleAdmin(req, env, url.pathname, doGet, () => doGet('/admin/world'), __BUILD__, EVENT.end, EVENT))!
     }
     // Error reports and pending admin changes for this player.
     if (url.pathname === '/api/error' || url.pathname === '/api/inbox') {
@@ -118,6 +120,9 @@ export default {
       const raw = await req.json<any>()
       if (me) { raw.id = me.player_id + (raw.seasons ? '-s' : ''); raw.token = 'session:' + me.player_id }
       const { id, token, state } = raw
+      // Admin-only fields (Trade Spire) are kept only for admin accounts;
+      // guests and everyone else have them removed (one D1 read, only when present).
+      if (state && state.adminSpire !== undefined) stripAdminOnly(state, !!me && (await isAdminId(env, me.player_id)))
       if (typeof id !== 'string' || typeof token !== 'string' || id.length > 64 || !state) return json({ error: 'bad request' }, 400)
       const body = JSON.stringify(state)
       if (body.length > 900_000) return json({ error: 'save too large' }, 413)

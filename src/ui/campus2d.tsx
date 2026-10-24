@@ -562,3 +562,43 @@ export function Ground2D({ x, y, night }: { x: number; y: number; night: boolean
   const p = new Pen(x, y, night, false); ground(p)
   return <g pointerEvents="none">{p.render()}</g>
 }
+
+// ---------------------------------------------------------------------------
+// Trade Spire (admin-only, see GameState.adminSpire). Not a BuildingType on
+// purpose, so it never shows up in build lists, chains, codex or search.
+// A tall faceted glass spire: two lit faces with a vertical gradient, floor
+// bands, a gold crown ring and an antenna with a beacon. (x, y) = tile centre.
+// ---------------------------------------------------------------------------
+export function SpireArt({ x, y }: { x: number; y: number }) {
+  const h = 150, w = 22 // height above the pad, half-width at the base
+  const L = `${x - w},${y} ${x - 4},${y - h} ${x},${y - h - 6} ${x},${y + 11}`
+  const R = `${x + w},${y} ${x + 4},${y - h} ${x},${y - h - 6} ${x},${y + 11}`
+  // Floor bands: shorter towards the top as the spire tapers.
+  const bands = Array.from({ length: 9 }, (_, i) => { const t = (i + 1) / 10, hw = w - (w - 4) * t, yy = y - h * t; return { hw, yy } })
+  return (
+    <g className="spire" pointerEvents="none">
+      <defs>
+        <linearGradient id="spireL" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stopColor="#3f7fae" /><stop offset=".6" stopColor="#7cc3ea" /><stop offset="1" stopColor="#d9f2ff" /></linearGradient>
+        <linearGradient id="spireR" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stopColor="#6fb1db" /><stop offset=".6" stopColor="#b5e3fb" /><stop offset="1" stopColor="#ffffff" /></linearGradient>
+      </defs>
+      {/* Plinth */}
+      <polygon points={`${x},${y - 14} ${x + 34},${y + 3} ${x},${y + 20} ${x - 34},${y + 3}`} fill="#d8dde3" stroke="#aab4bf" />
+      <polygon points={`${x - 34},${y + 3} ${x},${y + 20} ${x},${y + 25} ${x - 34},${y + 8}`} fill="#b9c2cc" />
+      <polygon points={`${x + 34},${y + 3} ${x},${y + 20} ${x},${y + 25} ${x + 34},${y + 8}`} fill="#c9d1d9" />
+      <polygon points={L} fill="url(#spireL)" stroke="#2f6a93" strokeWidth=".8" />
+      <polygon points={R} fill="url(#spireR)" stroke="#2f6a93" strokeWidth=".8" />
+      {bands.map((b, i) => <g key={i} stroke="#ffffff" strokeOpacity=".55" strokeWidth=".8"><line x1={x - b.hw} y1={b.yy} x2={x} y2={b.yy + 9 * (1 - (i + 1) / 10)} /><line x1={x + b.hw} y1={b.yy} x2={x} y2={b.yy + 9 * (1 - (i + 1) / 10)} /></g>)}
+      {/* Glint down the left face */}
+      <line x1={x - 12} y1={y - 20} x2={x - 3} y2={y - h + 20} stroke="#fff" strokeOpacity=".7" strokeWidth="2" />
+      {/* Gold crown ring + antenna + beacon */}
+      <ellipse cx={x} cy={y - h * 0.72} rx="9" ry="3.5" fill="none" stroke="#e8b93c" strokeWidth="2" />
+      <line x1={x} y1={y - h - 6} x2={x} y2={y - h - 30} stroke="#5b6570" strokeWidth="1.6" />
+      <circle cx={x} cy={y - h - 31} r="3" fill="#ff6b5b"><animate attributeName="opacity" values="1;.3;1" dur="1.6s" repeatCount="indefinite" /></circle>
+    </g>
+  )
+}
+
+/** Small icon of the spire (build menu entry, panel header). */
+export function SpireIcon({ size = 56 }: { size?: number }) {
+  return <svg viewBox="-45 -195 90 225" width={size} height={size} aria-hidden="true"><SpireArt x={0} y={0} /></svg>
+}
