@@ -4,6 +4,12 @@ export interface ChangeEntry { id: string; date: string; title: string; notes: s
 
 export const CHANGELOG: ChangeEntry[] = [
   {
+    id: '2d-map-zoom-hud',
+    date: '2026-10-24',
+    title: 'Zoom the 2D map, not the screen',
+    notes: ['Pinching, scrolling or trackpad-zooming the 2D map now zooms only the map. The top bar, bottom menu and other buttons stay the same size and in place. Drag to move around when zoomed in.'],
+  },
+  {
     id: 'menu-scroll-fix',
     date: '2026-10-24',
     title: 'Menu fix on phones',

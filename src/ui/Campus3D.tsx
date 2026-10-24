@@ -2,6 +2,7 @@
 // campus when WebGL is missing, the bundle fails to load, or the player
 // switches to 2D. The 3D bundle is a separate file (/scene3d.js), so the
 // game shows instantly and the 3D view fades in when ready.
+import { usePanZoom } from './usePanZoom'
 import { TurboTag } from './TurboChip'
 import { useEffect, useRef, useState } from 'react'
 import type { GameState } from '../game/engine'
@@ -158,6 +159,9 @@ export function Campus3D({ s, slots, sel, onPick, mode, onCollect }: { s: GameSt
     })
   })
 
+  // 2D pinch / wheel zoom (map layer only). Hook must run every render.
+  const zv = usePanZoom(flat, mode === '2d' || state === 'failed')
+
   if (mode === '2d' || state === 'failed') {
     // 2D: bubbles sit above each tile's diamond pad.
     // Positions come from the fixed tile coordinates mapped through the SVG's
@@ -170,7 +174,8 @@ export function Campus3D({ s, slots, sel, onPick, mode, onCollect }: { s: GameSt
       const { x, y } = tilePos(i), o = root.getBoundingClientRect()
       return { x: m.a * x + m.c * (y - 26) + m.e - o.left, y: m.b * x + m.d * (y - 26) + m.f - o.top }
     }
-    return <div className="flat-wrap" ref={flat}><Campus s={s} slots={slots} sel={sel} onPick={onPick} /><ActivityBadges s={s} posOf={pos2d} /><Bubbles list={bubbles} posOf={pos2d} onCollect={onCollect} /></div>
+    // Zoom/pan transform goes on .map-layer only (never on the HUD).
+    return <div className="flat-wrap zoomable" ref={flat}><div className="map-layer" style={{ transform: `translate(${zv.x}px, ${zv.y}px) scale(${zv.k})` }}><Campus s={s} slots={slots} sel={sel} onPick={onPick} /></div><ActivityBadges s={s} posOf={pos2d} /><Bubbles list={bubbles} posOf={pos2d} onCollect={onCollect} /></div>
   }
   return (
     <div className="scene3d" ref={box}>
