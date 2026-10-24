@@ -31,7 +31,7 @@ import { buildModel, plotGround, type Emitter } from './models'
 // --------------------------------------------------------------------------
 // Public types
 // --------------------------------------------------------------------------
-export interface PlotSnap { type: string; level: number; busy: boolean; building: boolean; act?: 'make' | 'sell' | 'idle' | 'build' | 'done' }
+export interface PlotSnap { type: string; level: number; busy: boolean; building: boolean; act?: 'make' | 'sell' | 'idle' | 'build' | 'done'; fields?: string[] /* farms: crop on each extra field ('' = empty) */ }
 export interface Snapshot { plots: (PlotSnap | null)[]; slots: number; hour: number; sel: number | null }
 export interface SceneHandle { update(s: Snapshot): void; dispose(): void; snapshot(): string; rotate(dir: 1 | -1): void; screenPos(i: number): { x: number; y: number } | null }
 
@@ -240,7 +240,7 @@ export function mount(el: HTMLElement, opts: { onPick: (i: number) => void; qual
   /** Build one plot's model: high-detail building + contact shadow + scaffolding while building. */
   function model(p: PlotSnap, i: number) {
     const b = BLD[p.type]
-    const m = buildModel(p.type, p.level, b.name, b.color, b.kind, i * 31 + 7)
+    const m = buildModel(p.type, p.level, b.name, b.color, b.kind, i * 31 + 7, p.fields)
     // Soft contact shadow (cheap ambient-occlusion look).
     const cs = mesh(new THREE.PlaneGeometry(9.6, 9.6), new THREE.MeshBasicMaterial({ color: '#000', transparent: true, opacity: 0.12, depthWrite: false }), 0, 0.12, 0, false)
     cs.rotation.x = -Math.PI / 2; m.g.add(cs)
@@ -427,7 +427,8 @@ export function mount(el: HTMLElement, opts: { onPick: (i: number) => void; qual
     snap = s
     for (let i = 0; i < COLS * ROWS; i++) {
       const p = s.plots[i]
-      const key = p ? `${p.type}|${Math.min(p.level, 20)}|${p.building}` : ''
+      // Farm fields are in the key so buying or planting a field redraws its patch.
+      const key = p ? `${p.type}|${Math.min(p.level, 20)}|${p.building}|${p.fields?.join(',') ?? ''}` : ''
       if ((built[i]?.key ?? '') !== key) {
         if (built[i]) { scene.remove(built[i]!.g); built[i]!.g.traverse(o => (o as THREE.Mesh).geometry?.dispose()); built[i] = null }
         if (p) {

@@ -884,3 +884,7 @@ tr.bidrow td { color: #3c9a5f; font-weight: 600 }
 .hud-strip .hud-xp .bar { flex: 1; min-width: 20px }
 .hud-strip .hud-badge { width: 40px; height: 40px; border-width: 2px; flex: none; box-shadow: none }
 .hud-strip .hud-badge svg { width: 26px; height: 26px }
+
+/* Farm field picker (FieldsCard): one small tab per field, wraps on phones. */
+.field-tabs { flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.field-tabs button { flex: 1 1 0; min-width: 64px; }

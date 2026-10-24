@@ -418,7 +418,9 @@ export function plotGround(k: Kit, px: number, pz: number, size: number, idx: nu
 // --------------------------------------------------------------------------
 // Per-type models
 // --------------------------------------------------------------------------
-export function buildModel(type: string, level: number, name: string, color: string, kind: 'production' | 'retail', seed: number): Built {
+/** Plant colour per crop on a farm field patch (unknown crops: generic green). */
+const FIELD_CROP: Record<string, string> = new Proxy({ seeds: '#c9b37e', wheat: '#e6c15a', apples: '#d9483b', berries: '#7b2fa3', greens: '#5fae4c', cotton: '#f4f1ea', oranges: '#f39a2b' } as Record<string, string>, { get: (t, k: string) => (k === '' ? undefined : t[k] ?? '#6cb35a') })
+export function buildModel(type: string, level: number, name: string, color: string, kind: 'production' | 'retail', seed: number, fields: string[] = []): Built {
   const k = new Kit()
   const L = Math.max(1, Math.min(level, 20))
   const fl = (base: number, max: number) => Math.min(max, base + Math.floor(L / 2))
@@ -490,8 +492,28 @@ export function buildModel(type: string, level: number, name: string, color: str
       // Packing shed with gable roof and apple crates.
       k.rbox(3, 2, 2.2, M('#d8c3a0', 'wood'), 2.6, 0, 2.6, 0.05); k.gable(3, 1, 2.2, M('#8d3b32', 'metal'), 2.6, 2, 2.6)
       at(k, 2.6, 0, 3.7, 0, () => { k.box(1.2, 1.6, 0.06, M('#7a4a30', 'wood'), 0, 0, 0.02); windowUnit(k, 1, 1, 0.5, 0.5, true) })
-      for (let i = 0; i < 3; i++) pallet(k, -1.5 + i * 1.3, 3.2, 1 + (i % 2), '#d9534f')
-      fence(k, -4.4, 1.2, 0.6, 1.2)
+      // Extra fields (farm.ts FIELD_*): one crop patch each along the front
+      // edge, left of the packing shed. Bare tilled soil while empty; rows of
+      // little plants in the crop's colour while something grows. Without
+      // fields the old crate pallets and fence fill this strip as before.
+      if (fields.length === 0) {
+        for (let i = 0; i < 3; i++) pallet(k, -1.5 + i * 1.3, 3.2, 1 + (i % 2), '#d9534f')
+        fence(k, -4.4, 1.2, 0.6, 1.2)
+      } else fields.forEach((crop, i) => {
+        const px = -4.0 + i * 1.75, pz = 3.0 // patch centre (1.6 x 2.0 units), clear of the shed at x >= 1.1
+        k.box(1.6, 0.12, 2.0, M('#7a5638', 'soil'), px, 0, pz) // tilled bed
+        k.box(1.7, 0.16, 0.08, M('#8a6a4a', 'wood'), px, 0, pz - 1.04) // low timber edging, back
+        k.box(1.7, 0.16, 0.08, M('#8a6a4a', 'wood'), px, 0, pz + 1.04) // front
+        const col = FIELD_CROP[crop]
+        for (let r = 0; r < 3; r++) {
+          k.box(1.4, 0.04, 0.16, M('#5e4029'), px, 0.12, pz - 0.6 + r * 0.6, { detail: true }) // furrow
+          if (col) for (let c = 0; c < 4; c++) { // plants on the row, coloured by crop
+            const x = px - 0.52 + c * 0.35, z = pz - 0.6 + r * 0.6
+            k.cyl(0.03, 0.03, 0.22, M('#4f8a3a'), x, 0.12, z, 5, { detail: true })
+            k.sphere(0.13, M(col), x, 0.42, z, {}, 6)
+          }
+        }
+      })
       sign(k, name, '#4f8a3c', -3.2, 0.2, 3.6, 2.2)
       break
     }

@@ -4,6 +4,17 @@ export interface ChangeEntry { id: string; date: string; title: string; notes: s
 
 export const CHANGELOG: ChangeEntry[] = [
   {
+    id: 'farm-fields',
+    date: '2026-10-24',
+    title: 'Farms grow by adding fields',
+    notes: [
+      'Orchards no longer level up. Instead buy up to 3 extra fields: $9,000, then $14,000, then $20,000.',
+      'Each field adds 0.6x the base output and grows its own crop, so you can run different crops at once. Pick a field in the farm panel to plant, tend, harvest, add a drip line or graft it.',
+      'Each field shows on the map as a crop patch next to the farm.',
+      'Orchards already above level 1 keep their level and output as they are, and can still add fields on top.',
+    ],
+  },
+  {
     id: 'collect-bubble-blur',
     date: '2026-10-24',
     title: 'Clean collect bubbles',

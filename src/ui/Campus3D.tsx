@@ -153,7 +153,7 @@ export function Campus3D({ s, slots, sel, onPick, mode, onCollect }: { s: GameSt
   // Push a light snapshot of the state into the scene every render.
   useEffect(() => {
     handle.current?.update({
-      plots: s.plots.map(b => b ? { type: b.type, level: b.level, busy: !!b.job && b.job.kind !== 'build', building: b.job?.kind === 'build', act: activityOf(s, b)?.state ?? 'idle' } : null),
+      plots: s.plots.map(b => b ? { type: b.type, level: b.level, busy: !!b.job && b.job.kind !== 'build', building: b.job?.kind === 'build', act: activityOf(s, b)?.state ?? 'idle', fields: b.fields?.map(f => (f.job?.kind === 'make' ? f.job.res : '')) /* farm fields: crop per patch, '' = bare soil */ } : null),
       slots, hour: s.hour, sel,
     })
   })

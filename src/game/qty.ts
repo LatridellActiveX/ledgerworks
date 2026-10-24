@@ -17,7 +17,7 @@ function tight(...ls: Limit[]): Limit { return ls.reduce((a, b) => (b.max < a.ma
 
 /** Production: limited by each input in stock and by cash for wages. */
 export function maxMake(s: E.GameState, plot: number, res: string): Limit {
-  const bd = s.plots[plot]
+  const bd = E.unitAt(s, plot) /* building or farm field */
   if (!bd) return { max: 0, why: 'No building' }
   const rc = REC[res], ab = bd.abund?.[res] ?? 1
   const ls: Limit[] = Object.entries(rc.inputs).map(([k, per]) => ({ max: floor(E.haveQty(s, k) / per), why: `Only ${Math.floor(E.haveQty(s, k))} ${RES[k].name}` }))

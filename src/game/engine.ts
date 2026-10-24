@@ -48,7 +48,7 @@ export type Job =
 // over (made goods, or sold units already paid), `gotC` = cents already paid
 // for a sale, `lastH` = game hour of the last collection.
 
-export interface Building { uid: number; type: string; level: number; job?: Job; abund?: Record<string, number>; soil?: number; irrigated?: boolean; graft?: boolean; mods?: string[] /* shop fittings bought (shop.ts) */; till?: number /* registers added */; clerk?: boolean /* shift clerk on */ }
+export interface Building { uid: number; type: string; level: number; job?: Job; abund?: Record<string, number>; soil?: number; irrigated?: boolean; graft?: boolean; mods?: string[] /* shop fittings bought (shop.ts) */; till?: number /* registers added */; clerk?: boolean /* shift clerk on */; fields?: Building[] /* farms: extra fields, see farm.ts FIELD_* */ }
 
 export interface GameState {
   version: 1
@@ -225,6 +225,41 @@ export const investedCost = (type: string, level: number) => { let t = 0; for (l
 /** Construction time in game hours: grows with level. */
 export const buildHours = (toLevel: number) => 2 + 2 * (toLevel - 1)
 
+/**
+ * The growing/working unit a plot ref points at: a plot's building, or (for
+ * refs >= FM.FIELD_REF) one of a farm's extra fields. Every per-job action
+ * below looks its target up through this, so fields reuse all the job code.
+ */
+export function unitAt(s: GameState, ref: number): Building | null | undefined {
+  if (ref < FM.FIELD_REF) return s.plots[ref]
+  const { plot, field } = FM.splitRef(ref)
+  return s.plots[plot]?.fields?.[field]
+}
+/** Every building plus every farm field: what the clock loop advances. */
+const allUnits = (s: GameState): Building[] => s.plots.flatMap(bd => (bd ? [bd, ...(bd.fields ?? [])] : []))
+/** What a farm's next extra field costs, or null once it has the maximum. */
+export const nextFieldCost = (bd: Building) => FM.FIELD_COSTS[bd.fields?.length ?? 0] ?? null
+
+/**
+ * Buy an extra field for a farm (replaces farm level-ups). The field starts
+ * empty and idle; plant it like the main field. Booked as building spend, so
+ * it counts in company value like an upgrade did.
+ */
+export function buyField(s: GameState, plot: number): string | null {
+  const bd = s.plots[plot]
+  if (!bd || !FM.isFarm(bd.type)) return 'Only farms have fields'
+  if (bd.job?.kind === 'build') return 'Building is busy'
+  const cost = nextFieldCost(bd)
+  if (cost === null) return `A farm can have at most ${FM.MAX_FIELDS} extra fields`
+  if (s.cash < cost) return 'Not enough cash'
+  s.cash -= cost; L.book(s, 'buildings', -cost)
+  // level = FIELD_OUT makes the field grow (and pay wages) at 0.6x base.
+  ;(bd.fields ??= []).push({ uid: s.nextUid++, type: bd.type, level: FM.FIELD_OUT })
+  s.xp += cost / 200 // same XP rule as building and upgrading
+  say(s, `${BLD[bd.type].name}: field ${bd.fields.length + 1} is ready to plant.`)
+  return null
+}
+
 export function construct(s: GameState, plot: number, type: string): string | null {
   const b = BLD[type], lvl = companyLevel(s.xp)
   if (!b) return 'Unknown building'
@@ -244,6 +279,9 @@ export function upgrade(s: GameState, plot: number): string | null {
   const bd = s.plots[plot]
   if (!bd) return 'Empty plot'
   if (bd.job) return 'Building is busy'
+  // Farms grow by buying extra fields instead (buyField). Old saves keep the
+  // levels they already have; only new level-ups are closed.
+  if (FM.isFarm(bd.type)) return 'Farms grow by adding fields now'
   const cost = upgradeCost(bd.type, bd.level + 1)
   if (s.cash < cost) return 'Not enough cash'
   s.cash -= cost; L.book(s, 'buildings', -cost)
@@ -258,12 +296,14 @@ export function upgrade(s: GameState, plot: number): string | null {
 export function scrapRefund(bd: Building) {
   let total = 0
   for (let l = 1; l <= bd.level; l++) total += upgradeCost(bd.type, l)
-  return Math.round(bd.level <= 2 ? total : total * 0.6)
+  // Extra fields refund at 60%, like upgrades beyond level 2.
+  return Math.round((bd.level <= 2 ? total : total * 0.6) + FM.fieldsPaid(bd.fields?.length ?? 0) * 0.6)
 }
 export function scrap(s: GameState, plot: number): string | null {
   const bd = s.plots[plot]
   if (!bd) return 'Empty plot'
   if (bd.job && bd.job.kind !== 'build') return 'Wait for the current job to finish'
+  if (bd.fields?.some(f => f.job)) return 'Harvest or stop every field first'
   s.cash += scrapRefund(bd); L.book(s, 'buildings', scrapRefund(bd)) // refund nets against building spend
   if (F.isExtractor(bd.type)) s.stats.scrappedMines++
   s.plots[plot] = null
@@ -293,7 +333,7 @@ export const overhead = (s?: GameState) => (s ? adminOverhead(s.plots.filter(Boo
 export const makeWages = (type: string, level: number, hours: number, s?: GameState) => BLD[type].wage * level * hours * (1 + overhead(s))
 
 export function startMake(s: GameState, plot: number, res: string, qty: number): string | null {
-  const bd = s.plots[plot]
+  const bd = unitAt(s, plot)
   if (!bd || bd.job) return 'Building is busy'
   const bt = BLD[bd.type], rc = REC[res]
   if (!bt.recipes?.includes(res)) return 'This building cannot make that'
@@ -543,7 +583,7 @@ export function bubbleReady(s: GameState, bd: Building | null) {
 }
 /** Collect what has accrued so far. Goods go to the warehouse at the job's quality; money to cash. */
 export function collect(s: GameState, plot: number): string | null {
-  const bd = s.plots[plot], j = bd?.job
+  const bd = unitAt(s, plot), j = bd?.job
   if (!bd || !j || j.kind === 'build') return 'Nothing to collect'
   const p = pending(s, bd)!
   if (p.units < 1) return 'Nothing ready yet'
@@ -567,7 +607,7 @@ function ripen(s: GameState, bd: Building) {
 
 /** Harvest a ripe crop: everything still on the plot goes to the warehouse and the plot is free. */
 export function harvest(s: GameState, plot: number): string | null {
-  const bd = s.plots[plot], j = bd?.job
+  const bd = unitAt(s, plot), j = bd?.job
   if (!bd || !j || j.kind !== 'make' || j.ripeH === undefined) return 'Not ripe yet'
   const p = pending(s, bd)!
   const units = Math.max(0, p.units)
@@ -580,7 +620,7 @@ export function harvest(s: GameState, plot: number): string | null {
 
 /** Tend a growing crop: it ripens sooner. Free, but one tend per cooldown. */
 export function tend(s: GameState, plot: number): string | null {
-  const bd = s.plots[plot], j = bd?.job
+  const bd = unitAt(s, plot), j = bd?.job
   if (!bd || !j || j.kind !== 'make' || j.ripeH !== undefined) return 'Nothing to tend'
   if (s.hour - (j.tendH ?? -Infinity) < FM.TEND_GAP_H) return 'Tended recently'
   FM.speedUp(j, s.hour, FM.TEND_SPEED)
@@ -592,11 +632,11 @@ export function tend(s: GameState, plot: number): string | null {
 
 /** Put a drip line on a farm plot: less water for every crop. */
 export function irrigate(s: GameState, plot: number): string | null {
-  const bd = s.plots[plot]
+  const bd = unitAt(s, plot)
   if (!bd || !FM.isFarm(bd.type)) return 'Only farms can be irrigated'
   if (bd.irrigated) return 'Already irrigated'
   if (bd.job) return 'Building is busy'
-  const cost = 2500 * bd.level
+  const cost = Math.round(2500 * bd.level) // a 0.6x field pays 0.6x
   if (s.cash < cost) return 'Not enough cash'
   s.cash -= cost; L.book(s, 'otherOut', -cost) // farm care
   bd.irrigated = true
@@ -605,11 +645,11 @@ export function irrigate(s: GameState, plot: number): string | null {
 
 /** Graft a better variety onto a plot: a chance that its next crop comes out a quality step higher. */
 export function graft(s: GameState, plot: number): string | null {
-  const bd = s.plots[plot]
+  const bd = unitAt(s, plot)
   if (!bd || !FM.isFarm(bd.type)) return 'Only farms can be grafted'
   if (bd.job) return 'Building is busy'
   if (bd.graft) return 'Already grafted'
-  const cost = 300 * bd.level
+  const cost = Math.round(300 * bd.level)
   if (s.cash < cost) return 'Not enough cash'
   if (haveQty(s, 'seeds') < 3) return 'Need 3 Seeds'
   s.cash -= cost; L.book(s, 'otherOut', -cost)
@@ -625,7 +665,7 @@ export function graft(s: GameState, plot: number): string | null {
  * inputs already used up are not refunded.
  */
 export function cancelJob(s: GameState, plot: number): string | null {
-  const bd = s.plots[plot], j = bd?.job
+  const bd = unitAt(s, plot), j = bd?.job
   if (!bd || !j || j.kind === 'build') return 'Nothing to stop'
   const p = pending(s, bd)!
   const done = unitsDone(j, s.hour)
@@ -675,11 +715,11 @@ export function advanceTo(s: GameState, toHour: number, boost = 1): GameState {
     const nextHour = Math.floor(s.hour + 1e-9) + 1
     let next = nextHour, who: Building | null = null, route: R.Route | null = null
     // A boosted job (Turbo Week) ends after (endH - hour) / boost game hours.
-    for (const bd of s.plots) if (bd?.job && ripeOf(bd.job) === undefined) {
+    for (const bd of allUnits(s)) if (bd.job && ripeOf(bd.job) === undefined) { // incl. farm fields
       const end = boosts(bd.job) ? s.hour + Math.max(0, bd.job.endH - s.hour) / boost : bd.job.endH
       if (end < next) { next = end; who = bd }
     }
-    for (const bd of s.plots) { const rh = ripeOf(bd?.job); if (bd && rh !== undefined && rh + FM.SPOIL_H < next) { next = Math.max(s.hour, rh + FM.SPOIL_H); who = bd } }
+    for (const bd of allUnits(s)) { const rh = ripeOf(bd.job); if (rh !== undefined && rh + FM.SPOIL_H < next) { next = Math.max(s.hour, rh + FM.SPOIL_H); who = bd } }
     const re = R.nextRouteEvent(s)
     if (re && re.h < next) { next = Math.max(s.hour, re.h); who = null; route = re.r }
     if (next > toHour) break
@@ -718,7 +758,7 @@ export const boosts = (j: Job | undefined) => !!j && (j.kind === 'make' || j.kin
 function warpJobs(s: GameState, dt: number, boost: number) {
   if (boost === 1 || dt <= 0) return
   const shift = (boost - 1) * dt
-  for (const bd of s.plots) {
+  for (const bd of allUnits(s)) { // fields grow boosted too
     const j = bd?.job
     if (!boosts(j) || j!.kind === 'build') continue
     const k = j as Extract<Job, { kind: 'make' | 'sell' }>
@@ -751,7 +791,7 @@ export function advanceReal(s: GameState, now = Date.now()): GameState {
 /** Pay 2,000 cash to finish a running job instantly ("rush"); handy in a
  *  single-player game where waiting real hours is the main cost. */
 export function rush(s: GameState, plot: number): string | null {
-  const bd = s.plots[plot]
+  const bd = unitAt(s, plot)
   if (!bd?.job) return 'Nothing to rush'
   const left = bd.job.endH - s.hour
   const cost = Math.ceil(left) * 250

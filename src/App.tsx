@@ -10,6 +10,7 @@ import { PlayerSearch, PlayerProfile } from './ui/Players'
 import { PlayerCtx } from './ui/PlayerLink'
 import { FarmPlot } from './ui/Farm'
 import { isFarm } from './game/farm'
+import * as FM from './game/farm'
 import * as GFX from './game/gfx'
 import { Warehouse } from './ui/Warehouse'
 import { Chains } from './ui/Chains'
@@ -367,31 +368,72 @@ function BuildMenu({ s, plot, act }: { s: E.GameState; plot: number; act: Act })
 /** Manage one building: production form or shop form, upgrade, scrap, rush. */
 function BuildingPanel({ s, plot, act }: { s: E.GameState; plot: number; act: Act }) {
   const bd = s.plots[plot]!, bt = BLD[bd.type]
+  const farm = isFarm(bd.type)
+  // Farms: which field the panel below works on. -1 = the farm's main field,
+  // 0.. = extra field f. The chosen field's plot ref is handed to the usual
+  // FarmPlot / JobCard / MakeForm, which all look their unit up by ref.
+  const [fsel, setF] = useState(-1)
+  const f = fsel < (bd.fields?.length ?? 0) ? fsel : -1 // field scrapped/reset: fall back to main
+  const ref = farm && f >= 0 ? FM.fieldRef(plot, f) : plot
+  const u = E.unitAt(s, ref)!
   return (
     <div>
-      <h3>{bt.name} · level {bd.level} <StatusChip state={activityOf(s, bd)!.state} /></h3>
+      <h3>{bt.name} · {farm ? `${1 + (bd.fields?.length ?? 0)} field${bd.fields?.length ? 's' : ''}` : `level ${bd.level}`} <StatusChip state={activityOf(s, bd)!.state} /></h3>
       <div className="hero"><BuildingArt type={bd.type} level={bd.level} busy={!!bd.job} /></div>
-      {isFarm(bd.type) && <FarmPlot s={s} plot={plot} act={act} />}
+      {farm && <FieldsCard s={s} plot={plot} sel={f} onSel={setF} act={act} />}
+      {farm && <FarmPlot s={s} plot={ref} act={act} />}
       {/* Construction keeps its simple card. Making and selling use the
           stacked label/value layout (JobCard below). */}
-      {bd.job ? (bd.job.kind === 'build' ? (
+      {u.job ? (u.job.kind === 'build' ? (
         <div className="card">
           <span>Under construction</span>
-          <div>Done in {dur(bd.job.endH - s.hour)}</div>
-          <button onClick={() => act(st => E.rush(st, plot))}>Rush for {money(E.rushCost(s, bd))}</button>
+          <div>Done in {dur(u.job.endH - s.hour)}</div>
+          <button onClick={() => act(st => E.rush(st, ref))}>Rush for {money(E.rushCost(s, u))}</button>
         </div>
-      ) : <JobCard s={s} plot={plot} act={act} />
+      ) : <JobCard key={ref} s={s} plot={ref} act={act} />
       ) : null}
       {/* A selling store still lists its other goods, locked until this sale ends. */}
       {bd.job?.kind === 'sell' && <OtherGoods s={s} plot={plot} />}
-      {bd.job ? null : bt.kind === 'production' ? <MakeForm s={s} plot={plot} act={act} /> : <RetailPanel s={s} plot={plot} act={act} />}
+      {u.job ? null : bt.kind === 'production' ? <MakeForm key={ref} s={s} plot={ref} act={act} /> : <RetailPanel s={s} plot={plot} act={act} />}
       <div className="row">
-        <button disabled={!!bd.job} onClick={() => act(st => E.upgrade(st, plot))}>Upgrade to L{bd.level + 1} ({money(E.upgradeCost(bd.type, bd.level + 1))})</button>
+        {/* Farms don't level up any more: they buy fields in FieldsCard. */}
+        {!farm && <button disabled={!!bd.job} onClick={() => act(st => E.upgrade(st, plot))}>Upgrade to L{bd.level + 1} ({money(E.upgradeCost(bd.type, bd.level + 1))})</button>}
         <button className="danger" onClick={() => confirm(`Scrap for ${money(E.scrapRefund(bd))} back?`) && act(st => E.scrap(st, plot))}>Scrap</button>
       </div>
-      <p className="muted">Wages {money(bt.wage * bd.level * (1 + E.overhead(s)))}/game hour while working (incl. {(E.overhead(s) * 100).toFixed(1)}% admin overhead).</p>
+      <p className="muted">Wages {money(bt.wage * u.level * (1 + E.overhead(s)))}/game hour while working (incl. {(E.overhead(s) * 100).toFixed(1)}% admin overhead).</p>
     </div>
   )
+}
+
+/**
+ * Farm fields (Option B): one label/value row per field (what it grows, how
+ * far along), a field picker, and the "Buy field" button. Rows use the same
+ * zebra .kv layout as the running-job card.
+ */
+function FieldsCard({ s, plot, sel, onSel, act }: { s: E.GameState; plot: number; sel: number; onSel: (f: number) => void; act: Act }) {
+  const bd = s.plots[plot]!
+  const units = [bd, ...(bd.fields ?? [])]
+  const next = E.nextFieldCost(bd)
+  /** Short status for one field: crop and progress, ripe, or empty. */
+  const status = (u: E.Building) => {
+    const j = u.job
+    if (!j) return 'Empty: ready to plant'
+    if (j.kind !== 'make') return 'Busy'
+    if (j.ripeH !== undefined) return <>{RES[j.res].name} · <b className="ok-note">ripe</b></>
+    return <>{RES[j.res].name} · {Math.round(100 * FM.growFrac(j, s.hour))}%</>
+  }
+  return <div className="card fields-card">
+    <div className="jc-head"><b>FIELDS</b><span>Each field grows its own crop</span></div>
+    <div className="kv">
+      {units.map((u, i) => <KV key={u.uid} k={i === 0 ? `Main field (${bd.level === 1 ? '1×' : `L${bd.level}`})` : `Field ${i + 1} (${FM.FIELD_OUT}×)`}>{status(u)}</KV>)}
+      <KV k="Next field">{next === null ? `Maximum (${FM.MAX_FIELDS} extra)` : <>{money(next)} <small className="muted">adds {FM.FIELD_OUT}× base output</small></>}</KV>
+    </div>
+    {/* Picker: choose which field the plot view and forms below work on. */}
+    <div className="row field-tabs">
+      {units.map((u, i) => <button key={u.uid} className={sel === i - 1 ? 'primary' : ''} onClick={() => onSel(i - 1)}>{i === 0 ? 'Main' : `Field ${i + 1}`}</button>)}
+    </div>
+    {next !== null && <button disabled={s.cash < next || bd.job?.kind === 'build'} onClick={() => act(st => E.buyField(st, plot))}>Buy field {units.length + 1} · {money(next)}</button>}
+  </div>
 }
 
 /** Progress of a running job, with collect-now and stop buttons. */
@@ -448,7 +490,7 @@ function KV({ k, children }: { k: ReactNode; children: ReactNode }) {
  *   4. remaining time, with "Finishes at <date time>" muted beneath.
  */
 function JobCard({ s, plot, act }: { s: E.GameState; plot: number; act: Act }) {
-  const bd = s.plots[plot]!, j = bd.job!
+  const bd = E.unitAt(s, plot)!, j = bd.job! // plot ref: a building or a farm field
   const a = activityOf(s, bd)
   // Tickers ease the counters upward each frame so progress visibly moves.
   const doneT = useTicker(a?.done ?? 0), centsT = useTicker(a?.cents ?? 0)
@@ -512,7 +554,7 @@ function JobCard({ s, plot, act }: { s: E.GameState; plot: number; act: Act }) {
 
 /** Choose a recipe and an exact amount (1..max); live preview of time, wages and inputs. */
 function MakeForm({ s, plot, act }: { s: E.GameState; plot: number; act: Act }) {
-  const bd = s.plots[plot]!, bt = BLD[bd.type]
+  const bd = E.unitAt(s, plot)!, bt = BLD[bd.type] // plot ref: a building or a farm field
   const [res, setRes] = useState(bt.recipes![0])
   const [want, setWant] = useState(100)
   const rc = REC[res]

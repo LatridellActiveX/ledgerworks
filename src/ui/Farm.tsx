@@ -30,7 +30,7 @@ const SKY: Record<FM.Weather, [string, string]> = {
 }
 
 export function FarmPlot({ s, plot, act }: { s: E.GameState; plot: number; act: Act }) {
-  const bd = s.plots[plot]!
+  const bd = E.unitAt(s, plot)! // plot ref: the farm itself or one of its extra fields
   const j = bd.job?.kind === 'make' ? bd.job : undefined
   const weather: FM.Weather = s.weather ?? 'clear'
   const soil = bd.soil ?? 1
@@ -84,8 +84,8 @@ export function FarmPlot({ s, plot, act }: { s: E.GameState; plot: number; act: 
     <div className="row farm-actions">
       {j && !ripe && <button disabled={gap > 0} onClick={() => act(st => E.tend(st, plot))}>{gap > 0 ? `Tend in ${Math.ceil(gap * 60)} min` : 'Tend 💧'}</button>}
       {ripe && <button className="primary" onClick={() => act(st => E.harvest(st, plot))}>Harvest 🧺</button>}
-      {!bd.irrigated && <button onClick={() => act(st => E.irrigate(st, plot))}>Drip line {money(2500 * bd.level)}</button>}
-      {!bd.graft && !j && <button onClick={() => act(st => E.graft(st, plot))}>Graft {money(300 * bd.level)} · 3 seeds · {Math.round(FM.GRAFT_CHANCE * 100)}%</button>}
+      {!bd.irrigated && <button onClick={() => act(st => E.irrigate(st, plot))}>Drip line {money(Math.round(2500 * bd.level))}</button>}
+      {!bd.graft && !j && <button onClick={() => act(st => E.graft(st, plot))}>Graft {money(Math.round(300 * bd.level))} · 3 seeds · {Math.round(FM.GRAFT_CHANCE * 100)}%</button>}
     </div>
     <small className="muted">Tending speeds growth; three tends during a crop give it +1 quality. Unharvested crops slowly lose value. Frost spares plots tended in the last day. Irrigation saves a third of the water.</small>
   </div>

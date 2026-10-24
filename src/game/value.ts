@@ -1,3 +1,4 @@
+import * as FM from './farm'
 // Company value: one consistent number used by the Company Value screen,
 // the trade-floor leaderboard and the daily value history.
 //
@@ -94,7 +95,7 @@ export interface ValueDetail {
 }
 
 export function valueDetail(s: GameState): ValueDetail {
-  const buildings = s.plots.flatMap(b => (b ? [{ name: BLD[b.type].name, level: b.level, value: investedCost(b.type, b.level) /* build + upgrades, incl. overrides */ }] : []))
+  const buildings = s.plots.flatMap(b => (b ? [{ name: BLD[b.type].name, level: b.level, value: investedCost(b.type, b.level) + FM.fieldsPaid(b.fields?.length ?? 0) /* build + upgrades (incl. overrides) + farm fields */ }] : []))
   const byRes: Record<string, number> = {}
   for (const [k, n] of Object.entries(s.stock)) { const r = k.split('|')[0]; byRes[r] = (byRes[r] ?? 0) + n }
   const inventory = Object.entries(byRes).map(([res, units]) => ({ res, name: RES[res]?.name ?? res, units, value: units * (s.ref?.[res] ?? RES[res]?.basePrice ?? 0) }))

@@ -20,7 +20,37 @@
 // Everything here is pure. engine.ts calls these functions and keeps the
 // accrual and payment rules in one place.
 // ============================================================================
-import type { GameState } from './engine'
+import type { GameState, Building } from './engine'
+
+// ----------------------------------------------------------------------------
+// Extra fields (Oct 2026, Parker's "Option B"). Farms no longer level up.
+// Instead a farm buys up to 3 extra fields beside it. Each field:
+//  - is its own small growing unit (a Building-shaped object kept in
+//    bd.fields) with its own crop, soil, timer, tending, drip line and graft,
+//    so every existing crop rule (ripening, weather, Turbo Week...) just works,
+//  - grows at FIELD_OUT (0.6x) of the base level-1 rate. We get that by giving
+//    the field `level: FIELD_OUT`: production time divides by level and wages
+//    multiply by it, so output AND wages are both 0.6x, the same unit cost.
+// Fields are addressed by a "plot ref" number so every engine action that
+// takes a plot index also accepts a field: ref = plot + FIELD_REF * (f + 1).
+// Plain plot indexes (< FIELD_REF) keep meaning the farm's own main field.
+// ----------------------------------------------------------------------------
+/** Price of the 1st, 2nd and 3rd extra field. The array length is the cap. */
+export const FIELD_COSTS = [9000, 14000, 20000]
+export const MAX_FIELDS = FIELD_COSTS.length
+/** Output (and wages) of one extra field, relative to a level-1 farm. */
+export const FIELD_OUT = 0.6
+/** Multiplier used to pack (plot, field) into one number. Far above any plot count. */
+export const FIELD_REF = 1000
+/** Plot ref for extra field `f` (0-based) of the farm on `plot`. */
+export const fieldRef = (plot: number, f: number) => plot + FIELD_REF * (f + 1)
+/** Split a plot ref back into its plot index and field (-1 = the farm itself). */
+export const splitRef = (ref: number) => ({ plot: ref % FIELD_REF, field: Math.floor(ref / FIELD_REF) - 1 })
+/** Total paid for the first `n` extra fields (valuation and scrap refund). */
+export const fieldsPaid = (n: number) => FIELD_COSTS.slice(0, n).reduce((t, c) => t + c, 0)
+/** Every farm growing unit: each farm's main field followed by its extra fields. */
+export const farmUnits = (s: GameState): Building[] =>
+  s.plots.flatMap(bd => (bd && isFarm(bd.type) ? [bd, ...(bd.fields ?? [])] : []))
 
 export const FARM_TYPES = ['orchard']
 export const isFarm = (type: string) => FARM_TYPES.includes(type)
@@ -93,8 +123,7 @@ export function farmDay(s: GameState, r: number): string[] {
   const w = rollWeather(r)
   s.weather = w
   const notes: string[] = []
-  for (const bd of s.plots) {
-    if (!bd || !isFarm(bd.type)) continue
+  for (const bd of farmUnits(s)) { // main fields and extra fields alike
     const j = bd.job
     if (!j || j.kind !== 'make') { bd.soil = soilRecover(bd.soil ?? 1); continue }
     if (j.ripeH !== undefined) continue

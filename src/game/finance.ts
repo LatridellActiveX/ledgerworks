@@ -1,3 +1,4 @@
+import * as FM from './farm'
 // ============================================================================
 // Stage 10: bonds, government orders, and extraction abundance.
 //
@@ -62,7 +63,7 @@ export interface Bond { id: number; amount: number; rate: number; soldH: number 
 export interface Holding { id: number; issuer: string; rating: Rating; amount: number; rate: number; boughtH: number }
 
 /** Value of all buildings at construction cost. */
-export const buildingValue = (s: GameState) => s.plots.reduce((t, b) => t + (b ? investedCost(b.type, b.level) /* build + upgrades, incl. overrides */ : 0), 0)
+export const buildingValue = (s: GameState) => s.plots.reduce((t, b) => t + (b ? investedCost(b.type, b.level) + FM.fieldsPaid(b.fields?.length ?? 0) /* build + upgrades (incl. overrides) + farm fields */ : 0), 0)
 export const debt = (s: GameState) => (s.bonds ?? []).reduce((t, b) => t + b.amount, 0)
 export const heldValue = (s: GameState) => (s.holdings ?? []).reduce((t, b) => t + b.amount, 0)
 
