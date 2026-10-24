@@ -888,3 +888,18 @@ tr.bidrow td { color: #3c9a5f; font-weight: 600 }
 /* Farm field picker (FieldsCard): one small tab per field, wraps on phones. */
 .field-tabs { flex-wrap: wrap; gap: 6px; margin-top: 6px; }
 .field-tabs button { flex: 1 1 0; min-width: 64px; }
+/* ---- Tutorial v2 (ui/Tutorial.tsx): click-through layer, blockers round the spotlight, advisor card ---- */
+.tut.guide { pointer-events: none }
+.tut.guide .tut-block { position: absolute; pointer-events: auto }
+.tut-card.advisor { pointer-events: auto; display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px }
+.tut-card.advisor.bottom { top: auto; bottom: calc(72px + env(safe-area-inset-bottom)) }
+.tut-card.advisor.top { top: 64px }
+.tut-card.advisor h3 { font-size: 16px } .tut-card.advisor p { font-size: 14px; margin-bottom: 6px }
+.tut-card.advisor .row button { min-height: 32px; padding: 0 } .tut-dots { justify-content: flex-start } .tut-dots i.past { background: #ea6a4588 }
+.advisor-face { font-size: 30px; line-height: 1 }
+.tip-card { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(76px + env(safe-area-inset-bottom)); z-index: 41; width: min(360px, calc(100vw - 28px)); background: #fffaf2; color: #222; border-radius: 16px; padding: 12px 14px; box-shadow: 0 12px 40px #0005; display: flex; gap: 10px; align-items: center; animation: up-in .3s }
+.tip-card p { margin: 0; flex: 1; font-size: 14px; line-height: 1.35 } .tip-card button { min-height: 40px; padding: 0 14px }
+.goals { display: flex; flex-direction: column; gap: 8px }
+.goal { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 14px; background: #ffffff10 }
+.goal .grow { flex: 1; display: flex; flex-direction: column } .goal.locked { opacity: .55 } .goal.ready { outline: 2px solid #ff9a72 }
+.goal-ic { font-size: 20px }

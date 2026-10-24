@@ -16,11 +16,12 @@ type Act = (f: (st: E.GameState) => string | null | void) => void
 const pct = (r: number) => `${(r * 100).toFixed(2)}%`
 
 /** Finance tab: pick a section; 'bonds' is the original screen. */
-export function Finance({ s, act, user }: { s: E.GameState; act: Act; user?: string | null }) {
+// onReport: told when a statement tab is opened (tutorial goal "read the report").
+export function Finance({ s, act, user, onReport }: { s: E.GameState; act: Act; user?: string | null; onReport?: () => void }) {
   const [tab, setTab] = useState<'bonds' | StatementTab>('bonds')
   const tabs: [typeof tab, string][] = [['bonds', 'Bonds'], ['cash', 'Cash flow'], ['balance', 'Balance'], ['ratios', 'Ratios']]
   return <>
-    <div className="seg dark fin-tabs" role="tablist">{tabs.map(([id, label]) => <button key={id} role="tab" aria-selected={tab === id} className={tab === id ? 'on' : ''} onClick={() => setTab(id)}>{label}</button>)}</div>
+    <div className="seg dark fin-tabs" role="tablist">{tabs.map(([id, label]) => <button key={id} role="tab" aria-selected={tab === id} className={tab === id ? 'on' : ''} onClick={() => { setTab(id); if (id !== 'bonds') onReport?.() }}>{label}</button>)}</div>
     {tab === 'bonds' ? <BondsAndOrders s={s} act={act} user={user} /> : <Statements s={s} tab={tab} />}
   </>
 }

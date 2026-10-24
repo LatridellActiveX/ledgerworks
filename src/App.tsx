@@ -28,7 +28,8 @@ import * as T from './game/trade'
 import { CompanyValue } from './ui/CompanyValue'
 import { UpdatePrompt } from './ui/UpdatePrompt'
 import { Login } from './ui/Login'
-import { Tutorial, loadTut, saveTut, type TutState } from './ui/Tutorial'
+import { Guide, Tip, Goals } from './ui/Tutorial'
+import * as TU from './game/tutorial'
 import * as A from './game/auth'
 import { BuildingArt, Logo, ResIcon } from './ui/art'
 import { Campus3D } from './ui/Campus3D'
@@ -89,8 +90,10 @@ export default function App() {
     try { const n = await cloudLoad(); setS(n); saveGame(n); setMsg(`Signed in as ${name}`) } catch { await cloudSave(latest.current); setMsg(`Signed in as ${name}. Company saved to your account.`) }
   }
   // First-time tutorial (progress in localStorage).
-  const [tut, setTutS] = useState<TutState>(loadTut)
-  const setTut = (t: TutState) => { setTutS(t); saveTut(t) }
+  // New-player tutorial (game/tutorial.ts): guided start, goals, tips.
+  // Loaded once; existing companies are marked done on first load.
+  const [tut, setTutS] = useState<TU.TutState>(() => TU.loadTut(loadGame()))
+  const setTut = (t: TU.TutState) => { setTutS(t); TU.saveTut(t) }
   const [seenLog, setSeenLog] = useState(() => Number(localStorage.getItem('ledgerworks-seen-log') || 0))
 
   /** Run a mutating engine action on a copy, show its error if any. */
@@ -131,6 +134,23 @@ export default function App() {
     const b = setInterval(() => setS(p => { cloudSave(p); return p }), 120000)
     return () => { clearInterval(a); clearInterval(b) }
   }, [])
+
+  // Guided start: after every state/screen change, apply the starter boost
+  // and move past any step the player has now done. Rewards (crates at the
+  // Warehouse step, $1,000 + first star at the end) are added to the game.
+  const guiding = !booting && !tut.done && !tut.off
+  useEffect(() => {
+    if (!guiding) return
+    const r = TU.advance(tut, s, screen)
+    const n = structuredClone(s)
+    let ch = TU.boost(n)
+    if (r.needCrates) { TU.giveCrates(n); ch = true }
+    if (r.finished) { TU.giveFinishReward(n); ch = true; setMsg('Tutorial complete! +$1,000 and your first star ★') }
+    if (ch) { setS(n); saveGame(n) }
+    if (r.t !== tut) setTut(r.t)
+  }, [s, screen, guiding]) // eslint-disable-line react-hooks/exhaustive-deps
+  const claimGoal = (id: string) => { const n = structuredClone(s), t2 = structuredClone(tut); const e = TU.claimGoal(n, t2, id); if (e) { setMsg(e); return } sfx('coin'); setS(n); saveGame(n); setTut(t2) }
+  const tip = booting ? null : TU.tipFor(tut, screen)
 
   /** Tap a bubble (or the panel button): collect what has accrued, then animate it to the HUD. */
   const collectAt = (i: number, r: DOMRect) => {
@@ -246,7 +266,8 @@ export default function App() {
           {screen === 'research' && <Research s={s} act={act} />}
           {screen === 'board' && <Board s={s} onExecs={() => open('execs')} />}
           {screen === 'execs' && <Executives s={s} act={act} />}
-          {screen === 'finance' && <Finance s={s} act={act} user={user} />}
+          {screen === 'finance' && <Finance s={s} act={act} user={user} onReport={() => { if (!tut.report) setTut({ ...tut, report: true }) }} />}
+          {screen === 'goals' && <Goals s={s} t={tut} onClaim={claimGoal} />}
           {screen === 'levels' && <LevelScreen s={s} />}
           {screen === 'value' && <CompanyValue s={s} onPlayer={openPlayer} onRename={renameCompany_} />}
           {/* Player search + public profiles (ui/Players.tsx). Trade opens the trade floor offer form for that trader. */}
@@ -289,8 +310,9 @@ export default function App() {
               <button disabled={!sound} onClick={testSounds}>▶ Test sounds</button>
               <div className="sfx-chips">{SFX_LIST.map(x => <button key={x.id} disabled={!sound} onClick={() => sfx(x.id, true)}>{x.label}</button>)}</div>
             </div>
-            <button onClick={() => setTut({ ...tut, off: !tut.off, done: tut.off ? false : tut.done })}>Tutorial: {tut.off ? 'off' : 'on'}</button>
-            <button onClick={() => { setTut({ step: 0, done: false, off: false }); setScreen('map') }}>Restart tutorial</button>
+            {/* Tutorial: skip / turn off (hides the guide AND the one-time tips), or replay the guided start from step 1. */}
+            <label className="set-toggle"><input type="checkbox" checked={tut.off} onChange={e => setTut({ ...tut, off: e.target.checked })} /> Skip tutorial and tips</label>
+            <button onClick={() => { setTut({ ...tut, step: 0, done: false, off: false, exBase: undefined }); setScreen('map') }}>↻ Replay tutorial</button>
             {/* Graphics quality for the 3D map (game/gfx.ts). Auto adapts to the device. */}
             <label className="gfx-set">Graphics quality <select value={gfx} onChange={e => { const g = e.target.value as GFX.GfxSetting; GFX.setSetting(g); setGfx(g); dispatchEvent(new Event('lw:gfx')) }}>
               {(['auto', 'high', 'medium', 'low'] as const).map(g => <option key={g} value={g}>{g === 'auto' ? `Auto (now ${GFX.currentTier()})` : g[0].toUpperCase() + g.slice(1)}</option>)}</select></label>
@@ -314,7 +336,7 @@ export default function App() {
       {/* Hamburger drawer: the less-used screens and settings. */}
       {menu && <div className="drawer-bg" onClick={() => setMenu(false)}><nav className="drawer" onClick={e => e.stopPropagation()}>
         <div className="drawer-head"><Logo /><b>{s.company}</b></div>
-        {(['levels', 'value', 'players', 'execs', 'news', 'routes', 'chains', 'market', 'log', 'changes', 'account', 'settings', 'privacy'] as const).map(t => <button key={t} onClick={() => open(t)}>{SCREEN_ICON[t]} {SCREEN_TITLE[t]}</button>)}
+        {(['goals', 'levels', 'value', 'players', 'execs', 'news', 'routes', 'chains', 'market', 'log', 'changes', 'account', 'settings', 'privacy'] as const).map(t => <button key={t} onClick={() => open(t)}>{SCREEN_ICON[t]} {SCREEN_TITLE[t]}</button>)}
         <button onClick={() => { toggleView(); setMenu(false) }}>{view === '3d' ? '▦ Switch to 2D map' : '◈ Switch to 3D map'}</button>
       </nav></div>}
 
@@ -322,7 +344,9 @@ export default function App() {
       {/* Boot screen first (skipped by the screenshot tool via __lwNoBoot). Login and the tour wait for it. */}
       {booting && <Boot view={view} onDone={() => setBooting(false)} />}
       {!booting && showLogin && <Login initial={loginMode} onDone={afterLogin} onClose={A.isGuest() || user ? () => setShowLogin(false) : undefined} />}
-      {!booting && !showLogin && !tut.done && !tut.off && <Tutorial t={tut} set={setTut} />}
+      {guiding && !showLogin && <Guide t={tut} s={s} screen={screen} onSkip={() => setTut({ ...tut, done: true, step: 0 })} />}
+      {/* One-time tip the first time Market, Research, Finance, Executives or Trade routes opens (not while the guide card is up). */}
+      {tip && !guiding && !showLogin && <Tip text={tip} onOk={() => setTut({ ...tut, tips: [...tut.tips, screen] })} />}
 
       {/* Bottom tab bar: five main screens. */}
       <nav className="tabs tabbar">
@@ -337,9 +361,9 @@ export default function App() {
 }
 
 /** Every screen the HUD can open. 'map' is the plain map. */
-type Screen = 'map' | 'levels' | 'value' | 'building' | 'warehouse' | 'exchange' | 'trade' | 'research' | 'board' | 'finance' | 'market' | 'log' | 'changes' | 'account' | 'settings' | 'privacy' | 'chains' | 'news' | 'routes' | 'execs' | 'players'
-const SCREEN_TITLE: Record<Screen, string> = { map: 'Map', levels: 'Company level', value: 'Company value', building: 'Building', warehouse: 'Warehouse', exchange: 'Market', trade: 'Market', research: 'Research', board: 'Research', finance: 'Finance', market: 'Public demand', log: 'Events', changes: 'Change log', account: 'Saves & account', settings: 'Settings', privacy: 'Privacy policy', chains: 'Production chains', news: 'Business Live', routes: 'Trade routes', execs: 'Executives', players: 'Players' }
-const SCREEN_ICON: Partial<Record<Screen, string>> = { levels: '★', value: '💹', market: '📈', log: '🔔', changes: '📝', account: '💾', settings: '⚙', privacy: '🔒', chains: '🔗', news: '📡', routes: '🚚', execs: '👔', players: '🔎' }
+type Screen = 'map' | 'levels' | 'value' | 'building' | 'warehouse' | 'exchange' | 'trade' | 'research' | 'board' | 'finance' | 'market' | 'log' | 'changes' | 'account' | 'settings' | 'privacy' | 'chains' | 'news' | 'routes' | 'execs' | 'players' | 'goals'
+const SCREEN_TITLE: Record<Screen, string> = { map: 'Map', levels: 'Company level', value: 'Company value', building: 'Building', warehouse: 'Warehouse', exchange: 'Market', trade: 'Market', research: 'Research', board: 'Research', finance: 'Finance', market: 'Public demand', log: 'Events', changes: 'Change log', account: 'Saves & account', settings: 'Settings', privacy: 'Privacy policy', chains: 'Production chains', news: 'Business Live', routes: 'Trade routes', execs: 'Executives', players: 'Players', goals: 'Goals' }
+const SCREEN_ICON: Partial<Record<Screen, string>> = { levels: '★', value: '💹', market: '📈', log: '🔔', changes: '📝', account: '💾', settings: '⚙', privacy: '🔒', chains: '🔗', news: '📡', routes: '🚚', execs: '👔', players: '🔎', goals: '🎯' }
 /** The bottom tab bar (original simple glyphs). */
 const TABS: [Screen, string, string][] = [['map', 'Map', '🗺'], ['warehouse', 'Warehouse', '📦'], ['exchange', 'Market', '⇄'], ['research', 'Research', '🔬'], ['finance', 'Finance', '🏦']]
 
@@ -355,7 +379,7 @@ function BuildMenu({ s, plot, act }: { s: E.GameState; plot: number; act: Act })
         {BUILDINGS.map(b => {
           const ok = lvl >= b.unlockLevel
           return (
-            <button key={b.id} disabled={!ok || s.cash < b.cost} className="buildopt" onClick={() => act(st => E.construct(st, plot, b.id))}>
+            <button key={b.id} disabled={!ok || s.cash < b.cost} className="buildopt" data-b={b.id} onClick={() => act(st => E.construct(st, plot, b.id))}>
               <span className="mini"><BuildingArt type={b.id} /></span>
               <span><b>{b.name}</b><br /><small>{ok ? money(b.cost) : `Unlocks at Lv ${b.unlockLevel}`} · {b.kind === 'retail' ? 'shop' : (b.recipes ?? []).map(r => RES[r].name).join(', ')}</small></span>
             </button>

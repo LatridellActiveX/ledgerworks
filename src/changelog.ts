@@ -4,6 +4,17 @@ export interface ChangeEntry { id: string; date: string; title: string; notes: s
 
 export const CHANGELOG: ChangeEntry[] = [
   {
+    id: 'tutorial-v2',
+    date: '2026-10-24',
+    title: 'New-player tutorial, goals and tips',
+    notes: [
+      'New companies get a short guided start: an advisor card shows the next step and spotlights the button to tap. Build an orchard, grow and collect apples, open a Corner market and sell them, collect the cash, check your company value, then sell on the Exchange. The first buildings and crop are boosted so it only takes a few minutes. Finishing pays $1,000 and your first star.',
+      'A new Goals screen in the menu: goals unlock as your company levels up and each pays a small cash reward, from your first fruit juice up to hiring an executive.',
+      'The first time you open the Market, Research, Finance, Executives or Trade routes, a one-line tip explains it.',
+      'Settings: "Skip tutorial and tips" turns it all off, and "Replay tutorial" starts the guided start again. Existing companies are not shown the tutorial.',
+    ],
+  },
+  {
     id: 'farm-fields',
     date: '2026-10-24',
     title: 'Farms grow by adding fields',

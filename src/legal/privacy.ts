@@ -27,7 +27,7 @@ export const PRIVACY: PolicySection[] = [
     'To stop abuse, searches are limited per visitor. The limit uses a hash of your IP address that is held only in the server\'s short-term memory for about a minute and is never stored.',
   ] },
   { h: 'What we store in your browser', p: [
-    'The game uses localStorage on your device for: your save (ledgerworks-save-v1), your guest cloud ID and key (ledgerworks-cloud-id), guest mode (ledgerworks-guest), your trade floor name and key (ledgerworks-account), and settings and progress (ledgerworks-view, ledgerworks-gfx, ledgerworks-gfx-auto, ledgerworks-sound, ledgerworks-volume, ledgerworks-tutorial, ledgerworks-realm, ledgerworks-seen-log, ledgerworks-season-results). It is not sent anywhere except as described above. You can delete it by clearing site data in your browser.',
+    'The game uses localStorage on your device for: your save (ledgerworks-save-v1), your guest cloud ID and key (ledgerworks-cloud-id), guest mode (ledgerworks-guest), your trade floor name and key (ledgerworks-account), and settings and progress (ledgerworks-view, ledgerworks-gfx, ledgerworks-gfx-auto, ledgerworks-sound, ledgerworks-volume, ledgerworks-tutorial, ledgerworks-tutorial-v2, ledgerworks-realm, ledgerworks-seen-log, ledgerworks-season-results). It is not sent anywhere except as described above. You can delete it by clearing site data in your browser.',
     'The only cookie is the lw_session sign-in cookie. We don\'t use any tracking or advertising cookies.',
   ] },
   { h: 'What we don\'t do', p: [
