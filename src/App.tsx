@@ -350,8 +350,9 @@ export default function App() {
       {/* Hamburger drawer: the less-used screens and settings. */}
       {menu && <div className="drawer-bg" onClick={() => setMenu(false)}><nav className="drawer" onClick={e => e.stopPropagation()}>
         <div className="drawer-head"><Logo /><b>{s.company}</b></div>
-        {(['goals', 'levels', 'value', 'players', 'execs', 'news', 'routes', 'chains', 'market', 'log', 'changes', 'account', 'settings', 'privacy'] as const).map(t => <button key={t} onClick={() => open(t)}>{SCREEN_ICON[t]} {SCREEN_TITLE[t]}</button>)}
+        {/* Admin first: on phones the long list runs past the screen bottom. */}
         {isAdmin && <button onClick={() => open('admin')}>{SCREEN_ICON.admin} {SCREEN_TITLE.admin}</button>}
+        {(['goals', 'levels', 'value', 'players', 'execs', 'news', 'routes', 'chains', 'market', 'log', 'changes', 'account', 'settings', 'privacy'] as const).map(t => <button key={t} onClick={() => open(t)}>{SCREEN_ICON[t]} {SCREEN_TITLE[t]}</button>)}
         <button onClick={() => { toggleView(); setMenu(false) }}>{view === '3d' ? '▦ Switch to 2D map' : '◈ Switch to 3D map'}</button>
       </nav></div>}
 
@@ -359,9 +360,10 @@ export default function App() {
       {/* Boot screen first (skipped by the screenshot tool via __lwNoBoot). Login and the tour wait for it. */}
       {booting && <Boot view={view} onDone={() => setBooting(false)} />}
       {!booting && showLogin && <Login initial={loginMode} onDone={afterLogin} onClose={A.isGuest() || user ? () => setShowLogin(false) : undefined} />}
-      {guiding && !showLogin && <Guide t={tut} s={s} screen={screen} onSkip={() => setTut({ ...tut, done: true, step: 0 })} />}
+      {/* Hidden while the menu is open, so the advisor card never covers it. */}
+      {guiding && !showLogin && !menu && <Guide t={tut} s={s} screen={screen} onSkip={() => setTut({ ...tut, done: true, step: 0 })} />}
       {/* One-time tip the first time Market, Research, Finance, Executives or Trade routes opens (not while the guide card is up). */}
-      {tip && !guiding && !showLogin && <Tip text={tip} onOk={() => setTut({ ...tut, tips: [...tut.tips, screen] })} />}
+      {tip && !guiding && !showLogin && !menu && <Tip text={tip} onOk={() => setTut({ ...tut, tips: [...tut.tips, screen] })} />}
 
       {/* Bottom tab bar: five main screens. */}
       <nav className="tabs tabbar">

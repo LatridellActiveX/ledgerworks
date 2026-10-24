@@ -4,6 +4,12 @@ export interface ChangeEntry { id: string; date: string; title: string; notes: s
 
 export const CHANGELOG: ChangeEntry[] = [
   {
+    id: 'menu-scroll-fix',
+    date: '2026-10-24',
+    title: 'Menu fix on phones',
+    notes: ['The menu now scrolls on small screens, so the last entries (Privacy policy and the map switch) can be reached again, and the tutorial card no longer covers the open menu.'],
+  },
+  {
     id: 'internal-tools',
     date: '2026-10-24',
     title: 'Internal tools and error reports',
