@@ -11,7 +11,7 @@ import { PlayerCtx } from './ui/PlayerLink'
 import { FarmPlot } from './ui/Farm'
 import { isFarm } from './game/farm'
 import * as GFX from './game/gfx'
-import { Warehouse, compact as compactNum } from './ui/Warehouse'
+import { Warehouse } from './ui/Warehouse'
 import { Chains } from './ui/Chains'
 import { News } from './ui/News'
 import { Routes, RouteLane } from './ui/Routes'
@@ -173,22 +173,33 @@ export default function App() {
         <Campus3D s={s} slots={slots} sel={sel} onPick={i => { setSel(i); setScreen('building') }} mode={view} onCollect={collectAt} />
       </section>
 
-      {/* Top HUD: menu + company badge (left); cash, level, bell, info (right). */}
-      <div className="hud-top">
+      {/*
+        Compact top HUD (Oct 2026): ONE slim strip about 56px tall, so nothing
+        big floats over the map. Left to right:
+          menu · tiny clock line + Turbo Week chip · (space) · bell · crates ·
+          [cash pill over a slim ★ level / XP bar row] · company badge.
+        Same taps as before: cash and badge open Company Value, the XP row opens
+        Levels, the bell opens notifications, crates open the Warehouse.
+        (No mode-switch avatar on the left, unlike the reference layout.)
+      */}
+      <div className="hud-top hud-strip">
         <button className="hud-btn burger" aria-label="Menu" onClick={() => setMenu(true)}><span /><span /><span /></button>
-        <button className="hud-badge" title={s.company} aria-label="Company" onClick={() => open('value')}><Crest name={s.company} size={36} /></button>
-        <span className="grow" />
-        <button className="hud-btn bell" aria-label="Notifications" onClick={() => open('log')}>🔔{unseen > 0 && <i>{unseen > 99 ? '99+' : unseen}</i>}</button>
-        <div className="hud-stats">
-          {/* Cash pill: tap opens Company Value (same as the company badge). */}
-          <button className="pill cash" aria-label="Cash. Show company value" title="Company value" onClick={() => open('value')}><Ticker value={s.cash} /></button>
-          {/* Shipping crate counter: tap to buy more in the Warehouse. */}
-          <button className="pill crates" aria-label="Shipping crates" title="Shipping crates (tap to buy more)" onClick={() => open('warehouse')}><ResIcon id="crates" size={16} />{compactNum(E.haveQty(s, 'crates'))}</button>
-          <button className="hud-xp" title={`Company level ${lvl}, ${xpPct}% to the next. Tap for details.`} aria-label={`Company level ${lvl}, ${xpPct} percent to the next. Show level details.`} onClick={() => open('levels')}><b>★ {lvl}</b><span className="bar"><i style={{ width: `${xpPct}%` }} /></span><small>{xpPct}%</small></button>
-          <span className="hud-info">{clock(s.hour)} · <span className={`phase-${s.phase ?? 'normal'}`}>{PHASE_LABEL[s.phase ?? 'normal']}</span>{s.realm === 'seasons' ? ` · S${s.season}` : ''}</span>
-          {/* Live event chip (Turbo Week): one line, under the clock. */}
+        {/* Tiny info column: day/clock/phase as small text, event chip under it. */}
+        <div className="hud-left">
+          <span className="hud-info" title={clock(s.hour)}>{/* short form "D1 08:00" so it fits the slim strip */}{clock(s.hour).replace(/^Day /, 'D').replace(',', ' ')} · <span className={`phase-${s.phase ?? 'normal'}`}>{PHASE_LABEL[s.phase ?? 'normal']}</span>{s.realm === 'seasons' ? ` · S${s.season}` : ''}</span>
           <TurboChip />
         </div>
+        {/* Small bell with an unread count. */}
+        <button className="hud-mini bell" aria-label={`Notifications${unseen ? `, ${unseen} new` : ''}`} onClick={() => open('log')}>🔔{unseen > 0 && <i>{unseen > 99 ? '99+' : unseen}</i>}</button>
+        {/* No crate counter on the map HUD (Parker, Oct 2026): crates show where they are used (Warehouse, Exchange, crate quick-buy prompts). */}
+        <div className="hud-stats">
+          {/* Slim cash pill: tap opens Company Value. */}
+          <button className="pill cash" aria-label="Cash. Show company value" title="Company value" onClick={() => open('value')}><Ticker value={s.cash} /></button>
+          {/* Slim level row under the cash: star level, XP bar, percent. */}
+          <button className="hud-xp" title={`Company level ${lvl}, ${xpPct}% to the next. Tap for details.`} aria-label={`Company level ${lvl}, ${xpPct} percent to the next. Show level details.`} onClick={() => open('levels')}><b>★ {lvl}</b><span className="bar"><i style={{ width: `${xpPct}%` }} /></span><small>{xpPct}%</small></button>
+        </div>
+        {/* Company badge, right of the cash (opens Company Value as before). */}
+        <button className="hud-badge" title={s.company} aria-label="Company" onClick={() => open('value')}><Crest name={s.company} size={28} /></button>
       </div>
 
       {s.realm === 'seasons' && (s.season ?? 0) < SEA.seasonAt().no && <div className="season-over">

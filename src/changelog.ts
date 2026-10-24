@@ -4,6 +4,12 @@ export interface ChangeEntry { id: string; date: string; title: string; notes: s
 
 export const CHANGELOG: ChangeEntry[] = [
   {
+    id: 'compact-hud',
+    date: '2026-10-23',
+    title: 'Slimmer top bar',
+    notes: ['The top of the map is now one slim bar: menu on the left with the clock, then the bell, a smaller cash pill with your level and XP under it, and your company badge. More of your campus is visible. The crate counter left the map; crates still show in the Warehouse, the Exchange and when you need to buy them.'],
+  },
+  {
     id: 'turbo-week',
     date: '2026-10-23',
     title: '⚡ Turbo Week: 3× production and selling',
