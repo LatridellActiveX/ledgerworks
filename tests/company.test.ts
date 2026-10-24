@@ -69,3 +69,16 @@ describe('crest', () => {
     expect(starPoints(6).split(' ').length).toBe(12)
   })
 })
+
+import { donutArcs } from '../src/ui/CompanyValue'
+describe('value donut', () => {
+  it('slices run end to end from 12 o\'clock, skip zeros, and tiny ones still show', () => {
+    const a = donutArcs([9, 88, 2, 0, 1])
+    expect(a.map(x => x.i)).toEqual([0, 1, 2, 4])
+    for (let k = 1; k < a.length; k++) expect(a[k].a0).toBeGreaterThanOrEqual(a[k - 1].a1 - 1e-9)
+    expect(a[0].a0).toBeCloseTo(0.6); expect(a.at(-1)!.a1).toBeLessThanOrEqual(360)
+    for (const x of a) expect(x.a1).toBeGreaterThan(x.a0)
+    expect(donutArcs([0, 0])).toEqual([])
+    expect(donutArcs([5])).toEqual([{ i: 0, a0: 0, a1: 360 }])
+  })
+})

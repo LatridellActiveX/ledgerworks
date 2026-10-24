@@ -53,20 +53,45 @@ function ValueChart({ s, pts }: { s: GameState; pts: { h: number; v: number }[] 
   )
 }
 
-/** Donut of what the company's assets are made of, with the total in the middle. */
+/**
+ * Donut of what the company's assets are made of, with the total in the middle.
+ *
+ * Each slice is its own SVG arc path (not a dashed circle). Dash offsets
+ * around a circle's start point rendered tiny slices misaligned on some
+ * phones (slices near 12 o'clock overlapped and jutted out). Arcs avoid that:
+ *  - every slice uses the same centre, radius R and stroke width W,
+ *  - butt line caps, so slices end exactly where the next begins,
+ *  - slices start at 12 o'clock and run clockwise in list order,
+ *  - a small fixed gap (GAP, in degrees) between slices when there are 2+,
+ *  - zero or negative values draw nothing; a single slice draws a full ring.
+ */
+export const DONUT_GAP = 1.2
+export function donutArcs(values: number[], gap = DONUT_GAP): { i: number; a0: number; a1: number }[] {
+  const total = values.reduce((t, v) => t + Math.max(0, v), 0)
+  if (!(total > 0)) return []
+  const live = values.map((v, i) => ({ v, i })).filter(x => x.v > 0)
+  const g = live.length > 1 ? gap : 0
+  let acc = 0
+  return live.map(({ v, i }) => {
+    const a0 = acc, sweep = (v / total) * 360; acc += sweep
+    // Keep slices at least 0.4 degrees so a tiny value still shows after the gap.
+    return { i, a0: a0 + g / 2, a1: Math.max(a0 + g / 2 + 0.4, a0 + sweep - g / 2) }
+  })
+}
+/** SVG path for an arc from angle a0 to a1 (degrees clockwise from 12 o'clock). */
+const arcPath = (cx: number, cy: number, r: number, a0: number, a1: number) => {
+  const pt = (a: number) => { const rad = (a - 90) * Math.PI / 180; return `${(cx + r * Math.cos(rad)).toFixed(3)} ${(cy + r * Math.sin(rad)).toFixed(3)}` }
+  if (a1 - a0 >= 359.999) return `M ${pt(0)} A ${r} ${r} 0 1 1 ${pt(180)} A ${r} ${r} 0 1 1 ${pt(360)}` // full ring in two halves
+  return `M ${pt(a0)} A ${r} ${r} 0 ${a1 - a0 > 180 ? 1 : 0} 1 ${pt(a1)}`
+}
 function AssetDonut({ parts }: { parts: { label: string; v: number; c: string }[] }) {
   const total = parts.reduce((t, p) => t + Math.max(0, p.v), 0)
-  const R = 62, C = 2 * Math.PI * R
-  let acc = 0
+  const R = 62, W = 22
   return (
     <svg className="donut" viewBox="0 0 160 160" role="img" aria-label={`Assets ${money(total)}: ${parts.map(p => `${p.label} ${Math.round(100 * p.v / (total || 1))}%`).join(', ')}`}>
-      <circle cx="80" cy="80" r={R} fill="none" stroke="#efe8da" strokeWidth="22" />
-      {parts.filter(p => p.v > 0).map(p => {
-        const len = (p.v / (total || 1)) * C
-        const seg = <circle key={p.label} cx="80" cy="80" r={R} fill="none" stroke={p.c} strokeWidth="22" strokeDasharray={`${len} ${C - len}`} strokeDashoffset={-acc} transform="rotate(-90 80 80)" />
-        acc += len
-        return seg
-      })}
+      <circle cx="80" cy="80" r={R} fill="none" stroke="#efe8da" strokeWidth={W} />
+      {donutArcs(parts.map(p => p.v)).map(({ i, a0, a1 }) =>
+        <path key={parts[i].label} d={arcPath(80, 80, R, a0, a1)} fill="none" stroke={parts[i].c} strokeWidth={W} strokeLinecap="butt" />)}
       <text x="80" y="76" textAnchor="middle" fontSize="11" fill="#6b6378">Assets</text>
       <text x="80" y="95" textAnchor="middle" fontSize="15" fontWeight="800" fill="#2c2540">{money(total)}</text>
     </svg>

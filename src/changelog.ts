@@ -4,6 +4,12 @@ export interface ChangeEntry { id: string; date: string; title: string; notes: s
 
 export const CHANGELOG: ChangeEntry[] = [
   {
+    id: 'value-donut-fix',
+    date: '2026-10-23',
+    title: 'Cleaner Company Value chart',
+    notes: ['The asset ring on Company Value now draws every slice the same size and end to end, so small slices like Cash and Inventory no longer overlap at the top. Empty categories draw nothing.'],
+  },
+  {
     id: 'update-popup-new-notes',
     date: '2026-10-23',
     title: 'Update pop-up shows the right notes',
