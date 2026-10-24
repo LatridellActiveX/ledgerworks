@@ -257,7 +257,6 @@ select.realm { border-radius: 999px; padding: 4px 10px; font: inherit; font-size
 .act.make .ic { animation: work 1.2s ease-in-out infinite }
 .act .chip { margin-top: 2px; font: 700 10px/1 system-ui; padding: 3px 7px; border-radius: 9px; color: #fff; background: #3c9a5f; box-shadow: 0 1px 3px #0003 }
 .act.sell .chip { background: #d4930f } .act.done .chip { background: #7b61ff } .act.idle .chip { background: #8a8f98 }
-.act .kaching { position: absolute; top: -12px; left: 28px; font: 800 9px system-ui; color: #b07a00; white-space: nowrap; animation: kaching 2.4s ease-out infinite }
 .act.sell .ring { animation: ka 2.4s ease-out infinite }
 .act .zz { font: 800 13px system-ui; color: #6b7280aa; animation: zz 2.6s ease-in-out infinite; padding: 4px 6px; background: #fff8; border-radius: 10px }
 .act .zz small { font-size: 9px }
@@ -269,7 +268,6 @@ select.realm { border-radius: 999px; padding: 4px 10px; font: inherit; font-size
   mask: radial-gradient(circle, transparent 35%, #000 40%, transparent 70%); -webkit-mask: radial-gradient(circle, transparent 35%, #000 40%, transparent 70%) }
 @keyframes work { 50% { transform: rotate(-12deg) scale(1.1) } }
 @keyframes ka { 0%, 70%, 100% { transform: scale(1) } 78% { transform: scale(1.15) } 86% { transform: scale(.97) } }
-@keyframes kaching { 0%, 68% { opacity: 0; transform: translateY(4px) } 76% { opacity: 1; transform: none } 100% { opacity: 0; transform: translateY(-6px) } }
 @keyframes zz { 0%, 100% { opacity: .5; transform: translateY(0) } 50% { opacity: 1; transform: translateY(-4px) } }
 @keyframes burst { from { opacity: 1; transform: scale(.2) rotate(0) } to { opacity: 0; transform: scale(1.6) rotate(40deg) } }
 

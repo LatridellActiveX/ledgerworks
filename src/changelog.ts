@@ -4,6 +4,12 @@ export interface ChangeEntry { id: string; date: string; title: string; notes: s
 
 export const CHANGELOG: ChangeEntry[] = [
   {
+    id: 'no-kaching-text',
+    date: '2026-10-23',
+    title: 'Quieter stores on the map',
+    notes: ['The floating "ka-ching!" text above selling stores is gone, on both the 2D and 3D map. The coin sound when you collect still plays.'],
+  },
+  {
     id: 'warehouse-sell-on-exchange',
     date: '2026-10-23',
     title: 'Warehouse button renamed',

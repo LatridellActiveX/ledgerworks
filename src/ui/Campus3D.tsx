@@ -99,7 +99,8 @@ function ActivityBadges({ s, posOf }: { s: GameState; posOf: (i: number) => { x:
             <circle cx="20" cy="20" r={R} className="fill" strokeDasharray={C} strokeDashoffset={C * (1 - a.prog)} transform="rotate(-90 20 20)" />
           </svg>
           <span className="ic">{a.state === 'sell' ? <span className="coin sm">$</span> : <ResIcon id={a.res} size={18} />}</span>
-          {a.state === 'sell' && <span className="kaching">ka-ching!</span>}
+          {/* The floating "ka-ching!" text over selling stores was removed (2D and 3D share this overlay).
+              The coin collect sound still plays. */}
           <span className="tpill" title={chipLabel[a.state]}><i className={`dot ${a.state}`} />{a.state === 'done' ? 'Done' : dur(left)}</span>
           {/* The "$x / $y" earnings pill over selling stores was removed
               (Oct 2026) in both 2D and 2.5D; the coin bubble and timer above
