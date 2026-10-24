@@ -126,7 +126,7 @@ function AssetBreakdown({ s, b }: { s: GameState; b: ReturnType<typeof valueBrea
       <p className="muted">{money(d.cash.cash)} in your company{d.cash.locked > 0 ? `, plus ${money(d.cash.locked)} held in open buy orders` : ''}.</p>
     </Category>
     <Category title="Buildings" value={money(b.buildings)} color="#5d6bd4">
-      {d.buildings.length === 0 ? <p className="muted">No buildings yet.</p> : d.buildings.map((x, i) => <div key={i} className="vline"><span>{x.name} · level {x.level}</span><b>{money(x.value)}</b></div>)}
+      {d.buildings.length === 0 ? <p className="muted">No buildings yet.</p> : d.buildings.map((x, i) => <div key={i} className="vline"><span>{x.name} · level {x.level}{x.upgrades > 0 && <small className="muted"> · incl. upgrades {money(x.upgrades)}</small>}</span><b>{money(x.value)}</b></div>)}
       <p className="muted">Value is what it cost to reach each level: build cost plus every upgrade.</p>
     </Category>
     <Category title="Inventory" value={money(b.inventory)} color="#e3b23c">

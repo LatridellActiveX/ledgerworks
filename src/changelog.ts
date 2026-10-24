@@ -4,6 +4,12 @@ export interface ChangeEntry { id: string; date: string; title: string; notes: s
 
 export const CHANGELOG: ChangeEntry[] = [
   {
+    id: 'upgrade-value',
+    date: '2026-10-24',
+    title: 'Upgrades add to building value',
+    notes: ['Extra farm fields, drip lines, shop fittings and extra tills now count in full (at what you paid, the same way buildings are valued) toward that building\'s value, your company value and the balance sheet. The building panel shows its book value with an "incl. upgrades" line, and the Company Value list shows it per building. Grafts are a one-off for the next crop, so they are not counted.'],
+  },
+  {
     id: 'tutorial-v2',
     date: '2026-10-24',
     title: 'New-player tutorial, goals and tips',

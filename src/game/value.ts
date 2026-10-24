@@ -1,4 +1,3 @@
-import * as FM from './farm'
 // Company value: one consistent number used by the Company Value screen,
 // the trade-floor leaderboard and the daily value history.
 //
@@ -12,7 +11,7 @@ import * as FM from './farm'
 // Patents are listed (count) but valued at $0: they raise product quality
 // and can't be sold, so counting them as money would overstate the company.
 import type { GameState } from './engine'
-import { investedCost } from './engine'
+import { unitValue, upgradesValue } from './engine'
 import { BLD, RES } from './data'
 import * as F from './finance'
 import { escrowTotal } from './bids'
@@ -87,7 +86,7 @@ export function recordValue(s: GameState) {
 // totals always match valueBreakdown exactly (see tests/value.test.ts).
 export interface ValueDetail {
   cash: { cash: number; locked: number }                    // locked = cash held in open buy orders
-  buildings: { name: string; level: number; value: number }[]
+  buildings: { name: string; level: number; value: number; upgrades: number }[] // value includes upgrades
   inventory: { res: string; name: string; units: number; value: number }[]
   bonds: { issuer: string; rating: string; amount: number }[]
   patents: { res: string; name: string; count: number }[]
@@ -95,7 +94,7 @@ export interface ValueDetail {
 }
 
 export function valueDetail(s: GameState): ValueDetail {
-  const buildings = s.plots.flatMap(b => (b ? [{ name: BLD[b.type].name, level: b.level, value: investedCost(b.type, b.level) + FM.fieldsPaid(b.fields?.length ?? 0) /* build + upgrades (incl. overrides) + farm fields */ }] : []))
+  const buildings = s.plots.flatMap(b => (b ? [{ name: BLD[b.type].name, level: b.level, value: unitValue(b) /* build + levels + modular upgrades */, upgrades: upgradesValue(b) }] : []))
   const byRes: Record<string, number> = {}
   for (const [k, n] of Object.entries(s.stock)) { const r = k.split('|')[0]; byRes[r] = (byRes[r] ?? 0) + n }
   const inventory = Object.entries(byRes).map(([res, units]) => ({ res, name: RES[res]?.name ?? res, units, value: units * (s.ref?.[res] ?? RES[res]?.basePrice ?? 0) }))

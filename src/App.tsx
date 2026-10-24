@@ -423,6 +423,8 @@ function BuildingPanel({ s, plot, act }: { s: E.GameState; plot: number; act: Ac
       <div className="row">
         {/* Farms don't level up any more: they buy fields in FieldsCard. */}
         {!farm && <button disabled={!!bd.job} onClick={() => act(st => E.upgrade(st, plot))}>Upgrade to L{bd.level + 1} ({money(E.upgradeCost(bd.type, bd.level + 1))})</button>}
+        {/* Book value (same figure Company Value and the balance sheet use), with the modular-upgrade part called out. */}
+        <p className="muted book-val">Book value {money(E.unitValue(bd))}{E.upgradesValue(bd) > 0 && <> · incl. upgrades {money(E.upgradesValue(bd))}</>}</p>
         <button className="danger" onClick={() => confirm(`Scrap for ${money(E.scrapRefund(bd))} back?`) && act(st => E.scrap(st, plot))}>Scrap</button>
       </div>
       <p className="muted">Wages {money(bt.wage * u.level * (1 + E.overhead(s)))}/game hour while working (incl. {(E.overhead(s) * 100).toFixed(1)}% admin overhead).</p>

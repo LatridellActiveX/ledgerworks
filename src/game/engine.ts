@@ -292,6 +292,29 @@ export function upgrade(s: GameState, plot: number): string | null {
   return null
 }
 
+// --------------------------------------------------------------------------
+// Book value of one building INCLUDING its modular upgrades (Oct 2026).
+// Rule: same as buildings themselves, i.e. carried at what was paid, with
+// no depreciation (company value and the balance sheet have always valued
+// buildings at cost). Counted upgrades are the lasting ones on that plot:
+//   - farm extra fields ($9k / $14k / $20k)
+//   - drip lines on the main field and on each extra field (2,500 x level)
+//   - shop fittings (share x base cost) and extra tills (10%, 20%, ... of base)
+// Grafts are NOT counted: a graft is a one-off treatment for the next crop,
+// used up by it, so it is an expense, not an asset.
+// --------------------------------------------------------------------------
+export const dripCost = (level: number) => Math.round(2500 * level)
+export function upgradesValue(bd: Building): number {
+  let v = FM.fieldsPaid(bd.fields?.length ?? 0)
+  for (const u of [bd, ...(bd.fields ?? [])]) if (u.irrigated) v += dripCost(u.level)
+  const base = BLD[bd.type]?.cost ?? 0
+  for (const id of bd.mods ?? []) v += Math.round(base * (fittingOf(id)?.share ?? 0))
+  for (let i = 0; i < (bd.till ?? 0); i++) v += Math.round(base * tillShare(i))
+  return v
+}
+/** A building's book value: build + level upgrades + modular upgrades. */
+export const unitValue = (bd: Building) => investedCost(bd.type, bd.level) + upgradesValue(bd)
+
 /** Scrap refund: full cost for levels 1-2, 60% beyond that. */
 export function scrapRefund(bd: Building) {
   let total = 0
@@ -636,7 +659,7 @@ export function irrigate(s: GameState, plot: number): string | null {
   if (!bd || !FM.isFarm(bd.type)) return 'Only farms can be irrigated'
   if (bd.irrigated) return 'Already irrigated'
   if (bd.job) return 'Building is busy'
-  const cost = Math.round(2500 * bd.level) // a 0.6x field pays 0.6x
+  const cost = dripCost(bd.level) // a 0.6x field pays 0.6x
   if (s.cash < cost) return 'Not enough cash'
   s.cash -= cost; L.book(s, 'otherOut', -cost) // farm care
   bd.irrigated = true
