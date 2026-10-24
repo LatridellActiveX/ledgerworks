@@ -4,6 +4,12 @@ export interface ChangeEntry { id: string; date: string; title: string; notes: s
 
 export const CHANGELOG: ChangeEntry[] = [
   {
+    id: 'black-buildings-fix',
+    date: '2026-10-23',
+    title: 'Buildings no longer show up black',
+    notes: ['On some Android phones the 3D map drew buildings and plot kerbs solid black. Their surface textures are now uploaded in a way every phone handles, so walls, paving and cladding show their real colours again.'],
+  },
+  {
     id: 'hud-clock-spacing',
     date: '2026-10-23',
     title: 'Top bar polish',

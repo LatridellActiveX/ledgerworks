@@ -20,13 +20,36 @@ import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeom
 // Procedural textures (drawn once on canvases)
 // --------------------------------------------------------------------------
 function canvasTex(size: number, draw: (g: CanvasRenderingContext2D, s: number) => void, srgb = true) {
+  // BLACK-BUILDING FIX (Oct 2026): this used to hand the <canvas> straight to
+  // THREE.CanvasTexture. On some Android GPUs (Chrome, GPU-accelerated 2D
+  // canvas) the WebGL upload of a freshly drawn canvas comes through as all
+  // black pixels, so every textured surface (façade panels, concrete, paving
+  // kerbs, metal cladding) rendered solid black while untextured parts looked
+  // fine. Now we:
+  //   1. ask for a CPU-backed canvas (willReadFrequently), so drawing happens
+  //      in main memory and never waits on the GPU, and
+  //   2. copy the finished pixels out with getImageData() and upload THOSE
+  //      bytes as a DataTexture. Raw bytes upload the same way on every GPU,
+  //      so there is nothing left for the driver to get wrong.
   const c = document.createElement('canvas'); c.width = c.height = size
-  const g = c.getContext('2d')!
+  const g = c.getContext('2d', { willReadFrequently: true })!
   draw(g, size)
-  const t = new THREE.CanvasTexture(c)
+  const px = g.getImageData(0, 0, size, size).data // RGBA bytes, row by row
+  // CanvasTexture flipped rows on upload (flipY); DataTexture can't, so flip
+  // here to keep every texture the same way up as before (e.g. the window
+  // glass gradient stays light at the top).
+  const bytes = new Uint8Array(px.length), row = size * 4
+  for (let y = 0; y < size; y++) bytes.set(px.subarray(y * row, y * row + row), (size - 1 - y) * row)
+  const t = new THREE.DataTexture(bytes, size, size, THREE.RGBAFormat)
   t.wrapS = t.wrapT = THREE.RepeatWrapping
+  // DataTexture defaults to Nearest/no mipmaps; restore the smooth, mipmapped
+  // sampling CanvasTexture had so tiled surfaces don't shimmer at a distance.
+  t.magFilter = THREE.LinearFilter
+  t.minFilter = THREE.LinearMipmapLinearFilter
+  t.generateMipmaps = true
   t.anisotropy = 4
   if (srgb) t.colorSpace = THREE.SRGBColorSpace
+  t.needsUpdate = true // upload on first use
   return t
 }
 /** Sprinkle light/dark speckles for a subtle grain. */
