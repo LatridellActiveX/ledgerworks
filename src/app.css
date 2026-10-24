@@ -907,8 +907,9 @@ tr.bidrow td { color: #3c9a5f; font-weight: 600 }
 /* ---- Admin dashboard (internal tools) ---- */
 .admin { padding: 4px 2px 24px; font-size: 14px; }
 .adm-tabs { display: flex; gap: 6px; margin-bottom: 10px; position: sticky; top: 0; z-index: 2; background: inherit; }
-.adm-tabs button { flex: 1; padding: 8px 4px; border-radius: 10px; border: 1px solid #0001; background: #fff; font-weight: 600; }
-.adm-tabs button.on { background: #2f6b4f; color: #fff; }
+/* !important: the app's generic first-button and pressed styles otherwise win here. */
+.admin .adm-tabs button { flex: 1; padding: 8px 4px; border-radius: 10px; border: 1px solid #0001; background: #fff !important; color: #333 !important; font-weight: 600; box-shadow: none; }
+.admin .adm-tabs button.on { background: #2f6b4f !important; color: #fff !important; }
 .adm-row { display: flex; gap: 6px; align-items: center; margin: 6px 0; }
 .adm-row input { flex: 1; min-width: 0; padding: 8px; border-radius: 8px; border: 1px solid #0002; }
 .adm-row button { padding: 8px 10px; border-radius: 8px; border: 1px solid #0002; background: #fff; font-weight: 600; }
