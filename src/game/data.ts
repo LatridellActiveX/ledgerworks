@@ -178,9 +178,9 @@ export const RECIPES: Recipe[] = [
 export const BUILDINGS: BuildingType[] = [
   { id: 'generator', name: 'Wind turbine', color: '#f7d774', kind: 'production', cost: 9000, wage: 40, recipes: ['power'], unlockLevel: 1 },
   { id: 'pump', name: 'Pump house', color: '#8ec9e8', kind: 'production', cost: 7000, wage: 35, recipes: ['water'], unlockLevel: 1 },
-  { id: 'orchard', name: 'Orchard', color: '#9fd49a', kind: 'production', cost: 12000, wage: 60, recipes: ['seeds', 'wheat', 'apples', 'berries', 'greens', 'cotton'], unlockLevel: 1 },
+  { id: 'orchard', name: 'Orchard', color: '#9fd49a', kind: 'production', cost: 12000, wage: 60, recipes: ['seeds', 'wheat', 'apples', 'berries', 'greens', 'cotton', 'oranges' /* grocery line */], unlockLevel: 1 },
   { id: 'barnyard', name: 'Barnyard', color: '#e9c9a3', kind: 'production', cost: 15000, wage: 70, recipes: ['feed', 'hens', 'eggs', 'milk', 'hide'], unlockLevel: 2 },
-  { id: 'kitchen', name: 'Food works', color: '#f5a65b', kind: 'production', cost: 20000, wage: 90, recipes: ['flour', 'bread', 'cheese', 'juice', 'jam'], unlockLevel: 3 },
+  { id: 'kitchen', name: 'Food works', color: '#f5a65b', kind: 'production', cost: 20000, wage: 90, recipes: ['flour', 'bread', 'cheese', 'juice', 'jam', /* grocery line drinks */ 'orangej', 'applej', 'cider', 'gingerbeer'], unlockLevel: 3 },
   { id: 'loom', name: 'Loom hall', color: '#a7c4d9', kind: 'production', cost: 22000, wage: 95, recipes: ['cloth', 'tshirt', 'jacket', 'boots'], unlockLevel: 4 },
   { id: 'well', name: 'Oil well', color: '#6b6b75', kind: 'production', cost: 30000, wage: 110, recipes: ['crude'], unlockLevel: 5 },
   { id: 'refinery', name: 'Refinery', color: '#e3b23c', kind: 'production', cost: 40000, wage: 140, recipes: ['fuel', 'resin'], unlockLevel: 5 },

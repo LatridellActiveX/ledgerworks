@@ -7,8 +7,8 @@ import { ART_IDS } from '../src/ui/goodart'
 import { goodRows, catOf, compact } from '../src/ui/Warehouse'
 
 describe('warehouse v2', () => {
-  it('has original art for all 111 goods', () => {
-    expect(RESOURCES.length).toBe(111)
+  it('has original art for all 119 goods', () => {
+    expect(RESOURCES.length).toBe(119)
     for (const r of RESOURCES) expect(ART_IDS, r.id).toContain(r.id)
   })
   it('categorises every good', () => { for (const r of RESOURCES) expect(catOf(r.id)).toBeTruthy() })

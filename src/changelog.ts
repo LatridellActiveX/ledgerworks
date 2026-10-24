@@ -4,6 +4,12 @@ export interface ChangeEntry { id: string; date: string; title: string; notes: s
 
 export const CHANGELOG: ChangeEntry[] = [
   {
+    id: 'grocery-new-goods',
+    date: '2026-10-23',
+    title: 'Eight new grocery goods',
+    notes: ["New: oranges (Orchard), ginger root (Plantation), steak (Hill ranch), sausages (Deli kitchen), and orange juice, apple juice, apple cider and ginger beer (Food works).", "All eight sell in the Corner market, trade on the Market, show in production chains and research, and appear in news events (including a new barbecue weekend)."],
+  },
+  {
     id: 'job-detail-rows-fix',
     date: '2026-10-23',
     title: 'Production card alignment',

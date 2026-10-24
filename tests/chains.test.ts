@@ -33,8 +33,8 @@ describe('production chains', () => {
     expect(t.inputs.find(c => c.res === 'eggs')!.stock).toBe(40)
     expect(t.inputs.find(c => c.res === 'eggs')!.owned).toBe(0)
   })
-  it('builds a finite tree for every one of the 111 goods', () => {
-    expect(RESOURCES.length).toBe(111)
+  it('builds a finite tree for every one of the 119 goods', () => {
+    expect(RESOURCES.length).toBe(119)
     const depth = (n: ChainNode): number => 1 + Math.max(0, ...n.inputs.map(depth))
     for (const r of RESOURCES) {
       const t = buildChain(r.id, { price: () => 1 })

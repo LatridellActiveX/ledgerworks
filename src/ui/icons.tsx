@@ -57,6 +57,17 @@ const G: Record<string, Glyph> = {
   lamp: (c, d) => <g stroke={d} strokeWidth="1.3" strokeLinejoin="round"><path d="M9 3h6l3 7H6z" fill={c} /><path d="M12 10v8M8 21h8" fill="none" /><path d="M10 18h4v3h-4z" fill={shade(c, 0.8)} /></g>,
   speaker: (c, d) => <g stroke={d} strokeWidth="1.3"><rect x="6" y="3" width="12" height="18" rx="2" fill={c} /><circle cx="12" cy="14" r="3.5" fill={shade(c, 0.7)} /><circle cx="12" cy="7.5" r="1.5" fill={shade(c, 0.7)} /></g>,
   notes: (c, d) => <g stroke={d} strokeWidth="1.3"><path d="M6 3h9l3 3v15H6z" fill={c} /><path d="M9 9h6M9 12h6M9 15h4" fill="none" /></g>,
+  // --- Grocery line additions (Oct 2026): one glyph per new food shape. ---
+  // Citrus: round fruit with a dimpled peel highlight and a small leaf.
+  citrus: (c, d) => <g stroke={d} strokeWidth="1.3"><circle cx="12" cy="13" r="7.5" fill={c} /><circle cx="9.5" cy="10.5" r="1.6" fill={shade(c, 1.3)} stroke="none" /><path d="M12 5.5c1-2 3-2.5 5-2-1 2-3 2.5-5 2z" fill="#8fcf7a" /></g>,
+  // Root: knobbly ginger hand, three lobes on a stubby body.
+  root: (c, d) => <g stroke={d} strokeWidth="1.3" strokeLinejoin="round"><path d="M4 15c0-3 3-4 5-4l1-4c1-2 4-2 4 0v3l3-2c2-1 4 1 3 3l-3 3c1 2 0 5-3 5H8c-3 0-4-2-4-4z" fill={c} /><path d="M9 15h1m3 1h1" stroke={shade(c, 0.7)} /></g>,
+  // Steak: marbled cut with a bone end and a fat rim.
+  steak: (c, d) => <g stroke={d} strokeWidth="1.3"><path d="M5 9c2-4 9-5 13-2 3 3 2 9-2 11-4 2-10 1-12-3-1-2 0-4 1-6z" fill={c} /><circle cx="15" cy="12" r="2" fill="#f6efe6" /><path d="M8 11c2 1 3 3 5 3" stroke={shade(c, 1.35)} fill="none" /></g>,
+  // Sausage: two linked, curved links with a twist between them.
+  sausage: (c, d) => <g stroke={d} strokeWidth="1.3" fill={c}><path d="M3 13c0-3 3-5 6-4l2 1c1 1 1 3 0 4l-2 1c-3 1-6 0-6-2z" /><path d="M12 12c1-2 4-3 6-2s3 4 1 6c-2 2-5 2-6 1z" /><circle cx="11.5" cy="12" r=".9" fill={d} /></g>,
+  // Can: drinks can with a ring pull, for fizzy and pressed drinks.
+  can: (c, d) => <g stroke={d} strokeWidth="1.3"><rect x="7" y="5" width="10" height="16" rx="2" fill={c} /><path d="M8 5c0-1 8-1 8 0M7 9h10M7 17h10" fill="none" /><path d="M11 3.5h3" /></g>,
 }
 
 /** Which glyph each good uses. */

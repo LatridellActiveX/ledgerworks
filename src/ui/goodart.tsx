@@ -1,5 +1,5 @@
 // ============================================================================
-// Detailed warehouse art: one original SVG illustration per good (all 111).
+// Detailed warehouse art: one original SVG illustration per good (all 119).
 //
 // Every icon is drawn in a 64×64 box with the same recipe so the set looks
 // like one family:
@@ -121,6 +121,23 @@ const A: Record<string, Draw> = {
   sandwich: k => <g stroke={k.d} strokeWidth={k.w} strokeLinejoin="round"><path d="M6 44 32 14l26 30z" fill={k.l} /><path d="M8 40l24-4 24 4" stroke="#5ab04a" strokeWidth="4" fill="none" /><path d="M8 44l24-6 24 6" stroke="#e8574a" strokeWidth="3" fill="none" /><path d="M6 44l26-4 26 4v6l-26-4-26 4z" fill={k.g} /><path d="M32 14v26" stroke={shade(k.c, 0.7)} /></g>,
   pizza: k => <g stroke={k.d} strokeWidth={k.w}><circle cx="32" cy="34" r="24" fill="#d8a24a" /><circle cx="32" cy="34" r="20" fill="#e8574a" /><circle cx="32" cy="34" r="18" fill={k.g} />{[[24, 26], [40, 30], [30, 44], [42, 42], [20, 38]].map(([x, y], i) => <circle key={i} cx={x} cy={y} r="3.5" fill="#b8302a" />)}{[[32, 22], [26, 36], [38, 50]].map(([x, y], i) => <path key={i} d={`M${x} ${y}l3-3`} stroke="#3a8a2a" strokeWidth="2.5" />)}</g>,
   soda: k => <g stroke={k.d} strokeWidth={k.w}><path d="M18 10h28l-2 4v36l2 4H18l2-4V14z" fill={k.g} /><ellipse cx="32" cy="10" rx="14" ry="3" fill={k.m} /><path d="M20 26h24v14H20z" fill="#fff" /><path d="M24 33c3-4 6 4 9 0s6 4 8 0" fill="none" stroke="#d33" strokeWidth="2" />{[[28, 20], [36, 18], [32, 46]].map(([x, y], i) => <circle key={i} cx={x} cy={y} r="1.5" fill="#fff" opacity=".8" stroke="none" />)}</g>,
+  // ---- Grocery line (Oct 2026): eight more, same recipe as above ----------
+  // Oranges: two glossy citrus balls with peel dimples and a leaf.
+  oranges: k => <g stroke={k.d} strokeWidth={k.w}><circle cx="24" cy="38" r="14" fill={k.g} /><circle cx="42" cy="34" r="13" fill={k.g} />{[[20, 34], [27, 42], [40, 30], [45, 38]].map(([x, y], i) => <circle key={i} cx={x} cy={y} r=".9" fill={shade(k.c, 0.75)} stroke="none" />)}{leaf(40, 21, -20, 0.8)}{shine(20, 32, 3, 5)}{shine(38, 28, 3, 5)}</g>,
+  // Ginger root: knobbly lobed hand with growth rings.
+  ginger: k => <g stroke={k.d} strokeWidth={k.w} strokeLinejoin="round"><path d="M8 40c0-6 6-9 12-9l3-10c2-5 9-5 9 0v6l7-6c5-3 10 2 7 7l-6 7c3 5 0 13-7 13H18c-7 0-10-3-10-8z" fill={k.g} /><path d="M18 40h4M30 44h4M26 30c1 2 3 2 4 0" fill="none" stroke={shade(k.c, 0.7)} />{shine(20, 36, 3, 5)}</g>,
+  // Steak: marbled cut with a fat rim and a T-bone.
+  steak: k => <g stroke={k.d} strokeWidth={k.w}><path d="M10 26c4-10 22-14 34-7 9 6 8 22-3 29-11 6-27 4-32-7-2-5-1-10 1-15z" fill="#f4e4d4" /><path d="M14 27c4-7 18-10 28-5 7 4 6 17-3 22-9 5-21 3-25-5-2-4-1-8 0-12z" fill={k.g} /><path d="M34 22v24M28 34h12" stroke="#f6efe6" strokeWidth="3" /><path d="M18 30c4 2 6 6 10 6M22 40c3 1 5 0 6-2" fill="none" stroke={shade(k.c, 1.4)} strokeWidth="1.4" />{shine(20, 28, 2.5, 4)}</g>,
+  // Sausages: a curved string of three links tied with twists.
+  sausages: k => <g stroke={k.d} strokeWidth={k.w}>{[[16, 40, -25], [32, 30, 0], [48, 40, 25]].map(([x, y, r], i) => <g key={i} transform={`rotate(${r} ${x} ${y})`}><rect x={x - 10} y={y - 6} width="20" height="12" rx="6" fill={k.g} />{shine(x - 3, y - 2, 4, 1.5, 0)}</g>)}<circle cx="24" cy="34" r="1.8" fill={k.d} /><circle cx="40" cy="34" r="1.8" fill={k.d} /></g>,
+  // Orange juice: carton with a fold top and an orange slice on the label.
+  orangej: k => <g stroke={k.d} strokeWidth={k.w} strokeLinejoin="round"><path d="M18 18 26 8h12l8 10v38H18z" fill={k.g} /><path d="M18 18h28M26 8l-2 10M38 8l2 10" fill="none" />{label(22, 28, 20, 18)}<circle cx="32" cy="37" r="6" fill="#ffb02e" stroke="#d07a10" /><path d="M32 31v12M26 37h12" stroke="#ffd27a" strokeWidth=".9" />{shine(21, 24, 1.5, 6, 0)}</g>,
+  // Apple juice: clear bottle of golden juice with a red-apple label.
+  applej: k => <g>{bottle(k, '#3f8f3a', '#fff8e6')}<circle cx="32" cy="37" r="5" fill="#e25a5a" stroke="#8a2a2a" /><path d="M32 32c1-2 3-3 4-3" stroke="#3f8f3a" fill="none" /></g>,
+  // Apple cider: squat brown jug with a finger loop and stopper.
+  cider: k => <g stroke={k.d} strokeWidth={k.w}><path d="M24 8h16v8c8 4 12 12 12 22 0 12-8 18-20 18S12 50 12 38c0-10 4-18 12-22z" fill={k.g} /><path d="M40 18c8 0 8 12 2 14" fill="none" strokeWidth="2.4" /><rect x="26" y="4" width="12" height="6" rx="2" fill="#c9a27a" />{label(20, 32, 24, 12)}<circle cx="32" cy="38" r="3.5" fill="#e25a5a" stroke="none" />{shine(20, 26, 2.5, 6)}</g>,
+  // Ginger beer: ring-pull can with a ginger-root stripe and bubbles.
+  gingerbeer: k => <g stroke={k.d} strokeWidth={k.w}><path d="M18 10h28l-2 4v36l2 4H18l2-4V14z" fill={k.g} /><ellipse cx="32" cy="10" rx="14" ry="3" fill={k.m} /><path d="M28 9h8" strokeWidth="2" /><path d="M20 26h24v14H20z" fill="#3d2a1a" /><path d="M24 35c2-4 5-4 6-1l3-3c2 0 4 1 3 4" fill="none" stroke="#f2c66d" strokeWidth="2" />{[[28, 20], [36, 18], [32, 46]].map(([x, y], i) => <circle key={i} cx={x} cy={y} r="1.5" fill="#fff" opacity=".8" stroke="none" />)}</g>,
   // ---- textiles ----
   yarn: k => <g stroke={k.d} strokeWidth={k.w}><circle cx="30" cy="34" r="20" fill={k.g} /><path d="M14 26c10 4 20 14 26 26M18 18c12 2 24 14 28 26M12 38c8 0 18 6 22 14M26 14c8 4 18 14 22 22" fill="none" stroke={shade(k.c, 0.75)} /><path d="M48 46c6 4 8 10 4 12" fill="none" /><path d="M46 8 34 30M54 12 38 30" stroke="#c9a06a" strokeWidth="2.5" /></g>,
   sweater: k => <g stroke={k.d} strokeWidth={k.w} strokeLinejoin="round"><path d="M22 8 6 16l2 30 8 2 2-20v28h28V28l2 20 8-2 2-30-16-8c-2 4-6 6-10 6s-8-2-10-6z" fill={k.g} /><path d="M18 34h28M18 40h28" stroke="#fff" strokeWidth="2" strokeDasharray="3 3" /><path d="M18 54h28" stroke={shade(k.c, 0.6)} strokeWidth="3" /></g>,

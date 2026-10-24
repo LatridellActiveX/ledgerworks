@@ -35,20 +35,22 @@ export interface NewsTemplate {
 export interface NewsStory { t: NewsTemplate; startDay: number; endDay: number /* exclusive */ }
 
 export const NEWS: NewsTemplate[] = [
-  { id: 'heatwave', icon: '☀️', headline: 'Heatwave grips the region', blurb: 'Cold treats and drinks are flying off the shelves.', goods: ['icecream', 'soda', 'juice', 'yogurt'], mult: 1.5 },
+  { id: 'heatwave', icon: '☀️', headline: 'Heatwave grips the region', blurb: 'Cold treats and drinks are flying off the shelves.', goods: ['icecream', 'soda', 'juice', 'yogurt', 'orangej', 'applej', 'gingerbeer'], mult: 1.5 },
   { id: 'coldsnap', icon: '❄️', headline: 'Early cold snap', blurb: 'Shoppers rush for warm clothes and fuel.', goods: ['sweater', 'scarf', 'jacket', 'boots', 'fuel'], mult: 1.4 },
   { id: 'harvest', icon: '🧺', headline: 'Harvest fair weekend', blurb: 'Bakes, preserves and wine are in demand.', goods: ['pie', 'cake', 'jam', 'wine', 'cheese', 'honey'], mult: 1.35 },
   { id: 'buildboom', icon: '🏗️', headline: 'Housing permits approved', blurb: 'Builders are stocking up on materials.', goods: ['bricks', 'cement', 'steel', 'blocks', 'boards', 'tiles', 'frame'], mult: 1.35 },
   { id: 'techlaunch', icon: '📱', headline: 'Gadget week sales event', blurb: 'Electronics stores see long lines.', goods: ['phone', 'laptop', 'tablet', 'headset', 'watch', 'speaker'], mult: 1.4 },
   { id: 'gameday', icon: '🏟️', headline: 'Championship final tonight', blurb: 'Snacks, fizzy drinks and big screens sell fast.', goods: ['pizza', 'crisps', 'soda', 'tv', 'sandwich'], mult: 1.4 },
   { id: 'moving', icon: '📦', headline: 'Moving season begins', blurb: 'New homes need furniture and paint.', goods: ['sofa', 'table', 'bed', 'door', 'paint', 'lamp'], mult: 1.35 },
-  { id: 'fitness', icon: '🥗', headline: 'Healthy-eating trend', blurb: 'Fresh produce is up; sugary snacks are down.', goods: ['greens', 'berries', 'apples', 'tomatoes', 'yogurt'], mult: 1.35 },
+  { id: 'fitness', icon: '🥗', headline: 'Healthy-eating trend', blurb: 'Fresh produce is up; sugary snacks are down.', goods: ['greens', 'berries', 'apples', 'tomatoes', 'yogurt', 'oranges'], mult: 1.35 },
   { id: 'sugarfree', icon: '🍬', headline: 'Sugar tax debate', blurb: 'Shoppers cut back on sweets for now.', goods: ['choc', 'soda', 'cake', 'icecream'], mult: 0.75 },
   { id: 'commute', icon: '🛴', headline: 'Fuel prices in the headlines', blurb: 'Commuters switch to e-bikes and scooters.', goods: ['ebike', 'scooter', 'skyfuel', 'solar'], mult: 1.4 },
   { id: 'dealers', icon: '🚗', headline: 'Low-interest car loans', blurb: 'Car and van sales pick up.', goods: ['car', 'van', 'fuel'], mult: 1.3 },
   { id: 'coffee', icon: '☕', headline: 'Coffee shop chain opens', blurb: 'Coffee, cake and sandwiches are popular.', goods: ['roast', 'cake', 'sandwich', 'milk'], mult: 1.35 },
   { id: 'glut', icon: '🌾', headline: 'Bumper crop of grains', blurb: 'Plenty of breakfast foods; shops buy slowly.', goods: ['bread', 'flakes', 'corn', 'potatoes', 'ricebowl'], mult: 0.8 },
   { id: 'fashion', icon: '👗', headline: 'Fashion week buzz', blurb: 'Dresses, bags and sneakers are trending.', goods: ['dress', 'handbag', 'sneakers', 'jeans', 'tshirt'], mult: 1.4 },
+  // Grocery line (Oct 2026): a sunny-weekend grill event for the new meats and drinks.
+  { id: 'bbq', icon: '🍖', headline: 'Barbecue weekend forecast', blurb: 'Steaks, sausages and cold drinks are selling out.', goods: ['steak', 'sausages', 'cider', 'gingerbeer', 'orangej'], mult: 1.4 },
   { id: 'dairyscare', icon: '🥛', headline: 'Dairy recall rumor', blurb: 'Shoppers avoid dairy until it is cleared.', goods: ['milk', 'butter', 'cheese', 'eggs'], mult: 0.75 },
 ]
 

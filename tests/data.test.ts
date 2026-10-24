@@ -4,8 +4,8 @@ import { RESOURCES, RECIPES, BUILDINGS, RES, REC } from '../src/game/data'
 
 describe('game data', () => {
   it('has 100+ resources, each with a recipe', () => {
-    expect(RESOURCES.length).toBe(111)
-    expect(new Set(RESOURCES.map(r => r.id)).size).toBe(111)
+    expect(RESOURCES.length).toBe(119)
+    expect(new Set(RESOURCES.map(r => r.id)).size).toBe(119)
     for (const r of RESOURCES) expect(REC[r.id], r.id).toBeTruthy()
   })
   it('recipe inputs and building recipes exist', () => {

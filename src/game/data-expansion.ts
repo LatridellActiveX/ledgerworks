@@ -1,6 +1,6 @@
 import { SHOP_DD } from './shopdd'
 // ============================================================================
-// Stage 12 goods expansion: 64 more goods (111 in total), 17 more buildings
+// Stage 12 goods expansion: 64 more goods (111 in total; 119 with the Oct 2026 grocery line), 17 more buildings
 // and 2 more store types. All names and numbers are original.
 //
 // Each line is compact: [id, name, color, basePrice, glyph, research field,
@@ -85,6 +85,27 @@ const ROWS: Row[] = [
   ['scooter', 'Kick scooter', '#e86a3a', 180, 'battery', 'tech', 3, { metal: 4, tire: 2, plastic: 2 }, 'motors', 15],
   ['car', 'City car', '#d64545', 9500, 'pump', 'tech', 0.08, { engine: 1, steel: 40, tire: 4, glass: 6, screen: 1, plastic: 20 }, 'motors', 1.2],
   ['van', 'Delivery van', '#f2f2f2', 14000, 'crate', 'tech', 0.05, { engine: 1, steel: 70, tire: 4, glass: 6, plastic: 25 }, 'motors', 0.8],
+  // --- Grocery line goods (Oct 2026, approved by Parker) ---------------------
+  // Base price = cost to make x ~1.4, where cost = inputs at their base price
+  // plus level-1 wages per unit (building wage x 1.022 admin overhead / perHour).
+  // Shop price is the usual 1.5x base; SHOP_DD sets daily demand so a level-1
+  // Corner market sells ~$200 of each per game hour at that price.
+  //   oranges  : seeds .2 + water .5 = .70 + orchard 60*1.022/70 = .88  -> 1.58 -> 2.2
+  //   ginger   : .20 + .75 = .95 + plantation 70*1.022/50 = 1.43       -> 2.38 -> 3.3
+  //   steak    : feed 2.7 + water .25 = 2.95 + ranch 75*1.022/20 = 3.83 -> 6.78 -> 9.5
+  //   orangej  : oranges 3.3 + .125 + .15 = 3.58 + Food works 2.04      -> 5.62 -> 7.9
+  //   applej   : apples 5.0 + .275 = 5.28 + Food works 2.04             -> 7.32 -> 10.25
+  //   cider    : apples 6.67 + sugar .4 + .15 = 7.22 + Food works 2.30  -> 9.52 -> 13.3
+  //   gingerbeer: ginger 3.3 + sugar 1 + water .25 = 4.55 + 2.30        -> 6.85 -> 9.6
+  //   sausages : steak 4.75 + flour .44 + .15 = 5.34 + deli 2.56        -> 7.89 -> 11
+  ['oranges', 'Oranges', '#f59a2f', 2.2, 'citrus', 'farm', 70, { seeds: 1, water: 2 }, 'market', SHOP_DD(2.2)],
+  ['ginger', 'Ginger root', '#d9b26f', 3.3, 'root', 'farm', 50, { seeds: 1, water: 3 }, 'market', SHOP_DD(3.3)],
+  ['steak', 'Steak', '#c4473f', 9.5, 'steak', 'farm', 20, { feed: 3, water: 1 }, 'market', SHOP_DD(9.5)],
+  ['orangej', 'Orange juice', '#f7b733', 7.9, 'bottle', 'food', 45, { oranges: 1.5, water: 0.5, power: 0.5 }, 'market', SHOP_DD(7.9)],
+  ['applej', 'Apple juice', '#e9c46a', 10.25, 'bottle', 'food', 45, { apples: 1.5, water: 0.5, power: 0.5 }, 'market', SHOP_DD(10.25)],
+  ['cider', 'Apple cider', '#c98a2e', 13.3, 'bottle', 'food', 40, { apples: 2, sugar: 0.2, power: 0.5 }, 'market', SHOP_DD(13.3)],
+  ['gingerbeer', 'Ginger beer', '#d8a64a', 9.6, 'can', 'food', 40, { ginger: 1, sugar: 0.5, water: 1 }, 'market', SHOP_DD(9.6)],
+  ['sausages', 'Sausages', '#b5654a', 11, 'sausage', 'food', 40, { steak: 0.5, flour: 0.2, power: 0.5 }, 'market', SHOP_DD(11)],
 ]
 
 export const EXTRA_RESOURCES: Resource[] = ROWS.map(([id, name, color, basePrice, , , , , store, dailyDemand]) =>
@@ -96,12 +117,12 @@ export const EXTRA_FIELD: Record<string, Field> = Object.fromEntries(ROWS.map(r 
 const P = (id: string, name: string, color: string, cost: number, wage: number, recipes: string[], unlockLevel: number): BuildingType =>
   ({ id, name, color, kind: 'production', cost, wage, recipes, unlockLevel })
 export const EXTRA_BUILDINGS: BuildingType[] = [
-  P('plantation', 'Plantation', '#b7d98b', 18000, 70, ['cane', 'cocoa', 'beans', 'grapes', 'potatoes', 'tomatoes', 'rice', 'corn'], 3),
-  P('ranch', 'Hill ranch', '#efe9e0', 20000, 75, ['wool', 'honey'], 4),
+  P('plantation', 'Plantation', '#b7d98b', 18000, 70, ['cane', 'cocoa', 'beans', 'grapes', 'potatoes', 'tomatoes', 'rice', 'corn', 'ginger' /* grocery line */], 3),
+  P('ranch', 'Hill ranch', '#efe9e0', 20000, 75, ['wool', 'honey', 'steak' /* grocery line */], 4),
   P('confect', 'Sweet works', '#f7c6d9', 32000, 110, ['sugar', 'choc', 'roast', 'cake', 'pie', 'icecream'], 6),
   P('dairy', 'Dairy', '#f6e08b', 24000, 90, ['butter', 'yogurt'], 5),
   P('bottler', 'Bottling hall', '#58c4c6', 30000, 100, ['wine', 'soda'], 6),
-  P('deli', 'Deli kitchen', '#e6b880', 28000, 100, ['crisps', 'sauce', 'ricebowl', 'flakes', 'sandwich', 'pizza'], 5),
+  P('deli', 'Deli kitchen', '#e6b880', 28000, 100, ['crisps', 'sauce', 'ricebowl', 'flakes', 'sandwich', 'pizza', 'sausages' /* grocery line */], 5),
   P('knit', 'Knit mill', '#e3d3e8', 30000, 105, ['yarn', 'sweater', 'scarf', 'dress'], 6),
   P('fashion', 'Fashion house', '#3d5a8a', 42000, 140, ['jeans', 'handbag', 'sneakers'], 8),
   P('gasrig', 'Gas rig', '#bcd7e8', 34000, 110, ['gas'], 6),
