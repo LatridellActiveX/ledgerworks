@@ -4,6 +4,12 @@ export interface ChangeEntry { id: string; date: string; title: string; notes: s
 
 export const CHANGELOG: ChangeEntry[] = [
   {
+    id: 'warehouse-sell-on-exchange',
+    date: '2026-10-23',
+    title: 'Warehouse button renamed',
+    notes: ["The Warehouse's \"Sell on market\" button is now called \"Sell on exchange\". It works the same as before."],
+  },
+  {
     id: 'grocery-new-goods',
     date: '2026-10-23',
     title: 'Eight new grocery goods',

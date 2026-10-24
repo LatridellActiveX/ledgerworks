@@ -11,7 +11,7 @@
 //    waiting in buildings ("incoming") and goods still being made,
 //  - a sub-tab row: Inventory / Incoming / Contracts / History,
 //  - a full-screen good detail (stock by quality, average cost, price chart,
-//    which buildings make or use it, and quick Sell on market / Sell in store /
+//    which buildings make or use it, and quick Sell on exchange / Sell in store /
 //    Use in contract with the shared quantity picker).
 // All icons are Ledgerworks' own SVG art (see goodart.tsx).
 // ============================================================================
@@ -256,7 +256,7 @@ function GoodDetail({ s, res, act, onBack, openChain }: { s: E.GameState; res: s
       <div className="acts3">
         {res === 'power'
           ? <button className="primary" onClick={() => act(st => done(M.sellPower(st, lot!.q, n)))}>Sell to grid<small>{money(n * M.refPrice(s, res) * M.GRID_RATE)} now, no crates</small></button>
-          : <button className="primary" onClick={() => act(st => done(M.quickSell(st, res, lot!.q, n)))}>Sell on market<small>{money(n * bid)} now</small></button>}
+          : <button className="primary" onClick={() => act(st => done(M.quickSell(st, res, lot!.q, n)))}>Sell on exchange<small>{money(n * bid)} now</small></button>}
         <button disabled={idleShop < 0} title={shop ? (idleShop < 0 ? `No idle ${shop.name}` : '') : 'Not sold to the public'}
           onClick={() => act(st => done(E.startSell(st, idleShop, res, lot!.q, n, E.fairPrice(res, lot!.q))))}>Sell in store<small>{shop ? (idleShop < 0 ? `no idle ${shop.name}` : `${money(n * E.fairPrice(res, lot!.q))} at fair price`) : 'not a store good'}</small></button>
         <button disabled={!gov || (lot?.q ?? 0) < gov.q} onClick={() => act(st => done(F.deliverGov(st, res, Math.min(n, gov!.qty - gov!.done))))}>Use in contract<small>{gov ? `${money(Math.min(n, gov.qty - gov.done) * gov.price)}` : 'no open contract'}</small></button>
