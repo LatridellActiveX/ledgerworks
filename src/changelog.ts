@@ -4,6 +4,12 @@ export interface ChangeEntry { id: string; date: string; title: string; notes: s
 
 export const CHANGELOG: ChangeEntry[] = [
   {
+    id: 'shot-tool-boot',
+    date: '2026-10-24',
+    title: 'Testing tool tweak',
+    notes: ['Behind-the-scenes change to how we take test screenshots. Nothing changes in the game.'],
+  },
+  {
     id: '2d-map-zoom-hud',
     date: '2026-10-24',
     title: 'Zoom the 2D map, not the screen',

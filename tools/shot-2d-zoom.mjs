@@ -6,7 +6,7 @@ const hud = p => p.evaluate(() => ['.hud-btn.burger', '.tabbar'].map(s => { cons
 const layer = p => p.evaluate(() => document.querySelector('.map-layer')?.style.transform ?? 'none')
 for (const [w, h, touch] of [[390, 844, true], [1280, 800, false]]) {
   const c = await b.newContext({ viewport: { width: w, height: h }, hasTouch: touch })
-  await c.addInitScript(() => { window.__lwNoBoot = true; localStorage.setItem('ledgerworks-guest', '1'); localStorage.setItem('ledgerworks-view', '2d'); localStorage.setItem('ledgerworks-tutorial-v2', JSON.stringify({ step: 0, done: true, off: true, tips: [], goals: [] })) })
+  await c.addInitScript(() => { localStorage.setItem('ledgerworks-guest', '1'); localStorage.setItem('ledgerworks-view', '2d'); localStorage.setItem('ledgerworks-tutorial-v2', JSON.stringify({ step: 0, done: true, off: true, tips: [], goals: [] })) })
   const p = await c.newPage(); await p.goto(url); await p.waitForSelector('.map-layer svg.campus', { timeout: 20000 })
   const before = await hud(p)
   await p.mouse.move(w / 2, h / 2)
