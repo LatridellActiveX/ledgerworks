@@ -17,6 +17,9 @@
 //    shared economy. Being one object means every price update is applied in
 //    order, with no races between players or the cron.
 // ============================================================================
+// Newest change-log entries go into /version.json so an OLD open tab's update
+// pop-up can show what the NEW build contains (its own bundle only knows older notes).
+import { CHANGELOG } from '../src/changelog'
 import { handlePlayers } from './players'
 import { cleanupGuestSaves, isCleanupSlot } from './cleanup'
 import { privacyHtml } from '../src/legal/privacy'
@@ -58,7 +61,7 @@ export default {
       await env.DB.prepare('DELETE FROM saves WHERE player_id IN (?, ?)').bind(b.id, b.id + '-s').run()
       return json({ ok: true })
     }
-    if (url.pathname === '/version.json') return new Response(JSON.stringify({ build: __BUILD__, buildId: __BUILD_ID__, version: __BUILD__.slice(0, 16).replace('T', ' ') }), {
+    if (url.pathname === '/version.json') return new Response(JSON.stringify({ build: __BUILD__, buildId: __BUILD_ID__, version: __BUILD__.slice(0, 16).replace('T', ' '), latest: CHANGELOG.slice(0, 5) }), {
       // Never cached, so open tabs always see a new deploy (update pop-up).
       headers: { 'content-type': 'application/json', 'cache-control': 'no-store, max-age=0' },
     })

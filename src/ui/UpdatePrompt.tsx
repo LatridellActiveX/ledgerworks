@@ -23,12 +23,26 @@
 // is no "needs a new city" branch: every update is save-compatible.
 // ============================================================================
 import { useEffect, useRef, useState } from 'react'
-import { CHANGELOG } from '../changelog'
+import { CHANGELOG, type ChangeEntry } from '../changelog'
 
 declare const __BUILD_ID__: string
 
 /** Shape of /version.json (loose: older deploys only had `build`). */
-export interface RemoteVersion { buildId?: string; build?: string; version?: string }
+export interface RemoteVersion { buildId?: string; build?: string; version?: string; latest?: ChangeEntry[] }
+
+/**
+ * What's in the NEW build. The old fix read CHANGELOG[0] from this (old)
+ * bundle, so the card always lagged one update behind. Now the Worker sends
+ * the new build's newest entries in /version.json; we show the ones this tab
+ * doesn't have yet (everything above our own newest id), newest first.
+ * Fallback (older deploys without `latest`, or a bad payload): nothing, so we
+ * never show stale notes as "new".
+ */
+export function newEntries(remote: RemoteVersion | null | undefined, localTopId = CHANGELOG[0]?.id): ChangeEntry[] {
+  const list = Array.isArray(remote?.latest) ? remote!.latest.filter(e => e && typeof e.title === 'string') : []
+  const cut = list.findIndex(e => e.id === localTopId)
+  return cut === -1 ? list.slice(0, 3) : list.slice(0, Math.min(cut, 3))
+}
 
 const POLL_MS = 60_000
 const FOCUS_MIN_GAP_MS = 30_000
@@ -71,14 +85,14 @@ export function UpdatePrompt({ save }: { save: () => void }) {
   }, [])
 
   if (!avail) return null
-  const latest = CHANGELOG[0]
+  const fresh = newEntries(avail)
   return (
     <div className="update-prompt" role="dialog" aria-label="Update available">
       <div className="up-icon">⟳</div>
       <h3>Update available</h3>
       <p>A new version of Ledgerworks{avail.version ? <> <span className="muted">({avail.version} UTC)</span></> : ''} is ready. Your company is saved and the game reloads right where you are.</p>
       {forced && <p className="warn">Part of the game failed to load because a new version replaced it.</p>}
-      {latest && <p className="up-new"><b>Latest:</b> {latest.title}</p>}
+      {fresh.length > 0 && <div className="up-new"><b>What's new:</b>{fresh.map(e => <p key={e.id}><b>{e.title}</b> — {e.notes[0]}</p>)}</div>}
       <div className="row">
         <button onClick={() => { dismissed.current.add(avail.buildId!); setAvail(null) }}>Later</button>
         <button className="primary" onClick={() => { saveRef.current(); location.reload() }}>Update now</button>

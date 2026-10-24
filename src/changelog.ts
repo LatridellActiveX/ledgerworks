@@ -4,6 +4,12 @@ export interface ChangeEntry { id: string; date: string; title: string; notes: s
 
 export const CHANGELOG: ChangeEntry[] = [
   {
+    id: 'update-popup-new-notes',
+    date: '2026-10-23',
+    title: 'Update pop-up shows the right notes',
+    notes: ['The "Update available" card now lists what is in the new version, instead of the notes from the update before it.'],
+  },
+  {
     id: 'daily-statements',
     date: '2026-10-23',
     title: 'Daily financial statements',

@@ -10,3 +10,15 @@ describe('boot screen', () => {
     expect(SKIP_MS).toBeLessThanOrEqual(500); expect(FADE_MS).toBeLessThanOrEqual(400)
   })
 })
+
+import { newEntries } from '../src/ui/UpdatePrompt'
+describe('update pop-up notes', () => {
+  const e = (id: string) => ({ id, date: '', title: id, notes: [id + ' note'] })
+  it('shows only entries newer than this tab, from the new build', () => {
+    expect(newEntries({ buildId: 'x', latest: [e('c'), e('b'), e('a')] }, 'a').map(x => x.id)).toEqual(['c', 'b'])
+  })
+  it('falls back safely when version.json has no notes', () => {
+    expect(newEntries({ buildId: 'x' }, 'a')).toEqual([])
+    expect(newEntries({ buildId: 'x', latest: 'junk' as any }, 'a')).toEqual([])
+  })
+})
