@@ -68,6 +68,7 @@ export interface GameState {
    * saves of non-admins.
    */
   adminSpire?: number
+  sawmillToast?: boolean // 'Sawmill unlocked by your Crate yard' toast already shown (App.tsx)
   /** Today's weather on the farms (see farm.ts). */
   weather?: 'clear' | 'rain' | 'frost' | 'heat'
   lastReal: number // real ms timestamp of the last advance()
@@ -271,11 +272,30 @@ export function buyField(s: GameState, plot: number): string | null {
   return null
 }
 
+// --------------------------------------------------------------------------
+// Early unlocks. The Crate yard (level 2) needs boards, but boards come from
+// the Sawmill (level 3). So owning a Crate yard unlocks the Sawmill early,
+// whatever its unlockLevel. Every gate (construct here, the build list in
+// App.tsx) goes through buildingUnlocked so they always agree. The server
+// runs no separate building-level check, so it accepts this as well.
+// --------------------------------------------------------------------------
+/** Building type -> building types that unlock it early when owned. */
+export const EARLY_UNLOCK: Record<string, string[]> = { sawmill: ['crateyard'] }
+/** Is `type` unlocked early by a building the player already owns? */
+export const earlyUnlocked = (s: GameState, type: string) =>
+  (EARLY_UNLOCK[type] ?? []).some(by => s.plots.some(b => b?.type === by))
+/** Can this company build `type` right now (level reached, or unlocked early)? */
+export const buildingUnlocked = (s: GameState, type: string) =>
+  !!BLD[type] && (companyLevel(s.xp) >= BLD[type].unlockLevel || earlyUnlocked(s, type))
+/** Is a good unlocked: some building that makes it is unlocked (boards via the Crate yard -> Sawmill rule). */
+export const resUnlocked = (s: GameState, res: string) =>
+  Object.values(BLD).some(b => b.recipes?.includes(res) && buildingUnlocked(s, b.id))
+
 export function construct(s: GameState, plot: number, type: string): string | null {
   const b = BLD[type], lvl = companyLevel(s.xp)
   if (!b) return 'Unknown building'
   if (plot >= plotCount(lvl) || s.plots[plot] || s.adminSpire === plot) return 'That plot is not free'
-  if (lvl < b.unlockLevel) return `Needs company level ${b.unlockLevel}`
+  if (!buildingUnlocked(s, type)) return `Needs company level ${b.unlockLevel}`
   if (s.cash < b.cost) return 'Not enough cash'
   s.cash -= b.cost; L.book(s, 'buildings', -b.cost) // ledger: investing
   s.plots[plot] = { uid: s.nextUid++, type, level: 1, job: { kind: 'build', endH: s.hour + buildHours(1) } }

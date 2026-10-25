@@ -4,6 +4,12 @@ export interface ChangeEntry { id: string; date: string; title: string; notes: s
 
 export const CHANGELOG: ChangeEntry[] = [
   {
+    id: 'sawmill-crateyard-unlock',
+    date: '2026-10-24',
+    title: 'Sawmill unlocks with a Crate yard',
+    notes: ['Crate yards need boards, so owning a Crate yard now unlocks the Sawmill (timber and boards) before level 3.', 'The locked Sawmill card says "or build a Crate yard", and you get a one-time note when it unlocks.'],
+  },
+  {
     id: 'farm-addons',
     date: '2026-10-24',
     title: 'Farm add-ons',

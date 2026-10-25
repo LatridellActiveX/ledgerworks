@@ -131,6 +131,10 @@ export default function App() {
   // every 1 s tick and never got to fire.)
   const latest = useRef(s); latest.current = s
   useEffect(() => { const t = setInterval(() => saveGame(latest.current), 5000); return () => clearInterval(t) }, [])
+  // One-time toast when a Crate yard unlocks the Sawmill before level 3
+  // (E.EARLY_UNLOCK). The flag lives in the save so it shows only once.
+  const sawEarly = !s.sawmillToast && E.earlyUnlocked(s, 'sawmill') && E.companyLevel(s.xp) < BLD.sawmill.unlockLevel
+  useEffect(() => { if (sawEarly) { setMsg('Sawmill unlocked by your Crate yard'); setS(p => ({ ...p, sawmillToast: true })) } }, [sawEarly])
 
   // Every minute: pull shared prices from the server; every 2 minutes: cloud save.
   useEffect(() => {
@@ -403,11 +407,13 @@ function BuildMenu({ s, plot, act, admin = false, onSpire }: { s: E.GameState; p
           <span><b>Trade Spire</b><br /><small>Admin only · free · instant · global economy controls</small></span>
         </button>}
         {BUILDINGS.map(b => {
-          const ok = lvl >= b.unlockLevel
+          const ok = E.buildingUnlocked(s, b.id) // level reached, or early (Crate yard -> Sawmill)
+          // Hint on locked cards that some building would unlock early.
+          const early = Object.entries(E.EARLY_UNLOCK).find(([t]) => t === b.id)?.[1].map(id => BLD[id].name).join(' or ')
           return (
             <button key={b.id} disabled={!ok || s.cash < b.cost} className="buildopt" data-b={b.id} onClick={() => act(st => E.construct(st, plot, b.id))}>
               <span className="mini"><BuildingArt type={b.id} /></span>
-              <span><b>{b.name}</b><br /><small>{ok ? money(b.cost) : `Unlocks at Lv ${b.unlockLevel}`} · {b.kind === 'retail' ? 'shop' : (b.recipes ?? []).map(r => RES[r].name).join(', ')}</small></span>
+              <span><b>{b.name}</b><br /><small>{ok ? money(b.cost) : `Unlocks at Lv ${b.unlockLevel}${early ? ` or build a ${early}` : ''}`} · {b.kind === 'retail' ? 'shop' : (b.recipes ?? []).map(r => RES[r].name).join(', ')}</small></span>
             </button>
           )
         })}
