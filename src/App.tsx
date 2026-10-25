@@ -396,7 +396,6 @@ type Act = (f: (st: E.GameState) => string | null | void) => void
 
 /** List of buildings you can construct on an empty plot. */
 function BuildMenu({ s, plot, act, admin = false, onSpire }: { s: E.GameState; plot: number; act: Act; admin?: boolean; onSpire?: () => void }) {
-  const lvl = E.companyLevel(s.xp)
   return (
     <div>
       <h3>Build on plot {plot + 1}</h3>
