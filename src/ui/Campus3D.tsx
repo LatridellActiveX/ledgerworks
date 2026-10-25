@@ -2,6 +2,7 @@
 // campus when WebGL is missing, the bundle fails to load, or the player
 // switches to 2D. The 3D bundle is a separate file (/scene3d.js), so the
 // game shows instantly and the 3D view fades in when ready.
+import * as FM from '../game/farm'
 import { usePanZoom } from './usePanZoom'
 import { TurboTag } from './TurboChip'
 import { useEffect, useRef, useState } from 'react'
@@ -156,7 +157,7 @@ export function Campus3D({ s, slots, sel, onPick, mode, onCollect, spire }: { s:
   useEffect(() => {
     handle.current?.update({
       // The spire is drawn as a pseudo plot here only (render snapshot), never in s.plots.
-      plots: s.plots.map((b, i) => i === spire && !b ? { type: 'spire', level: 1, busy: false, building: false, act: 'idle' as const } : b ? { type: b.type, level: b.level, busy: !!b.job && b.job.kind !== 'build', building: b.job?.kind === 'build', act: activityOf(s, b)?.state ?? 'idle', fields: b.fields?.map(f => (f.job?.kind === 'make' ? f.job.res : '')) /* farm fields: crop per patch, '' = bare soil */ } : null),
+      plots: s.plots.map((b, i) => i === spire && !b ? { type: 'spire', level: 1, busy: false, building: false, act: 'idle' as const } : b ? { type: b.type, level: b.level, busy: !!b.job && b.job.kind !== 'build', building: b.job?.kind === 'build', act: activityOf(s, b)?.state ?? 'idle', fields: b.fields?.map(f => (f.job?.kind === 'make' ? f.job.res : '')) /* farm fields: crop per patch, '' = bare soil */, kit: FM.farmKit(b) } : null),
       slots, hour: s.hour, sel,
     })
   })

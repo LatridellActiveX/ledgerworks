@@ -127,6 +127,7 @@ export function farmDay(s: GameState, r: number): string[] {
     const j = bd.job
     if (!j || j.kind !== 'make') { bd.soil = soilRecover(bd.soil ?? 1); continue }
     if (j.ripeH !== undefined) continue
+    if (bd.greenhouse) continue // under glass: no rain boost, no heat, no frost
     if (w === 'rain') speedUp(j, s.hour, 0.1)
     if (w === 'heat' && !bd.irrigated) speedUp(j, s.hour, -0.08)
     if (w === 'frost' && s.hour - (j.tendH ?? -Infinity) > 24) {
@@ -138,3 +139,59 @@ export function farmDay(s: GameState, r: number): string[] {
   out.push(`Weather: ${WEATHER[w].label}. ${WEATHER[w].note}`)
   return [...out, ...notes]
 }
+
+// --------------------------------------------------------------------------
+// Farm add-ons (soil stars, crop rotation, greenhouse, tractor, sprinkler).
+//
+//  - Soil stars: every field carries a 1-5 star rating (`Building.stars`),
+//    starting at 3. Each harvest wears it down a little (STAR_WEAR). Output
+//    at harvest moves STAR_OUT (10%) per star, measured against 3 stars, so
+//    5 stars = +20% and 1 star = -20%. This sits on top of the older hidden
+//    `soil` pace value, which still sets how fast a crop grows.
+//  - Compost (+1 star) and fertilizer (+2 stars) are consumables: cash spent,
+//    nothing kept on the books (like grafts).
+//  - Crop rotation: after ROTATE_AFTER harvests of the same crop in a row,
+//    planting a different crop restores +1 star for free.
+//  - Greenhouse (per field): weather and economy/season slumps can't touch
+//    the field, and crops grow GH_SPEED faster.
+//  - Tractor (per farm, stored on the main farm building): every crop on
+//    the farm needs TRACTOR_CUT less time to be ready for harvest.
+//  - Sprinkler (irrigation tier 2, per field, needs the drip line): +15%
+//    output at harvest.
+// Greenhouse, tractor and sprinkler are durable kit: they count at cost
+// toward book value, Company Value and the balance sheet (engine.upgradesValue).
+// --------------------------------------------------------------------------
+export const STAR_START = 3
+export const STAR_MIN = 1
+export const STAR_MAX = 5
+export const STAR_WEAR = 0.2 // stars lost per harvest (five harvests = one star)
+export const STAR_OUT = 0.1 // output change per star away from 3
+export const COMPOST_COST = 2000
+export const FERTILIZER_COST = 4000
+export const ROTATE_AFTER = 3 // same-crop harvests in a row before rotating pays off
+export const GREENHOUSE_COST = 12000
+export const GH_SPEED = 0.15 // +15% growth speed
+export const TRACTOR_COST = 8000
+export const TRACTOR_CUT = 0.2 // -20% time to harvest
+export const SPRINKLER_OUT = 0.15 // +15% output
+/** Sprinkler price: like the drip line it scales with the field's size (0.6x fields pay 0.6x). */
+export const sprinklerCost = (level: number) => Math.round(3000 * level)
+
+/** A field's stars (old saves without a rating read as the starting 3). */
+export const starsOf = (bd: { stars?: number }) => bd.stars ?? STAR_START
+/** Clamp a star value into 1..5. */
+export const clampStars = (v: number) => Math.min(STAR_MAX, Math.max(STAR_MIN, v))
+/** Harvest output multiplier from soil stars and the sprinkler. */
+export const outMult = (bd: { stars?: number; sprinkler?: boolean }) =>
+  (1 + STAR_OUT * (starsOf(bd) - STAR_START)) * (bd.sprinkler ? 1 + SPRINKLER_OUT : 1)
+/** Grow-time multiplier from the greenhouse (faster) and the farm's tractor (shorter). */
+export const timeMult = (bd: { greenhouse?: boolean }, tractor?: boolean) =>
+  (bd.greenhouse ? 1 / (1 + GH_SPEED) : 1) * (tractor ? 1 - TRACTOR_CUT : 1)
+
+/**
+ * Short string of a farm's visible add-ons for the map art and the 3D redraw
+ * key: 'T' if it owns a tractor, then one char per unit (main field first)
+ * - 'g' greenhouse, '-' none. Non-farms get ''.
+ */
+export const farmKit = (bd: { type: string; tractor?: boolean; greenhouse?: boolean; fields?: { greenhouse?: boolean }[] }) =>
+  isFarm(bd.type) ? (bd.tractor ? 'T' : '') + [bd, ...(bd.fields ?? [])].map(u => (u.greenhouse ? 'g' : '-')).join('') : ''

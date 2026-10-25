@@ -4,6 +4,20 @@ export interface ChangeEntry { id: string; date: string; title: string; notes: s
 
 export const CHANGELOG: ChangeEntry[] = [
   {
+    id: 'farm-addons',
+    date: '2026-10-24',
+    title: 'Farm add-ons',
+    notes: [
+      'Soil stars: every field has 1 to 5 stars (starts at 3). Each star is about 10% more or less harvest than 3 stars, and harvests slowly wear it down.',
+      'Compost ($2,000, +1 star) and fertilizer ($4,000, +2 stars) top up the soil. They are used up, so they do not add to Company Value.',
+      'Crop rotation: after 3 harvests of the same crop, planting something different restores +1 star for free.',
+      'Greenhouse ($12,000 per field): no weather or slumps, and crops grow 15% faster.',
+      'Tractor ($8,000 per farm): every field is ready to harvest 20% sooner.',
+      'Sprinkler ($3,000 per full field, needs the drip line): +15% harvest.',
+      'Greenhouses, tractors and sprinklers count at cost toward building value, Company Value and the balance sheet. Existing fields start at 3 stars.',
+    ],
+  },
+  {
     id: 'internal-tools-2',
     date: '2026-10-24',
     title: 'Internal tools',

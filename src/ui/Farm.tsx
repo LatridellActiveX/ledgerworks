@@ -34,6 +34,9 @@ export function FarmPlot({ s, plot, act }: { s: E.GameState; plot: number; act: 
   const j = bd.job?.kind === 'make' ? bd.job : undefined
   const weather: FM.Weather = s.weather ?? 'clear'
   const soil = bd.soil ?? 1
+  const stars = FM.starsOf(bd) // 1-5 soil stars (add-ons, farm.ts)
+  const farm = E.farmOf(s, plot) // main farm building: owns the tractor
+  const rotateReady = (bd.streak ?? 0) >= FM.ROTATE_AFTER && stars < FM.STAR_MAX
   const crop = CROP[j?.res ?? ''] ?? CROP.seeds
   const ripe = j?.ripeH !== undefined
   const late = ripe && s.hour - j!.ripeH! >= FM.LATE_H
@@ -71,13 +74,22 @@ export function FarmPlot({ s, plot, act }: { s: E.GameState; plot: number; act: 
           {(stage === 'ripe' || stage === 'late') && <circle cx={p.x} cy={p.y - 26} r="5" fill={stage === 'late' ? '#a88f6a' : crop.fruit} stroke="#fff" strokeWidth="1" />}
         </g>
       })}
+      {/* Greenhouse: a pale glass pane with frame lines over the whole scene. */}
+      {bd.greenhouse && <g className="fx-glass"><rect x="4" y="40" width={W - 8} height={H - 44} fill="#dff4fb" opacity="0.28" stroke="#9cc9d6" strokeWidth="2" />
+        {[1, 2, 3, 4, 5].map(i => <line key={i} x1={4 + i * (W - 8) / 6} y1="40" x2={4 + i * (W - 8) / 6} y2={H - 4} stroke="#9cc9d6" strokeWidth="1" opacity="0.7" />)}</g>}
+      {/* Sprinkler heads on the drip line. */}
+      {bd.sprinkler && [60, 160, 260].map(x => <g key={x}><line x1={x} y1={H - 70} x2={x} y2={H - 82} stroke="#3a8fd0" strokeWidth="2" /><circle cx={x} cy={H - 84} r="3" fill="#3a8fd0" /></g>)}
+      {/* Tractor prop (farm-wide). */}
+      {farm?.tractor && <g transform={`translate(10 ${H - 30})`}><rect x="0" y="0" width="26" height="11" rx="2" fill="#3f9a3a" /><rect x="14" y="-9" width="10" height="9" fill="#cfe3f3" stroke="#2f6b2a" /><circle cx="20" cy="13" r="7" fill="#222" /><circle cx="5" cy="14" r="4" fill="#222" /></g>}
       {bd.graft && <g><circle cx={W - 18} cy={H - 96} r="10" fill="#fff" stroke="#7b61ff" strokeWidth="2" /><text x={W - 18} y={H - 92} fontSize="11" textAnchor="middle" fill="#7b61ff" fontWeight="700">G</text></g>}
       <text x="8" y="18" fontSize="12" fill="#2c3e2a" fontWeight="700">{j ? `${RES[j.res].name} Q${ripe ? FM.ripeQuality(j.q, j.ripeH!, s.hour) : j.q}` : 'Bare soil'}</text>
       <text x={W - 8} y="66" fontSize="11" textAnchor="end" fill="#2c3e2a">{FM.WEATHER[weather].icon} {FM.WEATHER[weather].label}</text>
     </svg>
     <div className="farm-stats">
       <div>Soil <span className="bar"><i style={{ width: `${Math.min(100, (soil / FM.SOIL_MAX) * 100)}%` }} /></span> {Math.round(soil * 100)}%</div>
-      <div className="muted">{FM.WEATHER[weather].note}</div>
+      <div aria-label={`Soil ${stars.toFixed(1)} of 5 stars`}>Soil stars <span className="stars">{'★'.repeat(Math.round(stars))}{'☆'.repeat(5 - Math.round(stars))}</span> {stars.toFixed(1)} · output {Math.round((FM.outMult(bd) - 1) * 100) >= 0 ? '+' : ''}{Math.round((FM.outMult(bd) - 1) * 100)}%</div>
+      {bd.lastCrop && <div className="muted">{rotateReady ? `Rotation ready: plant something other than ${RES[bd.lastCrop]?.name ?? bd.lastCrop} for +1 star free.` : `Last crop ${RES[bd.lastCrop]?.name ?? bd.lastCrop} ×${bd.streak ?? 0}. Switch after ${FM.ROTATE_AFTER} for a free star.`}</div>}
+      <div className="muted">{bd.greenhouse ? 'Greenhouse: weather and slumps can’t reach this field.' : FM.WEATHER[weather].note}</div>
       {j && !ripe && <div>Ripens in {Math.ceil(E.jobLeft(s, j) * 60)} min <TurboTag on={E.boosts(j)} /> · tended {j.tends ?? 0}×</div>}
       {ripe && <div className={late ? 'err' : 'ok-note'}>{late ? 'Late: losing quality. Harvest now.' : 'Ripe. Harvest now before it loses value.'}</div>}
     </div>
@@ -87,6 +99,15 @@ export function FarmPlot({ s, plot, act }: { s: E.GameState; plot: number; act: 
       {!bd.irrigated && <button onClick={() => act(st => E.irrigate(st, plot))}>Drip line {money(Math.round(2500 * bd.level))}</button>}
       {!bd.graft && !j && <button onClick={() => act(st => E.graft(st, plot))}>Graft {money(Math.round(300 * bd.level))} · 3 seeds · {Math.round(FM.GRAFT_CHANCE * 100)}%</button>}
     </div>
+    {/* Farm add-ons: soil care is consumable; kit counts toward building value. */}
+    <div className="row farm-actions farm-addons">
+      {stars < FM.STAR_MAX && <button onClick={() => act(st => E.feedSoil(st, plot, 'compost'))}>Compost +1★ {money(FM.COMPOST_COST)}</button>}
+      {stars < FM.STAR_MAX && <button onClick={() => act(st => E.feedSoil(st, plot, 'fertilizer'))}>Fertilizer +2★ {money(FM.FERTILIZER_COST)}</button>}
+      {!bd.greenhouse && <button onClick={() => act(st => E.buildGreenhouse(st, plot))}>Greenhouse {money(FM.GREENHOUSE_COST)}</button>}
+      {bd.irrigated && !bd.sprinkler && <button onClick={() => act(st => E.addSprinkler(st, plot))}>Sprinkler +15% {money(FM.sprinklerCost(bd.level))}</button>}
+      {farm && !farm.tractor && <button onClick={() => act(st => E.buyTractor(st, plot))}>Tractor (farm) {money(FM.TRACTOR_COST)}</button>}
+    </div>
+    <small className="muted">Add-ons: each soil star is ±10% output vs 3★, and harvests slowly wear it. Greenhouse: no weather or slumps, +15% growth. Tractor: −20% time to harvest on every field. Sprinkler (needs the drip line): +15% output. Kit counts toward Company Value; compost and fertilizer don't.</small>
     <small className="muted">Tending speeds growth; three tends during a crop give it +1 quality. Unharvested crops slowly lose value. Frost spares plots tended in the last day. Irrigation saves a third of the water.</small>
   </div>
 }

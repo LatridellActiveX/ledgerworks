@@ -31,7 +31,7 @@ import { buildModel, plotGround, type Emitter } from './models'
 // --------------------------------------------------------------------------
 // Public types
 // --------------------------------------------------------------------------
-export interface PlotSnap { type: string; level: number; busy: boolean; building: boolean; act?: 'make' | 'sell' | 'idle' | 'build' | 'done'; fields?: string[] /* farms: crop on each extra field ('' = empty) */ }
+export interface PlotSnap { type: string; level: number; busy: boolean; building: boolean; act?: 'make' | 'sell' | 'idle' | 'build' | 'done'; fields?: string[] /* farms: crop on each extra field ('' = empty) */; kit?: string /* farms: add-ons, farm.ts farmKit */ }
 export interface Snapshot { plots: (PlotSnap | null)[]; slots: number; hour: number; sel: number | null }
 export interface SceneHandle { update(s: Snapshot): void; dispose(): void; snapshot(): string; rotate(dir: 1 | -1): void; screenPos(i: number): { x: number; y: number } | null }
 
@@ -241,7 +241,7 @@ export function mount(el: HTMLElement, opts: { onPick: (i: number) => void; qual
   function model(p: PlotSnap, i: number) {
     // The admin-only Trade Spire is not a BuildingType (it must not appear in any list), so it gets a stand-in.
     const b = BLD[p.type] ?? { name: 'Trade Spire', color: '#7cc3ea', kind: 'production' as const }
-    const m = buildModel(p.type, p.level, b.name, b.color, b.kind, i * 31 + 7, p.fields)
+    const m = buildModel(p.type, p.level, b.name, b.color, b.kind, i * 31 + 7, p.fields, p.kit)
     // Soft contact shadow (cheap ambient-occlusion look).
     const cs = mesh(new THREE.PlaneGeometry(9.6, 9.6), new THREE.MeshBasicMaterial({ color: '#000', transparent: true, opacity: 0.12, depthWrite: false }), 0, 0.12, 0, false)
     cs.rotation.x = -Math.PI / 2; m.g.add(cs)
@@ -429,7 +429,7 @@ export function mount(el: HTMLElement, opts: { onPick: (i: number) => void; qual
     for (let i = 0; i < COLS * ROWS; i++) {
       const p = s.plots[i]
       // Farm fields are in the key so buying or planting a field redraws its patch.
-      const key = p ? `${p.type}|${Math.min(p.level, 20)}|${p.building}|${p.fields?.join(',') ?? ''}` : ''
+      const key = p ? `${p.type}|${Math.min(p.level, 20)}|${p.building}|${p.fields?.join(',') ?? ''}|${p.kit ?? ''}` : ''
       if ((built[i]?.key ?? '') !== key) {
         if (built[i]) { scene.remove(built[i]!.g); built[i]!.g.traverse(o => (o as THREE.Mesh).geometry?.dispose()); built[i] = null }
         if (p) {

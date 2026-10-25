@@ -49,7 +49,9 @@ export type Job =
 // over (made goods, or sold units already paid), `gotC` = cents already paid
 // for a sale, `lastH` = game hour of the last collection.
 
-export interface Building { uid: number; type: string; level: number; job?: Job; abund?: Record<string, number>; soil?: number; irrigated?: boolean; graft?: boolean; mods?: string[] /* shop fittings bought (shop.ts) */; till?: number /* registers added */; clerk?: boolean /* shift clerk on */; fields?: Building[] /* farms: extra fields, see farm.ts FIELD_* */ }
+export interface Building { uid: number; type: string; level: number; job?: Job; abund?: Record<string, number>; soil?: number; irrigated?: boolean; graft?: boolean; mods?: string[] /* shop fittings bought (shop.ts) */; till?: number /* registers added */; clerk?: boolean /* shift clerk on */; fields?: Building[] /* farms: extra fields, see farm.ts FIELD_* */
+  // Farm add-ons (farm.ts): soil stars 1-5, crop rotation tracking, greenhouse, sprinkler, tractor (main farm only).
+  stars?: number; lastCrop?: string; streak?: number; greenhouse?: boolean; sprinkler?: boolean; tractor?: boolean }
 
 export interface GameState {
   version: 1
@@ -329,7 +331,13 @@ export function upgrade(s: GameState, plot: number): string | null {
 export const dripCost = (level: number) => Math.round(2500 * level)
 export function upgradesValue(bd: Building): number {
   let v = FM.fieldsPaid(bd.fields?.length ?? 0)
-  for (const u of [bd, ...(bd.fields ?? [])]) if (u.irrigated) v += dripCost(u.level)
+  for (const u of [bd, ...(bd.fields ?? [])]) {
+    if (u.irrigated) v += dripCost(u.level)
+    // Farm add-ons count at cost. Compost/fertilizer are consumables and are NOT here.
+    if (u.sprinkler) v += FM.sprinklerCost(u.level)
+    if (u.greenhouse) v += FM.GREENHOUSE_COST
+  }
+  if (bd.tractor) v += FM.TRACTOR_COST // farm-wide, stored on the main farm
   const base = BLD[bd.type]?.cost ?? 0
   for (const id of bd.mods ?? []) v += Math.round(base * (fittingOf(id)?.share ?? 0))
   for (let i = 0; i < (bd.till ?? 0); i++) v += Math.round(base * tillShare(i))
@@ -387,7 +395,13 @@ export function startMake(s: GameState, plot: number, res: string, qty: number):
   // Farms: a plot rolls its soil the first time it plants, and soil sets the pace.
   if (FM.isFarm(bd.type) && bd.soil === undefined) bd.soil = FM.rollSoil(() => { const [r, n] = rand(s.seed); s.seed = n; return r })
   const soil = FM.isFarm(bd.type) ? bd.soil ?? 1 : 1
-  const hours = makeHours(res, qty, bd.level, bd.type, s, (bd.abund?.[res] ?? 1) * soil), wages = makeWages(bd.type, bd.level, hours, s)
+  // Greenhouse fields ignore slumps: if the economy phase or season would slow
+  // the farm (factor < 1), we cancel it out by lifting abundance by 1/factor.
+  const slump = FM.isFarm(bd.type) ? productionMult(bd.type, s.phase) * SEA.seasonProd(bd.type, s.seasonPhase) : 1
+  const shield = bd.greenhouse && slump < 1 ? 1 / slump : 1
+  // Greenhouse growth speed and the farm's tractor shorten the grow time.
+  const tm = FM.isFarm(bd.type) ? FM.timeMult(bd, farmOf(s, plot)?.tractor) : 1
+  const hours = Math.max(MIN_JOB_H, makeHours(res, qty, bd.level, bd.type, s, (bd.abund?.[res] ?? 1) * soil * shield) * tm), wages = makeWages(bd.type, bd.level, hours, s)
   if (s.cash < wages) return 'Not enough cash for wages'
   // A drip line cuts the water needed; everything else is as the recipe says.
   const inputs = Object.fromEntries(Object.entries(rc.inputs).map(([k, v]) => [k, k === 'water' && FM.isFarm(bd.type) ? v * FM.waterFactor(bd.irrigated) : v]))
@@ -404,6 +418,11 @@ export function startMake(s: GameState, plot: number, res: string, qty: number):
   }
   // A graft lifts the next crop from this plot one quality step, once.
   if (bd.graft && FM.isFarm(bd.type)) { q = Math.min(MAX_QUALITY, q + 1); bd.graft = false }
+  // Crop rotation: a different crop after ROTATE_AFTER same-crop harvests gives +1 star, free.
+  if (FM.isFarm(bd.type) && bd.lastCrop && bd.lastCrop !== res) {
+    if ((bd.streak ?? 0) >= FM.ROTATE_AFTER && FM.starsOf(bd) < FM.STAR_MAX) { bd.stars = FM.clampStars(FM.starsOf(bd) + 1); say(s, 'Crop rotation restored +1 soil star.') }
+    bd.streak = 0
+  }
   s.cash -= wages; L.book(s, 'wages', -wages)
   bd.job = { kind: 'make', res, qty, q, startH: s.hour, endH: s.hour + hours, uc: (inCost + wages) / qty, src: inCost, wg: wages }
   return null
@@ -656,10 +675,15 @@ export function harvest(s: GameState, plot: number): string | null {
   const bd = unitAt(s, plot), j = bd?.job
   if (!bd || !j || j.kind !== 'make' || j.ripeH === undefined) return 'Not ripe yet'
   const p = pending(s, bd)!
-  const units = Math.max(0, p.units)
+  // Soil stars and the sprinkler scale what comes off the field.
+  const units = Math.max(0, Math.round(p.units * FM.outMult(bd)))
   if (units > 0) { setWhy('harvested'); addStock(s, j.res, p.q, units, j.uc); madeNote(s, j.res, units) }
   s.xp += makeWages(bd.type, bd.level, j.endH - j.startH) / 50
   bd.soil = FM.soilAfterHarvest(bd.soil ?? 1)
+  // Each harvest wears the stars a little and extends the same-crop streak.
+  bd.stars = FM.clampStars(FM.starsOf(bd) - FM.STAR_WEAR)
+  bd.streak = bd.lastCrop === j.res ? (bd.streak ?? 0) + 1 : 1
+  bd.lastCrop = j.res
   bd.job = undefined
   return null
 }
@@ -686,6 +710,53 @@ export function irrigate(s: GameState, plot: number): string | null {
   if (s.cash < cost) return 'Not enough cash'
   s.cash -= cost; L.book(s, 'otherOut', -cost) // farm care
   bd.irrigated = true
+  return null
+}
+
+/** The main farm building a plot ref belongs to (fields share the farm's tractor). */
+export const farmOf = (s: GameState, ref: number) => (ref < FM.FIELD_REF ? s.plots[ref] : s.plots[FM.splitRef(ref).plot]) ?? undefined
+
+/** Pay cash for a farm add-on, booked as farm care like the drip line. */
+function payFarm(s: GameState, cost: number): string | null {
+  if (s.cash < cost) return 'Not enough cash'
+  s.cash -= cost; L.book(s, 'otherOut', -cost)
+  return null
+}
+/** Compost (+1 star) or fertilizer (+2 stars) on one field. Consumable: not on the books. */
+export function feedSoil(s: GameState, ref: number, kind: 'compost' | 'fertilizer'): string | null {
+  const bd = unitAt(s, ref)
+  if (!bd || !FM.isFarm(bd.type)) return 'Only farm fields have soil'
+  if (FM.starsOf(bd) >= FM.STAR_MAX) return 'Soil is already 5 stars'
+  const e = payFarm(s, kind === 'compost' ? FM.COMPOST_COST : FM.FERTILIZER_COST); if (e) return e
+  bd.stars = FM.clampStars(FM.starsOf(bd) + (kind === 'compost' ? 1 : 2))
+  return null
+}
+/** Build a greenhouse over one field. Works mid-crop: it only shields from now on. */
+export function buildGreenhouse(s: GameState, ref: number): string | null {
+  const bd = unitAt(s, ref)
+  if (!bd || !FM.isFarm(bd.type)) return 'Only farm fields can have a greenhouse'
+  if (bd.greenhouse) return 'Already has a greenhouse'
+  const e = payFarm(s, FM.GREENHOUSE_COST); if (e) return e
+  bd.greenhouse = true
+  return null
+}
+/** Add a sprinkler (irrigation tier 2) to a field that already has a drip line. */
+export function addSprinkler(s: GameState, ref: number): string | null {
+  const bd = unitAt(s, ref)
+  if (!bd || !FM.isFarm(bd.type)) return 'Only farm fields can have a sprinkler'
+  if (!bd.irrigated) return 'Needs a drip line first'
+  if (bd.sprinkler) return 'Already has a sprinkler'
+  const e = payFarm(s, FM.sprinklerCost(bd.level)); if (e) return e
+  bd.sprinkler = true
+  return null
+}
+/** Buy the farm's tractor (farm-wide; pass any field ref of the farm). Applies to crops planted from now on. */
+export function buyTractor(s: GameState, ref: number): string | null {
+  const farm = farmOf(s, ref)
+  if (!farm || !FM.isFarm(farm.type)) return 'Only farms can have a tractor'
+  if (farm.tractor) return 'Already has a tractor'
+  const e = payFarm(s, FM.TRACTOR_COST); if (e) return e
+  farm.tractor = true
   return null
 }
 

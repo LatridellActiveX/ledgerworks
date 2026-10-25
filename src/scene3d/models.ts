@@ -420,7 +420,7 @@ export function plotGround(k: Kit, px: number, pz: number, size: number, idx: nu
 // --------------------------------------------------------------------------
 /** Plant colour per crop on a farm field patch (unknown crops: generic green). */
 const FIELD_CROP: Record<string, string> = new Proxy({ seeds: '#c9b37e', wheat: '#e6c15a', apples: '#d9483b', berries: '#7b2fa3', greens: '#5fae4c', cotton: '#f4f1ea', oranges: '#f39a2b' } as Record<string, string>, { get: (t, k: string) => (k === '' ? undefined : t[k] ?? '#6cb35a') })
-export function buildModel(type: string, level: number, name: string, color: string, kind: 'production' | 'retail', seed: number, fields: string[] = []): Built {
+export function buildModel(type: string, level: number, name: string, color: string, kind: 'production' | 'retail', seed: number, fields: string[] = [], kit = ''): Built {
   const k = new Kit()
   const L = Math.max(1, Math.min(level, 20))
   const fl = (base: number, max: number) => Math.min(max, base + Math.floor(L / 2))
@@ -536,6 +536,21 @@ export function buildModel(type: string, level: number, name: string, color: str
           }
         }
       })
+      // Farm add-ons (farm.ts farmKit: 'T' tractor, then g/- per unit, main first).
+      const gh = kit.replace('T', '')
+      // Greenhouse glass: a clear box over each extra field patch that has one,
+      // and a small glasshouse at the back-left for the main field.
+      gh.split('').forEach((c, i) => {
+        if (c !== 'g') return
+        if (i === 0) k.box(2.2, 1.6, 1.6, glassM(false), -3.4, 0, -4.6)
+        else if (fields.length) k.box(1.7, 1.0, 2.1, glassM(false), -4.0 + (i - 1) * 1.75, 0.12, 3.0)
+      })
+      // Tractor prop by the shed: green body, cab glass, two big rear wheels.
+      if (kit.includes('T')) {
+        k.box(0.9, 0.45, 0.55, M('#3f9a3a', 'metal'), 4.3, 0.3, 1.0)
+        k.box(0.4, 0.45, 0.5, glassM(true), 4.1, 0.75, 1.0)
+        for (const dz of [-0.33, 0.33]) k.cyl(0.32, 0.32, 0.14, M('#222'), 3.95, 0.32, 1.0 + dz, 10)
+      }
       sign(k, name, '#4f8a3c', -3.2, 0.2, 3.6, 2.2)
       break
     }

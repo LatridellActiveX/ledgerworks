@@ -308,7 +308,7 @@ function ground(p: Pen) {
 const fl = (L: number, base: number, max: number) => Math.min(max, base + Math.floor(L / 2))
 
 /** Draw one building type at level L into the pen. Mirrors models.ts. */
-function model(p: Pen, type: string, level: number) {
+function model(p: Pen, type: string, level: number, kit = '') {
   const bt = BLD[type], col = bt.color, L = Math.max(1, Math.min(level, 20)), name = bt.name
   const gear = Math.min(4, 1 + Math.floor(L / 4))
   /** Annex wings that grow in at levels 5 and 12. */
@@ -346,6 +346,10 @@ function model(p: Pen, type: string, level: number) {
       for (let r = 0; r < 3; r++) for (let c = 0; c < 3 + Math.min(2, Math.floor(L / 5)); c++) tree(p, -0.65 + c * 0.3, -0.6 + r * 0.38, 0.9 + Math.min(L, 8) * 0.03, c % 2 ? '#8fcf7a' : '#6fb35a')
       box(p, { u: 0.55, v: 0.5, a: 0.18, b: 0.14, h: 12, color: '#e9c9a3', roof: 'gable', roofColor: '#9c6b45', door: true })
       pallet(p, 0.3, 0.65, '#ef6f6c', 2)
+      // Farm add-ons (farmKit in farm.ts): a glass greenhouse when any field has
+      // one, and a little green tractor when the farm owns one. Cheap boxes only.
+      if (kit.includes('g')) box(p, { u: -0.5, v: 0.55, a: 0.2, b: 0.14, h: 9, color: '#cfe8ee', glassy: true, floors: 1, roof: 'gable', roofColor: '#e2f3f8', door: false, cornice: false })
+      if (kit.includes('T')) { car(p, 0.0, 0.7, '#3f9a3a'); box(p, { u: 0.05, v: 0.7, a: 0.03, b: 0.03, z: 3.5, h: 4, color: '#2f2f2f', roof: 'none', cornice: false, door: false }) }
       break
     }
     case 'barnyard': case 'ranch': {
@@ -550,10 +554,10 @@ function pipe(p: Pen, u0: number, u1: number, v: number) {
  * One detailed building (plus its plot ground) at screen (x,y).
  * `ground` false for thumbnails that draw their own base.
  */
-export function Model2D({ type, level, busy, night, x, y, withGround = true }: { type: string; level: number; busy: boolean; night: boolean; x: number; y: number; withGround?: boolean }) {
+export function Model2D({ type, level, busy, night, x, y, withGround = true, kit = '' }: { type: string; level: number; busy: boolean; night: boolean; x: number; y: number; withGround?: boolean; kit?: string /* farm add-ons, see farm.ts farmKit */ }) {
   const p = new Pen(x, y, night, busy)
   if (withGround) ground(p)
-  if (BLD[type]) model(p, type, level)
+  if (BLD[type]) model(p, type, level, kit)
   return <g className={busy ? 'm2 busy' : 'm2 idle'}>{p.render()}</g>
 }
 

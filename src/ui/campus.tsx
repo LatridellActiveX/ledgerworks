@@ -11,6 +11,7 @@
 //    game clock (day / dusk / night). [Removed Oct 2026: always daylight now.]
 // All animation is CSS or SVG <animate>, so it costs almost no JS.
 // ============================================================================
+import * as FM from '../game/farm'
 import type { GameState } from '../game/engine'
 import { Defs2D, Ground2D, Model2D , SpireArt } from './campus2d'
 
@@ -73,7 +74,7 @@ export function Campus({ s, slots, sel, onPick, spire }: { s: GameState; slots: 
             {!bd && !locked && i === spire && <SpireArt x={x} y={y} />}
             {!bd && !locked && i !== spire && <text x={x} y={y + 5} textAnchor="middle" className="plus">+</text>}
             {locked && <text x={x} y={y + 5} textAnchor="middle" className="lock">🔒</text>}
-            {bd && <Model2D type={bd.type} level={bd.level} busy={!!j && j.kind !== 'build'} night={night} x={x} y={y} />}
+            {bd && <Model2D type={bd.type} level={bd.level} busy={!!j && j.kind !== 'build'} night={night} x={x} y={y} kit={FM.farmKit(bd)} />}
             {bd && j?.kind === 'build' && <g className="scaffold"><rect x={x - 20} y={y - 40} width="40" height="36" fill="none" stroke="#e3b23c" strokeDasharray="4 3" /></g>}
             {bd && (
               <g transform={`translate(${x - 52},${y - 4})`}>

@@ -1,3 +1,4 @@
+import { isFarm, STAR_START } from './farm'
 import { currentBases, rebaseFactors, rebaseRef } from './rebase'
 // Browser saves: the whole GameState is JSON in localStorage, plus a
 // copy/paste save code (base64 of the JSON) for moving between browsers.
@@ -75,6 +76,12 @@ export function migrate(s: any): GameState {
   }
   out.refBase = currentBases() // remember the bases these prices now sit on
   seedHistory(out) // older saves get a chart history too
+  // Farm add-ons (Oct 2026): older farm fields get the starting 3 soil stars.
+  // Greenhouse/sprinkler/tractor simply read as not bought (undefined).
+  for (const bd of out.plots ?? []) {
+    if (!bd || !isFarm(bd.type)) continue
+    for (const u of [bd, ...(bd.fields ?? [])]) if (u.stars === undefined) u.stars = STAR_START
+  }
   return out
 }
 
